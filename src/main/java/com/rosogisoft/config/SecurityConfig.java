@@ -1,0 +1,125 @@
+package com.rosogisoft.config;
+
+import com.rosogisoft.web.LoginSuccessHandler;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.security.ldap.authentication.BindAuthenticator;
+import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.ldap.core.support.LdapContextSource;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Value("${app.ldap.url}")
+    private String ldapUrl;
+
+    @Value("${app.ldap.base-dn}")
+    private String baseDn;
+
+    @Value("${app.ldap.user-dn-pattern}")
+    private String userDnPattern;
+
+    @Value("${app.ldap.group-search-base:ou=groups}")
+    private String groupSearchBase;
+
+    @Value("${app.ldap.manager-dn:}")
+    private String managerDn;
+
+    @Value("${app.ldap.manager-password:}")
+    private String managerPassword;
+
+    @Autowired
+    private LoginSuccessHandler loginSuccessHandler;
+
+    // ---------------------------------------------------------------
+    // Chain 1: user mock-ports (9000–9999) — no auth, no CSRF
+    // ---------------------------------------------------------------
+    @Bean
+    @Order(1)
+    public SecurityFilterChain userPortChain (HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(request -> {
+                    int port = request.getLocalPort();
+                    return port >= 9000 && port <= 9999;
+                })
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable);
+        return http.build();
+    }
+
+    // ---------------------------------------------------------------
+    // Chain 2: admin UI (port 8080) — form login, LDAP auth
+    // ---------------------------------------------------------------
+    @Bean
+    @Order(2)
+    public SecurityFilterChain adminChain (HttpSecurity http,
+                                           AuthenticationManager authenticationManager) throws Exception {
+        http
+                .authenticationManager(authenticationManager)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/login", "/webjars/**", "/css/**", "/js/**", "/favicon.ico").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .successHandler(loginSuccessHandler)
+                        .failureUrl("/login?error")
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .permitAll()
+                );
+        return http.build();
+    }
+
+    // ---------------------------------------------------------------
+    // LDAP Context Source
+    // ---------------------------------------------------------------
+    @Bean
+    public LdapContextSource ldapContextSource () {
+        LdapContextSource source = new LdapContextSource();
+        source.setUrl(ldapUrl);
+        source.setBase(baseDn);
+        if (managerDn != null && !managerDn.isBlank()) {
+            source.setUserDn(managerDn);
+            source.setPassword(managerPassword);
+        }
+        return source;
+    }
+
+    // ---------------------------------------------------------------
+    // AuthenticationManager with LDAP bind
+    // ---------------------------------------------------------------
+    @Bean
+    public AuthenticationManager ldapAuthenticationManager (LdapContextSource contextSource) {
+        BindAuthenticator authenticator = new BindAuthenticator(contextSource);
+        authenticator.setUserDnPatterns(new String[]{userDnPattern});
+
+        DefaultLdapAuthoritiesPopulator authoritiesPopulator =
+                new DefaultLdapAuthoritiesPopulator(contextSource, groupSearchBase);
+        authoritiesPopulator.setGroupRoleAttribute("cn");
+        authoritiesPopulator.setGroupSearchFilter("(uniqueMember={0})");
+        authoritiesPopulator.setSearchSubtree(false);
+
+        LdapAuthenticationProvider provider =
+                new LdapAuthenticationProvider(authenticator, authoritiesPopulator);
+
+        return new ProviderManager(provider);
+    }
+}

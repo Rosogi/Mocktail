@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:with="pageTitle=${editing ? 'Edit Mock' : 'New Mock'}">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title th:text="${pageTitle} + ' – MockServer'">Mock – MockServer</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}"/>
+  <style>
+    body{background:#f8f9fa}
+    .sidebar{width:220px;min-height:100vh;background:#212529;color:#adb5bd;position:fixed;top:0;left:0;padding-top:1rem}
+    .sidebar .brand{color:#fff;font-size:1.2rem;padding:.5rem 1.25rem 1rem;font-weight:600}
+    .sidebar .brand span{color:#0d6efd}
+    .sidebar .nav-link{color:#adb5bd;padding:.45rem 1.25rem}
+    .sidebar .nav-link:hover,.sidebar .nav-link.active{color:#fff;background:#0d6efd22}
+    .sidebar .nav-link i{margin-right:.5rem}
+    .main{margin-left:220px;padding:2rem}
+    .port-badge{font-size:.75rem;background:#0d6efd22;color:#0d6efd;border:1px solid #0d6efd55;padding:2px 8px;border-radius:12px}
+    textarea.code{font-family:monospace;font-size:.82rem}
+    .form-card{max-width:860px}
+  </style>
+</head>
+<body>
+<nav class="sidebar d-flex flex-column">
+  <div class="brand">Mock<span>Server</span></div>
+  <ul class="nav flex-column flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link" th:href="@{/dashboard}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" th:href="@{/mocks}"><i class="bi bi-layers"></i>Mocks</a>
+    </li>
+  </ul>
+  <div class="px-3 pb-3" style="font-size:.8rem">
+    <div class="text-muted mb-1">Вошли как</div>
+    <div class="text-white fw-semibold" th:text="${user.username}">Пользователь</div>
+    <div class="port-badge mt-1">Port: <strong th:text="${user.assignedPort}">9000</strong></div>
+    <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+      <i class="bi bi-box-arrow-right"></i> Выйти
+    </a>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a th:href="@{/mocks}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <h4 class="mb-0" th:text="${editing ? 'Edit mock' : 'New mock'}">Создать Mock</h4>
+  </div>
+
+  <div class="card border-0 shadow-sm form-card">
+    <div class="card-body p-4">
+      <form th:action="${editing ? '/mocks/' + mockId + '/edit' : '/mocks/new'}"
+            method="post" th:object="${form}">
+
+        <!-- Name -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" th:field="*{name}"
+                 placeholder="e.g. Get all users – 200 OK" required/>
+          <div class="form-text">A descriptive label shown in the request log.</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <!-- Method -->
+          <div class="col-sm-3">
+            <label class="form-label fw-semibold">Method</label>
+            <select class="form-select" th:field="*{httpMethod}">
+              <option th:each="m : ${httpMethods}"
+                      th:value="${m.key}"
+                      th:text="${m.value}"></option>
+            </select>
+          </div>
+          <!-- Path pattern -->
+          <div class="col-sm-9">
+            <label class="form-label fw-semibold">Path pattern <span class="text-danger">*</span></label>
+            <input type="text" class="form-control font-monospace" th:field="*{pathPattern}"
+                   placeholder="/api/users/**" required/>
+            <div class="form-text">Ant-style patterns: <code>/api/users</code>, <code>/api/users/**</code>, <code>/api/orders/*</code></div>
+          </div>
+        </div>
+
+        <!-- Body contains -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Request body contains <span class="text-muted fw-normal">(optional)</span></label>
+          <input type="text" class="form-control font-monospace" th:field="*{requestBodyContains}"
+                 placeholder='e.g. "action":"CreateUser" or &lt;GetUser&gt;'/>
+          <div class="form-text">Substring match on the raw request body. Useful for SOAP action dispatch or partial JSON matching.</div>
+        </div>
+
+        <hr class="my-3"/>
+        <h6 class="text-muted mb-3">Response</h6>
+
+        <div class="row g-3 mb-3">
+          <!-- Status -->
+          <div class="col-sm-3">
+            <label class="form-label fw-semibold">Status code</label>
+            <input type="number" class="form-control" th:field="*{responseStatus}"
+                   min="100" max="599"/>
+          </div>
+          <!-- Content-Type -->
+          <div class="col-sm-5">
+            <label class="form-label fw-semibold">Content-Type</label>
+            <select class="form-select" th:field="*{responseContentType}" id="ctSelect">
+              <option th:each="ct : ${contentTypes}"
+                      th:value="${ct.key}"
+                      th:text="${ct.value}"></option>
+            </select>
+          </div>
+          <!-- Priority -->
+          <div class="col-sm-2">
+            <label class="form-label fw-semibold">Priority</label>
+            <input type="number" class="form-control" th:field="*{priority}" min="0" max="999"/>
+            <div class="form-text">Higher = matched first.</div>
+          </div>
+          <!-- Active -->
+          <div class="col-sm-2 d-flex align-items-end pb-1">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" th:field="*{active}" id="activeCheck"/>
+              <label class="form-check-label fw-semibold" for="activeCheck">Active</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response body -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Response body</label>
+          <textarea class="form-control code" th:field="*{responseBody}"
+                    rows="8" placeholder='{ "id": 1, "name": "Alice" }'></textarea>
+        </div>
+
+        <!-- Extra headers -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Дополнительные заголовки ответа<span class="text-muted fw-normal">(опционально)</span></label>
+          <textarea class="form-control code" th:field="*{responseHeadersRaw}"
+                    rows="3" placeholder="X-Custom-Header: value&#10;Cache-Control: no-cache"></textarea>
+          <div class="form-text">Один заголовок на строку в формате <code>Name: Value</code>.</div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-floppy me-1"></i>
+            <span th:text="${editing ? 'Save changes' : 'Create mock'}">Создать</span>
+          </button>
+          <a th:href="@{/mocks}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login – MockServer</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+  <style>
+    body { background: #212529; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .login-card { width: 380px; }
+    .brand { font-size:1.8rem; font-weight:700; color:#fff; text-align:center; margin-bottom:2rem; }
+    .brand span { color:#0d6efd; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="brand">Mock<span>Server</span></div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h5 class="card-title mb-4 text-center text-muted fw-normal">Sign in with LDAP</h5>
+
+        <div th:if="${param.error}" class="alert alert-danger py-2">
+          <small>Неверный логин или пароль!</small>
+        </div>
+        <div th:if="${param.logout}" class="alert alert-success py-2">
+          <small>Вы вышли из системы!</small>
+        </div>
+
+        <form th:action="@{/login}" method="post">
+          <div class="mb-3">
+            <label for="username" class="form-label small fw-semibold">Логин</label>
+            <input type="text" id="username" name="username"
+                   class="form-control" placeholder="login" autofocus required/>
+          </div>
+          <div class="mb-4">
+            <label for="password" class="form-label small fw-semibold">Пароль</label>
+            <input type="password" id="password" name="password"
+                   class="form-control" placeholder="••••••••" required/>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        </form>
+      </div>
+    </div>
+
+    <p class="text-center text-muted mt-3" style="font-size:.8rem;">
+      HTTP Mock Server &nbsp;·&nbsp; Self-hosted
+      By RosogiSoft
+    </p>
+  </div>
+
+  <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

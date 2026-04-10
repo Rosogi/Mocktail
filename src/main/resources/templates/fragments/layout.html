@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title th:text="${pageTitle} + ' – MockServer'">MockServer</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}"/>
+  <style>
+    body { background: #f8f9fa; }
+    .sidebar {
+      width: 220px; min-height: 100vh;
+      background: #212529; color: #adb5bd;
+      position: fixed; top: 0; left: 0; padding-top: 1rem;
+    }
+    .sidebar .brand { color: #fff; font-size: 1.2rem; padding: 0.5rem 1.25rem 1rem; font-weight: 600; }
+    .sidebar .brand span { color: #0d6efd; }
+    .sidebar .nav-link { color: #adb5bd; padding: .45rem 1.25rem; border-radius: 0; }
+    .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background: #0d6efd22; }
+    .sidebar .nav-link i { margin-right: .5rem; }
+    .main { margin-left: 220px; padding: 2rem; }
+    .port-badge { font-size: .75rem; background: #0d6efd22; color: #0d6efd;
+                  border: 1px solid #0d6efd55; padding: 2px 8px; border-radius: 12px; }
+    .method-badge { font-size: .7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .method-GET    { background:#d1e7dd; color:#0a3622; }
+    .method-POST   { background:#cfe2ff; color:#084298; }
+    .method-PUT    { background:#fff3cd; color:#664d03; }
+    .method-PATCH  { background:#e2d9f3; color:#432874; }
+    .method-DELETE { background:#f8d7da; color:#58151c; }
+    .method-ANY    { background:#e2e3e5; color:#41464b; }
+    pre.log-body { max-height: 200px; overflow: auto; font-size:.75rem;
+                   background:#212529; color:#adb5bd; padding:.5rem; border-radius:4px; }
+    #log-table-body tr { animation: fadeIn .3s; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; } }
+  </style>
+</head>
+<body>
+  <nav class="sidebar d-flex flex-column">
+    <div class="brand">Mock<span>Server</span></div>
+
+    <ul class="nav flex-column flex-grow-1">
+      <li class="nav-item">
+        <a class="nav-link" th:classappend="${activePage == 'dashboard'} ? 'active'" th:href="@{/dashboard}">
+          <i class="bi bi-speedometer2"></i> История запросов
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" th:classappend="${activePage == 'mocks'} ? 'active'" th:href="@{/mocks}">
+          <i class="bi bi-layers"></i> Mock'и
+        </a>
+      </li>
+    </ul>
+
+    <div class="px-3 pb-3" style="font-size:.8rem;" sec:authorize="isAuthenticated()">
+      <div class="text-muted mb-1">Вошли как </div>
+      <div class="text-white fw-semibold" sec:authentication="name">Имя пользователя</div>
+      <div class="port-badge mt-1" th:if="${user != null}">
+        Порт: <strong th:text="${user.assignedPort}">9000</strong>
+      </div>
+      <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+        <i class="bi bi-box-arrow-right"></i> Выйти
+      </a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <!-- Flash messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="bi bi-check-circle me-1"></i>
+      <span th:text="${successMessage}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      <span th:text="${errorMessage}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Page content injected here -->
+    <div th:replace="${content}"></div>
+  </main>
+
+  <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+  <div th:replace="${scripts} ?: ~{}"></div>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Dashboard – MockServer</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}"/>
+  <style>
+    body{background:#f8f9fa}
+    .sidebar{width:220px;min-height:100vh;background:#212529;color:#adb5bd;position:fixed;top:0;left:0;padding-top:1rem}
+    .sidebar .brand{color:#fff;font-size:1.2rem;padding:.5rem 1.25rem 1rem;font-weight:600}
+    .sidebar .brand span{color:#0d6efd}
+    .sidebar .nav-link{color:#adb5bd;padding:.45rem 1.25rem}
+    .sidebar .nav-link:hover,.sidebar .nav-link.active{color:#fff;background:#0d6efd22}
+    .sidebar .nav-link i{margin-right:.5rem}
+    .main{margin-left:220px;padding:2rem}
+    .port-badge{font-size:.75rem;background:#0d6efd22;color:#0d6efd;border:1px solid #0d6efd55;padding:2px 8px;border-radius:12px}
+    .method-badge{font-size:.7rem;font-weight:700;padding:2px 6px;border-radius:4px}
+    .method-GET{background:#d1e7dd;color:#0a3622}
+    .method-POST{background:#cfe2ff;color:#084298}
+    .method-PUT{background:#fff3cd;color:#664d03}
+    .method-PATCH{background:#e2d9f3;color:#432874}
+    .method-DELETE{background:#f8d7da;color:#58151c}
+    .method-ANY{background:#e2e3e5;color:#41464b}
+    pre.log-body{max-height:200px;overflow:auto;font-size:.75rem;background:#212529;color:#adb5bd;padding:.5rem;border-radius:4px}
+    #log-table-body tr{animation:fadeIn .3s}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
+  </style>
+</head>
+<body>
+<nav class="sidebar d-flex flex-column">
+  <div class="brand">Mock<span>Server</span></div>
+  <ul class="nav flex-column flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link active" th:href="@{/dashboard}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" th:href="@{/mocks}"><i class="bi bi-layers"></i>Mocks</a>
+    </li>
+  </ul>
+  <div class="px-3 pb-3" style="font-size:.8rem">
+    <div class="text-muted mb-1">Logged in as</div>
+    <div class="text-white fw-semibold" sec:authentication="name">username</div>
+    <div class="port-badge mt-1" th:if="${user != null}">
+      Port: <strong th:text="${user.assignedPort}">9000</strong>
+    </div>
+    <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </div>
+</nav>
+<main class="main">
+  <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+    <span th:text="${successMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+    <span th:text="${errorMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- Header row -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h4 class="mb-0">Dashboard</h4>
+      <small class="text-muted">Incoming requests to your mock endpoint</small>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <!-- Port info -->
+      <div class="border rounded px-3 py-2 bg-white text-center" style="min-width:160px">
+        <div class="text-muted" style="font-size:.7rem; text-transform:uppercase; letter-spacing:.05em">Your endpoint</div>
+        <div class="fw-bold font-monospace" style="font-size:1rem;"
+             th:text="'http://&lt;host&gt;:' + ${user.assignedPort}">http://host:9000</div>
+      </div>
+      <!-- Stats -->
+      <div class="border rounded px-3 py-2 bg-white text-center">
+        <div class="text-muted" style="font-size:.7rem; text-transform:uppercase; letter-spacing:.05em">Total logs</div>
+        <div class="fw-bold" id="log-count" th:text="${logCount}">0</div>
+      </div>
+      <div class="border rounded px-3 py-2 bg-white text-center">
+        <div class="text-muted" style="font-size:.7rem; text-transform:uppercase; letter-spacing:.05em">Mocks</div>
+        <a th:href="@{/mocks}" class="fw-bold text-decoration-none" th:text="${mockCount}">0</a>
+      </div>
+      <!-- Clear logs -->
+      <form th:action="@{/dashboard/logs/clear}" method="post">
+        <button type="submit" class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Clear all logs?')">
+          <i class="bi bi-trash"></i> Clear
+        </button>
+      </form>
+      <!-- Live indicator -->
+      <span class="badge bg-success" id="live-badge">
+        <i class="bi bi-circle-fill" style="font-size:.5rem"></i> LIVE
+      </span>
+    </div>
+  </div>
+
+  <!-- Request log table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th style="width:90px">Time</th>
+              <th style="width:80px">Method</th>
+              <th>Path</th>
+              <th style="width:60px">Status</th>
+              <th style="width:200px">Matched mock</th>
+              <th style="width:140px">Remote</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="log-table-body">
+            <tr th:if="${logs.empty}">
+              <td colspan="7" class="text-center text-muted py-4">
+                <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:.5rem;"></i>
+                No requests yet. Send something to your endpoint!
+              </td>
+            </tr>
+            <tr th:each="log : ${logs}" th:id="'log-' + ${log.id}">
+              <td class="text-muted font-monospace" style="font-size:.75rem"
+                  th:text="${#temporals.format(log.timestamp, 'HH:mm:ss')}">00:00:00</td>
+              <td>
+                <span class="method-badge"
+                      th:classappend="'method-' + ${log.method}"
+                      th:text="${log.method}">GET</span>
+              </td>
+              <td class="font-monospace text-truncate" style="max-width:300px; font-size:.8rem"
+                  th:text="${log.path + (log.queryParams != null ? '?' + log.queryParams : '')}"></td>
+              <td>
+                <span class="badge"
+                      th:classappend="${log.responseStatus != null and log.responseStatus < 300} ? 'bg-success' :
+                                       (${log.responseStatus != null and log.responseStatus < 500} ? 'bg-warning text-dark' : 'bg-danger')"
+                      th:text="${log.responseStatus}">200</span>
+              </td>
+              <td class="text-muted" style="font-size:.78rem"
+                  th:text="${log.matchedMock != null ? log.matchedMock.name : '— no match —'}"></td>
+              <td class="text-muted font-monospace" style="font-size:.72rem"
+                  th:text="${log.remoteAddr}"></td>
+              <td>
+                <button class="btn btn-link btn-sm p-0 text-muted"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        th:data-bs-target="'#detail-' + ${log.id}">
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+              </td>
+            </tr>
+            <!-- Detail row (collapsible) -->
+            <tr th:each="log : ${logs}" class="table-light collapse" th:id="'detail-' + ${log.id}">
+              <td colspan="7" class="px-4 py-2">
+                <div class="row g-3">
+                  <div class="col-md-6" th:if="${log.requestBody}">
+                    <div class="small fw-semibold text-muted mb-1">Request body</div>
+                    <pre class="log-body" th:text="${log.requestBody}"></pre>
+                  </div>
+                  <div class="col-md-6" th:if="${log.responseBody}">
+                    <div class="small fw-semibold text-muted mb-1">Response body</div>
+                    <pre class="log-body" th:text="${log.responseBody}"></pre>
+                  </div>
+                  <div class="col-md-6" th:if="${log.requestHeaders != null and !log.requestHeaders.empty}">
+                    <div class="small fw-semibold text-muted mb-1">Request headers</div>
+                    <pre class="log-body"><span th:each="h : ${log.requestHeaders}"
+                      th:text="${h.key + ': ' + h.value + '\n'}"></span></pre>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- WebSocket script -->
+<script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
+<script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
+<script th:inline="javascript">
+  const username = /*[[${#authentication.name}]]*/ '';
+  const liveBadge = document.getElementById('live-badge');
+  const tbody = document.getElementById('log-table-body');
+  const logCount = document.getElementById('log-count');
+  let count = parseInt(logCount.textContent, 10) || 0;
+
+  // Clear empty-state row once first live log arrives
+  function clearEmpty() {
+    const emptyRow = tbody.querySelector('td[colspan="7"]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+  }
+
+  function methodClass(m) {
+    const map = { GET:'method-GET', POST:'method-POST', PUT:'method-PUT',
+                  PATCH:'method-PATCH', DELETE:'method-DELETE' };
+    return map[m] || 'method-ANY';
+  }
+
+  function statusClass(s) {
+    if (!s) return 'bg-secondary';
+    if (s < 300) return 'bg-success';
+    if (s < 500) return 'bg-warning text-dark';
+    return 'bg-danger';
+  }
+
+  function addRow(log) {
+    clearEmpty();
+    const path = log.path + (log.queryParams ? '?' + log.queryParams : '');
+
+    const tr = document.createElement('tr');
+    tr.id = 'log-' + log.id;
+    tr.innerHTML = `
+      <td class="text-muted font-monospace" style="font-size:.75rem">${log.time}</td>
+      <td><span class="method-badge ${methodClass(log.method)}">${log.method}</span></td>
+      <td class="font-monospace text-truncate" style="max-width:300px;font-size:.8rem">${path}</td>
+      <td><span class="badge ${statusClass(log.status)}">${log.status ?? '?'}</span></td>
+      <td class="text-muted" style="font-size:.78rem">${log.matchedMock ?? '— no match —'}</td>
+      <td class="text-muted font-monospace" style="font-size:.72rem">${log.remoteAddr ?? ''}</td>
+      <td>
+        <button class="btn btn-link btn-sm p-0 text-muted" type="button"
+                data-bs-toggle="collapse" data-bs-target="#detail-live-${log.id}">
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </td>`;
+    tbody.prepend(tr);
+
+    // Detail row
+    const detail = document.createElement('tr');
+    detail.id = 'detail-live-' + log.id;
+    detail.className = 'table-light collapse';
+    detail.innerHTML = `<td colspan="7" class="px-4 py-2">
+      <div class="row g-3">
+        ${log.requestBody ? `<div class="col-md-6"><div class="small fw-semibold text-muted mb-1">Request body</div>
+          <pre class="log-body">${escHtml(log.requestBody)}</pre></div>` : ''}
+        ${log.requestBody || log.contentType ? `<div class="col-md-6"><div class="small fw-semibold text-muted mb-1">Content-Type</div>
+          <code>${escHtml(log.contentType ?? '')}</code></div>` : ''}
+      </div></td>`;
+    tbody.insertBefore(detail, tr.nextSibling);
+
+    count++;
+    logCount.textContent = count;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Connect WebSocket
+  const socket = new SockJS('/ws');
+  const stomp  = Stomp.over(socket);
+  stomp.debug = null; // silence console
+
+  stomp.connect({}, function() {
+    liveBadge.className = 'badge bg-success';
+    stomp.subscribe('/topic/logs/' + username, function(msg) {
+      const log = JSON.parse(msg.body);
+      addRow(log);
+    });
+  }, function() {
+    liveBadge.className = 'badge bg-secondary';
+    liveBadge.textContent = 'OFFLINE';
+  });
+</script>
+</body>
+</html>

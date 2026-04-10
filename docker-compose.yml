@@ -1,0 +1,60 @@
+services:
+
+  # ────────────────────────────────────────────────────────────
+  #  PostgreSQL
+  # ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: mockserver-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       mockserver
+      POSTGRES_USER:     mockserver
+      POSTGRES_PASSWORD: ${DB_PASS:-mockserver}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mockserver -d mockserver"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  # ────────────────────────────────────────────────────────────
+  #  MockServer application
+  # ────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mockserver-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "9000-9020:9000-9020"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+
+      DB_URL:  jdbc:postgresql://db:5432/mockserver
+      DB_USER: mockserver
+      DB_PASS: ${DB_PASS:-mockserver}
+
+      LDAP_URL:               ${LDAP_URL:-ldap://localhost:8389}
+      LDAP_BASE_DN:           ${LDAP_BASE_DN:-dc=mockserver,dc=com}
+      LDAP_USER_DN_PATTERN:   ${LDAP_USER_DN_PATTERN:-uid={0},ou=people}
+      LDAP_GROUP_SEARCH_BASE: ${LDAP_GROUP_SEARCH_BASE:-ou=groups}
+      LDAP_MANAGER_DN:        ${LDAP_MANAGER_DN:-}
+      LDAP_MANAGER_PASSWORD:  ${LDAP_MANAGER_PASSWORD:-}
+    networks:
+      - internal
+
+volumes:
+  pg_data:
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:with="activePage='mocks', pageTitle='Mocks'">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Mocks – MockServer</title>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+  <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}"/>
+  <style>
+    body{background:#f8f9fa}
+    .sidebar{width:220px;min-height:100vh;background:#212529;color:#adb5bd;position:fixed;top:0;left:0;padding-top:1rem}
+    .sidebar .brand{color:#fff;font-size:1.2rem;padding:.5rem 1.25rem 1rem;font-weight:600}
+    .sidebar .brand span{color:#0d6efd}
+    .sidebar .nav-link{color:#adb5bd;padding:.45rem 1.25rem}
+    .sidebar .nav-link:hover,.sidebar .nav-link.active{color:#fff;background:#0d6efd22}
+    .sidebar .nav-link i{margin-right:.5rem}
+    .main{margin-left:220px;padding:2rem}
+    .port-badge{font-size:.75rem;background:#0d6efd22;color:#0d6efd;border:1px solid #0d6efd55;padding:2px 8px;border-radius:12px}
+    .method-badge{font-size:.7rem;font-weight:700;padding:2px 6px;border-radius:4px}
+    .method-GET{background:#d1e7dd;color:#0a3622}
+    .method-POST{background:#cfe2ff;color:#084298}
+    .method-PUT{background:#fff3cd;color:#664d03}
+    .method-PATCH{background:#e2d9f3;color:#432874}
+    .method-DELETE{background:#f8d7da;color:#58151c}
+    .method-ANY{background:#e2e3e5;color:#41464b}
+  </style>
+</head>
+<body>
+<nav class="sidebar d-flex flex-column">
+  <div class="brand">Mock<span>Server</span></div>
+  <ul class="nav flex-column flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link" th:href="@{/dashboard}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" th:href="@{/mocks}"><i class="bi bi-layers"></i>Mocks</a>
+    </li>
+  </ul>
+  <div class="px-3 pb-3" style="font-size:.8rem">
+    <div class="text-muted mb-1">Logged in as</div>
+    <div class="text-white fw-semibold" th:text="${user.username}">user</div>
+    <div class="port-badge mt-1">Port: <strong th:text="${user.assignedPort}">9000</strong></div>
+    <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </div>
+</nav>
+
+<main class="main">
+  <!-- Flash -->
+  <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+    <span th:text="${successMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+    <span th:text="${errorMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h4 class="mb-0">Mock definitions</h4>
+      <small class="text-muted" th:text="${mocks.size()} + ' mocks configured'"></small>
+    </div>
+    <a th:href="@{/mocks/new}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>New mock
+    </a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <table class="table table-hover table-sm mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Name</th>
+            <th style="width:90px">Method</th>
+            <th>Path pattern</th>
+            <th style="width:70px">Status</th>
+            <th style="width:60px">Priority</th>
+            <th style="width:80px">Active</th>
+            <th style="width:120px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:if="${mocks.empty}">
+            <td colspan="7" class="text-center text-muted py-4">
+              <i class="bi bi-layers" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+              No mocks yet. <a th:href="@{/mocks/new}">Create your first mock</a>
+            </td>
+          </tr>
+          <tr th:each="mock : ${mocks}">
+            <td th:text="${mock.name}">Mock name</td>
+            <td>
+              <span class="method-badge"
+                    th:classappend="'method-' + (${mock.httpMethod == '*'} ? 'ANY' : ${mock.httpMethod})"
+                    th:text="${mock.httpMethod == '*'} ? '* ANY' : ${mock.httpMethod}"></span>
+            </td>
+            <td class="font-monospace" style="font-size:.82rem" th:text="${mock.pathPattern}"></td>
+            <td>
+              <span class="badge"
+                    th:classappend="${mock.responseStatus < 300} ? 'bg-success' :
+                                     (${mock.responseStatus < 500} ? 'bg-warning text-dark' : 'bg-danger')"
+                    th:text="${mock.responseStatus}"></span>
+            </td>
+            <td class="text-center text-muted" th:text="${mock.priority}">0</td>
+            <td>
+              <form th:action="@{/mocks/{id}/toggle(id=${mock.id})}" method="post" class="d-inline">
+                <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent">
+                  <i th:class="${mock.active ? 'bi bi-toggle-on text-success fs-5' : 'bi bi-toggle-off text-muted fs-5'}"></i>
+                </button>
+              </form>
+            </td>
+            <td>
+              <a th:href="@{/mocks/{id}/edit(id=${mock.id})}"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2 me-1">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form th:action="@{/mocks/{id}/delete(id=${mock.id})}"
+                    method="post"
+                    class="d-inline"
+                    th:attr="data-name=${mock.name}"
+                    onsubmit="return confirmDelete(this)">
+
+                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}">
+  function confirmDelete(form) {
+    const name = form.dataset.name;
+    return confirm('Delete ' + name + '?');
+  }
+</script>
+</body>
+</html>
