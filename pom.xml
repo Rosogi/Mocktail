@@ -11,10 +11,10 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.mockserver</groupId>
+    <groupId>com.rosogisoft</groupId>
     <artifactId>Mocktail</artifactId>
     <version>1.0.0</version>
-    <name>mock-server</name>
+    <name>MockServer</name>
     <description>HTTP Mock Server with per-user ports and LDAP auth</description>
 
     <properties>
@@ -137,6 +137,7 @@
     </dependencies>
 
     <build>
+        <finalName>mocktail</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

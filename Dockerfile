@@ -22,13 +22,13 @@ FROM eclipse-temurin:21-jre-jammy AS runtime
 WORKDIR /app
 
 # Non-root user for security
-RUN groupadd --system mockserver && \
-    useradd  --system --gid mockserver --no-create-home mockserver
+RUN groupadd --system mocktail && \
+    useradd  --system --gid mocktail --no-create-home mocktail
 
-COPY --from=build /build/target/mock-server-*.jar app.jar
-RUN chown mockserver:mockserver app.jar
+COPY --from=build /build/target/mocktail*.jar mocktail.jar
+RUN chown mocktail:mocktail mocktail.jar
 
-USER mockserver
+USER mocktail
 
 # Admin UI port (fixed)
 EXPOSE 8080
@@ -38,4 +38,4 @@ EXPOSE 9000-9020
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
   "-XX:MaxRAMPercentage=75.0", \
-  "-jar", "app.jar"]
+  "-jar", "mocktail.jar"]

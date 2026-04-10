@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Usage:
+    <div th:replace="~{fragments/flash :: flash}"></div>
+-->
+<div th:fragment="flash">
+  <div th:if="${successMessage}"
+       class="alert alert-success alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-check-circle me-1"></i>
+    <span th:text="${successMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <div th:if="${errorMessage}"
+       class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    <span th:text="${errorMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+</div>
+</html>

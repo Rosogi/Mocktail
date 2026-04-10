@@ -1,0 +1,30 @@
+/* ============================================================
+   HTTP Method badges
+   ============================================================ */
+.method-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.method-GET     { background: #d1e7dd; color: #0a3622; }
+.method-POST    { background: #cfe2ff; color: #084298; }
+.method-PUT     { background: #fff3cd; color: #664d03; }
+.method-PATCH   { background: #e2d9f3; color: #432874; }
+.method-DELETE  { background: #f8d7da; color: #58151c; }
+.method-HEAD    { background: #d3f9d8; color: #1a5c26; }
+.method-OPTIONS { background: #e2e3e5; color: #41464b; }
+.method-ANY     { background: #e2e3e5; color: #41464b; }
+
+/* ============================================================
+   HTTP Status badges (Bootstrap badge + colour override)
+   ============================================================ */
+.status-2xx { background-color: #198754 !important; }
+.status-3xx { background-color: #0dcaf0 !important; color: #000 !important; }
+.status-4xx { background-color: #ffc107 !important; color: #000 !important; }
+.status-5xx { background-color: #dc3545 !important; }
+.status-unknown { background-color: #6c757d !important; }

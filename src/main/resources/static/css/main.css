@@ -1,0 +1,244 @@
+/* ============================================================
+   Layout
+   ============================================================ */
+body {
+  background: #f8f9fa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ============================================================
+   Sidebar
+   ============================================================ */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: #212529;
+  color: #adb5bd;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-top: 1rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  color: #fff;
+  font-size: 1.2rem;
+  padding: 0.5rem 1.25rem 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.sidebar .brand span {
+  color: #0d6efd;
+}
+
+.sidebar .nav-link {
+  color: #adb5bd;
+  padding: 0.45rem 1.25rem;
+  border-radius: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+  color: #fff;
+  background: rgba(13, 110, 253, 0.13);
+}
+
+.sidebar .nav-link i {
+  margin-right: 0.5rem;
+  width: 16px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  padding: 0 1rem 1rem;
+  font-size: 0.8rem;
+  margin-top: auto;
+}
+
+.sidebar-footer .username {
+  color: #fff;
+  font-weight: 600;
+}
+
+.port-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  background: rgba(13, 110, 253, 0.13);
+  color: #6ea8fe;
+  border: 1px solid rgba(13, 110, 253, 0.35);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 0.25rem;
+  font-family: monospace;
+}
+
+/* ============================================================
+   Main content area
+   ============================================================ */
+.main {
+  margin-left: 220px;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   Page header row
+   ============================================================ */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.page-header h4 {
+  margin-bottom: 0;
+}
+
+/* ============================================================
+   Stat boxes (dashboard)
+   ============================================================ */
+.stat-box {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.4rem 0.85rem;
+  text-align: center;
+  min-width: 120px;
+}
+
+.stat-box .stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+}
+
+.stat-box .stat-value {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* ============================================================
+   Log table
+   ============================================================ */
+.log-path {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.log-time {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.log-remote {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: #6c757d;
+}
+
+.log-mock-name {
+  font-size: 0.78rem;
+  color: #6c757d;
+}
+
+/* Expand button */
+.btn-expand {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #adb5bd;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.2s;
+  line-height: 1;
+}
+
+.btn-expand:hover { color: #0d6efd; }
+.btn-expand.open  { transform: rotate(180deg); color: #0d6efd; }
+
+/* Fade-in for new live rows */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#log-table-body > tr.live-row {
+  animation: fadeInDown 0.25s ease;
+}
+
+/* ============================================================
+   Request detail modal
+   ============================================================ */
+.detail-pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+.detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+  margin-bottom: 0.35rem;
+}
+
+.modal-header-custom {
+  background: #212529;
+  color: #fff;
+  border-bottom: none;
+  border-radius: calc(0.5rem - 1px) calc(0.5rem - 1px) 0 0;
+}
+
+.modal-header-custom .btn-close {
+  filter: invert(1);
+}
+
+/* ============================================================
+   Mock list
+   ============================================================ */
+.mock-name {
+  font-weight: 500;
+}
+
+/* ============================================================
+   Form page
+   ============================================================ */
+.form-card { max-width: 860px; }
+textarea.code { font-family: monospace; font-size: 0.82rem; }
+
+.template-hint {
+  background: #f0f4ff;
+  border: 1px solid #c9d8fb;
+  border-radius: 6px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.78rem;
+  color: #3b5bdb;
+}
+
+.template-hint code {
+  background: #dce4ff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: #364fc7;
+}

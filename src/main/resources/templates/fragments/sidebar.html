@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  Usage:
+    <nav th:replace="~{fragments/sidebar :: sidebar('dashboard', ${user})}"></nav>
+
+  Parameters:
+    activePage  – 'dashboard' | 'mocks'
+    user        – User entity (may be null before first load)
+-->
+<nav th:fragment="sidebar(activePage, user)"
+     class="sidebar">
+
+  <div class="brand">Mock<span>tail</span></div>
+
+  <ul class="nav flex-column flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link"
+         th:classappend="${activePage == 'dashboard'} ? 'active'"
+         th:href="@{/dashboard}">
+        <i class="bi bi-speedometer2"></i>Dashboard
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link"
+         th:classappend="${activePage == 'mocks'} ? 'active'"
+         th:href="@{/mocks}">
+        <i class="bi bi-layers"></i>Mocks
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Signed in as</div>
+    <div class="username" sec:authentication="name">username</div>
+    <div th:if="${user != null}" class="port-badge">
+      :<span th:text="${user.assignedPort}">9000</span>
+    </div>
+    <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </div>
+</nav>
+</html>

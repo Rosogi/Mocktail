@@ -4,6 +4,7 @@ import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.RequestLog;
 import com.rosogisoft.domain.User;
 import com.rosogisoft.service.MockMatcherService;
+import com.rosogisoft.service.MockTemplateEngine;
 import com.rosogisoft.service.RequestLogService;
 import com.rosogisoft.service.UserService;
 import com.rosogisoft.ws.RequestEventPublisher;
@@ -32,6 +33,7 @@ public class CatchAllFilter implements Filter {
     private final MockMatcherService mockMatcher;
     private final RequestLogService logService;
     private final RequestEventPublisher publisher;
+    private final MockTemplateEngine templateEngine;
 
     @Override
     public void doFilter (ServletRequest req,
@@ -94,7 +96,10 @@ public class CatchAllFilter implements Filter {
             response.setStatus(mock.getResponseStatus());
             response.setContentType(mock.getResponseContentType());
 
-            String responseBody = mock.getResponseBody() != null ? mock.getResponseBody() : "";
+            String responseBody = templateEngine.render(
+                    mock.getResponseBody() != null ? mock.getResponseBody() : "",
+                    method, path, queryString, headers, body
+            );
             response.getWriter().write(responseBody);
 
             logEntry.setMatchedMock(mock);

@@ -1,4 +1,4 @@
-# MockServer
+# Mocktail
 
 Self-hosted HTTP mock server with per-user ports, LDAP authentication, and a real-time web UI.
 
@@ -24,10 +24,10 @@ Self-hosted HTTP mock server with per-user ports, LDAP authentication, and a rea
 
 ```bash
 docker run -d \
-  --name mockserver-pg \
-  -e POSTGRES_DB=mockserver \
-  -e POSTGRES_USER=mockserver \
-  -e POSTGRES_PASSWORD=mockserver \
+  --name mocktail-pg \
+  -e POSTGRES_DB=mocktail \
+  -e POSTGRES_USER=mocktail \
+  -e POSTGRES_PASSWORD=mocktail \
   -p 5432:5432 \
   postgres:16
 ```
@@ -35,7 +35,7 @@ docker run -d \
 ### 2. Run the application (dev profile = embedded LDAP)
 
 ```bash
-cd mock-server
+cd mocktail
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
@@ -143,7 +143,7 @@ DB_PASS=strongpassword
 ### Run with prod profile
 
 ```bash
-java -jar mock-server-1.0.0.jar --spring.profiles.active=prod
+java -jar mocktail-1.0.0.jar --spring.profiles.active=prod
 ```
 
 ### Docker Compose (full stack)
@@ -154,9 +154,9 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: mockserver
-      POSTGRES_USER: mockserver
-      POSTGRES_PASSWORD: mockserver
+      POSTGRES_DB: mocktail
+      POSTGRES_USER: mocktail
+      POSTGRES_PASSWORD: mocktail
     volumes:
       - pg_data:/var/lib/postgresql/data
 
@@ -164,15 +164,15 @@ services:
     image: eclipse-temurin:21-jre
     working_dir: /app
     volumes:
-      - ./target/mock-server-1.0.0.jar:/app/app.jar
+      - ./target/mocktail.jar:/app/app.jar
     ports:
       - "8080:8080"       # Admin UI
       - "9000-9020:9000-9020"  # User mock ports
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://db:5432/mockserver
-      DB_USER: mockserver
-      DB_PASS: mockserver
+      DB_URL: jdbc:postgresql://db:5432/mocktail
+      DB_USER: mocktail
+      DB_PASS: mocktail
       LDAP_URL: ldap://your-ldap:389
       LDAP_BASE_DN: dc=company,dc=com
     depends_on:
@@ -218,8 +218,8 @@ Service B ──► :9001 (user bob's port)   ──► CatchAllFilter
 ## Project structure
 
 ```
-src/main/java/com/mockserver/
-├── MockServerApplication.java
+src/main/java/com/rosogisoft/
+├── MocktailApplication.java
 ├── config/
 │   ├── AppProperties.java          # port range config
 │   ├── BeanConfig.java             # AntPathMatcher bean
