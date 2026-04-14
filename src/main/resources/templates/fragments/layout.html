@@ -21,7 +21,7 @@
     .sidebar .nav-link i { margin-right: .5rem; }
     .main { margin-left: 220px; padding: 2rem; }
     .port-badge { font-size: .75rem; background: #0d6efd22; color: #0d6efd;
-                  border: 1px solid #0d6efd55; padding: 2px 8px; border-radius: 12px; }
+      border: 1px solid #0d6efd55; padding: 2px 8px; border-radius: 12px; }
     .method-badge { font-size: .7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
     .method-GET    { background:#d1e7dd; color:#0a3622; }
     .method-POST   { background:#cfe2ff; color:#084298; }
@@ -30,58 +30,58 @@
     .method-DELETE { background:#f8d7da; color:#58151c; }
     .method-ANY    { background:#e2e3e5; color:#41464b; }
     pre.log-body { max-height: 200px; overflow: auto; font-size:.75rem;
-                   background:#212529; color:#adb5bd; padding:.5rem; border-radius:4px; }
+      background:#212529; color:#adb5bd; padding:.5rem; border-radius:4px; }
     #log-table-body tr { animation: fadeIn .3s; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; } }
   </style>
 </head>
 <body>
-  <nav class="sidebar d-flex flex-column">
-    <div class="brand">Mock<span>Server</span></div>
+<nav class="sidebar d-flex flex-column">
+  <div class="brand">Mock<span>tail</span></div>
 
-    <ul class="nav flex-column flex-grow-1">
-      <li class="nav-item">
-        <a class="nav-link" th:classappend="${activePage == 'dashboard'} ? 'active'" th:href="@{/dashboard}">
-          <i class="bi bi-speedometer2"></i> Dashboard
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" th:classappend="${activePage == 'mocks'} ? 'active'" th:href="@{/mocks}">
-          <i class="bi bi-layers"></i> Mocks
-        </a>
-      </li>
-    </ul>
-
-    <div class="px-3 pb-3" style="font-size:.8rem;" sec:authorize="isAuthenticated()">
-      <div class="text-muted mb-1">Logged in as</div>
-      <div class="text-white fw-semibold" sec:authentication="name">username</div>
-      <div class="port-badge mt-1" th:if="${user != null}">
-        Port: <strong th:text="${user.assignedPort}">9000</strong>
-      </div>
-      <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
-        <i class="bi bi-box-arrow-right"></i> Logout
+  <ul class="nav flex-column flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link" th:classappend="${activePage == 'dashboard'} ? 'active'" th:href="@{/dashboard}">
+        <i class="bi bi-speedometer2"></i> Dashboard
       </a>
-    </div>
-  </nav>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" th:classappend="${activePage == 'mocks'} ? 'active'" th:href="@{/mocks}">
+        <i class="bi bi-layers"></i> Mocks
+      </a>
+    </li>
+  </ul>
 
-  <main class="main">
-    <!-- Flash messages -->
-    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
-      <i class="bi bi-check-circle me-1"></i>
-      <span th:text="${successMessage}"></span>
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <div class="px-3 pb-3" style="font-size:.8rem;" sec:authorize="isAuthenticated()">
+    <div class="text-muted mb-1">Logged in as</div>
+    <div class="text-white fw-semibold" sec:authentication="name">username</div>
+    <div class="port-badge mt-1" th:if="${user != null}">
+      Port: <strong th:text="${user.assignedPort}">9000</strong>
     </div>
-    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-      <i class="bi bi-exclamation-triangle me-1"></i>
-      <span th:text="${errorMessage}"></span>
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  </div>
+</nav>
 
-    <!-- Page content injected here -->
-    <div th:replace="${content}"></div>
-  </main>
+<main class="main">
+  <!-- Flash messages -->
+  <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-1"></i>
+    <span th:text="${successMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    <span th:text="${errorMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
 
-  <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
-  <div th:replace="${scripts} ?: ~{}"></div>
+  <!-- Page content injected here -->
+  <div th:replace="${content}"></div>
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<div th:replace="${scripts} ?: ~{}"></div>
 </body>
 </html>

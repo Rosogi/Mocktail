@@ -1,43 +1,98 @@
-# Mocktail
+# 🍸 Mocktail
 
-Self-hosted HTTP mock server with per-user ports, LDAP authentication, and a real-time web UI.
+**Self-hosted HTTP mock server with per-user endpoints, LDAP authentication, real-time request inspection, and mock collections.**
+
+Mocktail lets your team intercept and inspect HTTP requests during development and testing — without touching real downstream services. Each developer gets a personal endpoint on a dedicated port, with a live web dashboard, full request history, and flexible mock rules that support JSON/XML/SOAP responses and dynamic templating.
+
+---
+
+## Table of contents
+
+- [Features](#features)
+- [How it works](#how-it-works)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Usage guide](#usage-guide)
+   - [Dashboard](#dashboard)
+   - [Creating mocks](#creating-mocks)
+   - [Mock matching rules](#mock-matching-rules)
+   - [Template variables](#template-variables)
+   - [Collections](#collections)
+   - [Import and export](#import-and-export)
+- [Production deployment](#production-deployment)
+- [Project structure](#project-structure)
+- [Tech stack](#tech-stack)
+- [Development notes](#development-notes)
+
+---
 
 ## Features
 
-- **Per-user mock ports** – every user gets a dedicated port in the range `9000–9999`
-- **LDAP authentication** – integrates with your existing LDAP/AD; embedded LDAP available for local dev
-- **Persistent mocks** – stored in PostgreSQL, survive restarts
-- **Real-time request log** – WebSocket (STOMP) pushes incoming requests to your browser instantly
-- **Ant-style path patterns** – `/api/users/**`, `/api/orders/*`, exact paths
-- **Method + body matching** – match by HTTP method, path, and optional body substring (JSON / XML / SOAP)
-- **Priority** – when multiple mocks match, the highest priority wins
-- **Toggle active** – enable / disable individual mocks without deleting them
+| Feature | Description |
+|---|---|
+| **Per-user ports** | Every user gets a dedicated port (9000–9999). Requests to your port are only matched against your mocks. |
+| **LDAP authentication** | Integrates with any LDAP/Active Directory server. Embedded LDAP available for local development. |
+| **Real-time request log** | Incoming requests appear instantly in your browser via WebSocket. Click any row to see full request and response details. |
+| **Flexible mock matching** | Match by HTTP method, Ant-style path pattern, and optional request body substring. |
+| **Template variables** | Use values from the incoming request inside your mock response body — JSON fields, query params, headers, and more. |
+| **Mock collections** | Group related mocks into collections. Enable or disable an entire collection with one click. |
+| **Import / export** | Export your mocks (or a single collection) as a JSON file. Share with teammates and import on their instance. |
+| **JSON / XML / SOAP** | Supports any content type. Built-in formatter and presets for JSON, XML, SOAP, plain text, and HTML. |
+| **Self-hosted** | Runs as a single Spring Boot JAR or via Docker Compose. No external services required. |
 
-## Quick Start (dev mode)
+---
+
+## How it works
+
+```
+Your service  ─────────────────────────────────►  Mocktail :9000
+                                                       │
+                                                  CatchAllFilter
+                                                  matches your mocks
+                                                       │
+                                              ┌────────┴─────────┐
+                                         Mock found         No match
+                                              │                   │
+                                     render response         404 JSON
+                                     (with templates)
+                                              │
+                                    save to request log
+                                    push via WebSocket
+                                              │
+                                    Your browser dashboard
+                                    sees the request live
+```
+
+Each user logs in via LDAP. On first login, Mocktail assigns a port and registers a live Tomcat connector. The port is persisted in PostgreSQL and restored automatically on restart.
+
+The admin UI runs on port **8080**. Mock endpoints run on ports **9000–9999**.
+
+---
+
+## Quick start
 
 ### Prerequisites
-- Java 21+
-- Maven 3.9+
-- PostgreSQL (or Docker)
 
-### 1. Start PostgreSQL
+- Docker and Docker Compose
+- Ports 8080 and 9000–9020 available on your machine
 
-```bash
-docker run -d \
-  --name mocktail-pg \
-  -e POSTGRES_DB=mocktail \
-  -e POSTGRES_USER=mocktail \
-  -e POSTGRES_PASSWORD=mocktail \
-  -p 5432:5432 \
-  postgres:16
-```
-
-### 2. Run the application (dev profile = embedded LDAP)
+### 1. Clone and configure
 
 ```bash
+git clone https://github.com/your-org/mocktail.git
 cd mocktail
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+cp .env.example .env
 ```
+
+The default `.env` uses the embedded LDAP with test users — no changes needed for local development.
+
+### 2. Start
+
+```bash
+docker compose up --build
+```
+
+First build takes 3–5 minutes (Maven dependency download). Subsequent builds take ~30 seconds thanks to Docker layer caching.
 
 ### 3. Open the UI
 
@@ -45,172 +100,271 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 http://localhost:8080
 ```
 
-## An alternative way to run using docker
-
-```bash
-#Copy example config in .env
-cp .env.example .env
-docker compose up --build
-```
-
 ### Default test users (dev profile)
 
-| Username | Password  |
-|----------|-----------|
-| admin    | admin123  |
-| alice    | alice123  |
-| bob      | bob123    |
-| charlie  | charlie123|
+| Username | Password   |
+|----------|------------|
+| admin    | admin123   |
+| alice    | alice123   |
+| bob      | bob123     |
+| charlie  | charlie123 |
 
-After first login each user is automatically assigned a port (e.g. `9000`, `9001`, …).
+After first login each user is automatically assigned a mock port.
 
 ---
 
-## Usage
+## Configuration
 
-### Sending requests to your mock endpoint
+All configuration is done via environment variables, either in `.env` (Docker Compose) or passed directly to the JAR.
 
-After logging in, your dedicated port is shown in the sidebar and on the dashboard, e.g.:
+### `.env` reference
 
+```env
+# ── Application profile ───────────────────────────────────────
+# "dev"  – embedded LDAP, verbose SQL logging
+# "prod" – real LDAP, optimised for production
+SPRING_PROFILES_ACTIVE=dev
+
+# ── Database ──────────────────────────────────────────────────
+DB_PASS=mockserver
+
+# ── LDAP (required when SPRING_PROFILES_ACTIVE=prod) ─────────
+LDAP_URL=ldap://your-ldap-server:389
+LDAP_BASE_DN=dc=company,dc=com
+LDAP_USER_DN_PATTERN=uid={0},ou=people
+LDAP_GROUP_SEARCH_BASE=ou=groups
+
+# Manager account — only if anonymous bind is not allowed
+LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
+LDAP_MANAGER_PASSWORD=secret
 ```
-http://localhost:9000
+
+### Port range
+
+By default Mocktail assigns ports from **9000 to 9999**, supporting up to 1000 users. The range is configurable in `application.yml`:
+
+```yaml
+app:
+  ports:
+    range-start: 9000
+    range-end:   9999
 ```
 
-Point your service under test at this URL instead of the real downstream service:
+---
 
-```bash
-# Example: replace the real payment service URL in your service config
-PAYMENT_SERVICE_URL=http://localhost:9000
-```
-or
+## Usage guide
 
-Make your first call directly from the CLI:
-```bash
-# Direct call from CLI
-curl -i localhost:9000/hello/world
-```
+### Dashboard
 
-Every request that hits your port appears **immediately** in your dashboard via WebSocket.
+After logging in you land on the Dashboard. At the top you will see:
+
+- **Your endpoint** — the full URL your services should send requests to, e.g. `http://mocktail-host:9000`
+- **Requests counter** — total number of logged requests
+- **Mocks counter** — number of mocks you have configured
+- **Clear** — wipe the request log
+- **LIVE indicator** — green when WebSocket is connected, grey when offline
+
+Every incoming request appears as a new row in the table. Click any row to open the **Request detail modal**, which shows:
+
+- Time, method, status, remote IP, content type, query string
+- Matched mock name (or "no match" if no rule was found)
+- Full request headers
+- Request body and response body side by side, with scrolling and resize support
 
 ### Creating mocks
 
-1. Go to **Mocks → New mock**
-2. Configure:
-   - **Method**: `GET`, `POST`, `*` (any), etc.
-   - **Path pattern**: `/api/payments/**` (Ant-style)
-   - **Request body contains**: optional substring for SOAP/JSON dispatch
-   - **Response status / body / headers / content-type**
-   - **Priority**: higher number = matched first when multiple rules match
-3. Save. The mock is **immediately active**.
+Go to **Mocks → New mock** and fill in the form:
 
-### Path pattern examples
+| Field | Description |
+|---|---|
+| **Name** | A human-readable label shown in the request log |
+| **Collection** | Optionally assign this mock to a collection |
+| **Method** | HTTP method to match. Use `*` to match any method |
+| **Path pattern** | Ant-style path pattern (see below) |
+| **Request body contains** | Optional substring to match in the raw request body |
+| **Status** | HTTP response status code |
+| **Content-Type** | Response content type |
+| **Priority** | When multiple mocks match, the one with the highest priority wins |
+| **Active** | Toggle to enable or disable this mock without deleting it |
+| **Response body** | The response body, supports template variables |
+| **Extra headers** | Additional response headers, one per line as `Name: Value` |
+
+Use the **Fill preset** button to populate the response body with a template for the selected content type. Use the **Format** button to auto-indent JSON or XML.
+
+### Mock matching rules
+
+When a request arrives on your port, Mocktail searches your active mocks in priority order (highest first). A mock matches when **all** of the following are true:
+
+1. `httpMethod` equals the request method, or is `*`
+2. `pathPattern` matches the request path (Ant-style)
+3. If `requestBodyContains` is set, the request body contains that substring
+
+The first matching mock wins. If no mock matches, Mocktail returns a 404 with a JSON error body.
+
+#### Path pattern examples
 
 | Pattern | Matches |
-|---------|---------|
+|---|---|
 | `/api/users` | Exactly `/api/users` |
-| `/api/users/**` | `/api/users/1`, `/api/users/1/roles`, … |
-| `/api/orders/*` | `/api/orders/123` (single segment) |
+| `/api/users/**` | `/api/users/1`, `/api/users/1/roles`, and deeper |
+| `/api/orders/*` | `/api/orders/123` but not `/api/orders/123/items` |
 | `/**` | Everything |
+
+### Template variables
+
+You can embed values from the incoming request directly in your mock response body using `{{expression}}` syntax.
+
+| Expression | Resolves to |
+|---|---|
+| `{{name}}` | Top-level field `name` from JSON request body |
+| `{{user.address.city}}` | Nested JSON path (dot-separated) |
+| `{{param.id}}` | URL query parameter `?id=...` |
+| `{{header.Authorization}}` | Request header value (case-insensitive) |
+| `{{request.method}}` | HTTP method (`GET`, `POST`, …) |
+| `{{request.path}}` | Request path (`/api/users/1`) |
+
+If an expression cannot be resolved (field missing, body not JSON, etc.) the placeholder is left unchanged in the response.
+
+#### Example
+
+Mock response body:
+```json
+{
+  "message": "Hello, {{name}}!",
+  "yourId": "{{param.id}}",
+  "via": "{{request.method}} {{request.path}}",
+  "token": "{{header.Authorization}}"
+}
+```
+
+Incoming request:
+```bash
+curl -X POST "http://localhost:9000/api/greet?id=42" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer abc123" \
+  -d '{"name": "Alice"}'
+```
+
+Response:
+```json
+{
+  "message": "Hello, Alice!",
+  "yourId": "42",
+  "via": "POST /api/greet",
+  "token": "Bearer abc123"
+}
+```
+
+### Collections
+
+Collections let you group related mocks and control them together.
+
+Go to **Collections** in the sidebar to:
+
+- **Create** a new collection with a name and optional description
+- **View** a collection — see all its mocks, add or remove mocks
+- **Enable all** — activate every mock in the collection at once
+- **Disable all** — deactivate every mock without deleting them
+- **Export** — download the collection as a JSON file
+- **Delete** — remove the collection (mocks are kept, just uncollected)
+
+To assign a mock to a collection, either select it in the **New mock / Edit mock** form, or open the collection's detail page and use the **Add mock** panel.
+
+### Import and export
+
+#### Exporting
+
+- **All mocks**: Mocks page → **Export all** button — downloads a JSON file with all your mocks and collections
+- **Single collection**: Collections page → collection card → **Export** button
+
+#### Importing
+
+Mocks page → **Import** button → select a `.json` file exported from Mocktail.
+
+On import:
+- Collections from the file are created if they don't already exist (matched by name)
+- Mocks are always added as new — existing mocks are never modified
+- Mocks without a collection are imported as uncollected
+
+#### Export file format
+
+```json
+{
+  "version": 1,
+  "exportedAt": "2024-04-10T12:00:00Z",
+  "exportedBy": "alice",
+  "collections": [
+    {
+      "name": "Payment service",
+      "description": "Mocks for the payment API",
+      "mocks": [
+        {
+          "name": "Create payment 200",
+          "httpMethod": "POST",
+          "pathPattern": "/api/payments",
+          "responseStatus": 200,
+          "responseBody": "{\"id\": \"{{param.ref}}\", \"status\": \"ok\"}",
+          "responseContentType": "application/json",
+          "priority": 0,
+          "active": true
+        }
+      ]
+    }
+  ],
+  "mocks": []
+}
+```
 
 ---
 
 ## Production deployment
 
-### application-prod.yml (or environment variables)
+### Switch to real LDAP
 
-```yaml
-app:
-  ldap:
-    url: ldap://your-ldap-server:389
-    base-dn: dc=company,dc=com
-    user-dn-pattern: uid={0},ou=people
-    group-search-base: ou=groups
-    manager-dn: cn=readonly,dc=company,dc=com
-    manager-password: secret
-```
+Set the following in your `.env`:
 
-Or via environment variables:
-
-```bash
+```env
+SPRING_PROFILES_ACTIVE=prod
 LDAP_URL=ldap://ldap.company.com:389
 LDAP_BASE_DN=dc=company,dc=com
 LDAP_USER_DN_PATTERN=uid={0},ou=people
-DB_URL=jdbc:postgresql://db:5432/mockserver
-DB_USER=mockserver
-DB_PASS=strongpassword
+LDAP_GROUP_SEARCH_BASE=ou=groups
+LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
+LDAP_MANAGER_PASSWORD=your-password
 ```
 
-### Run with prod profile
+### Expose more ports
 
-```bash
-java -jar mocktail-1.0.0.jar --spring.profiles.active=prod
-```
-
-### Docker Compose (full stack)
+If you expect more than 21 users, expand the port range in `docker-compose.yml`:
 
 ```yaml
-version: "3.9"
-services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: mocktail
-      POSTGRES_USER: mocktail
-      POSTGRES_PASSWORD: mocktail
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-
-  app:
-    image: eclipse-temurin:21-jre
-    working_dir: /app
-    volumes:
-      - ./target/mocktail.jar:/app/app.jar
-    ports:
-      - "8080:8080"       # Admin UI
-      - "9000-9020:9000-9020"  # User mock ports
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://db:5432/mocktail
-      DB_USER: mocktail
-      DB_PASS: mocktail
-      LDAP_URL: ldap://your-ldap:389
-      LDAP_BASE_DN: dc=company,dc=com
-    depends_on:
-      - db
-    command: ["java", "-jar", "/app/app.jar"]
-
-volumes:
-  pg_data:
+ports:
+  - "8080:8080"
+  - "9000-9099:9000-9099"   # up to 100 users
 ```
 
----
+And update `application.yml`:
 
-## Architecture
-
+```yaml
+app:
+  ports:
+    range-end: 9099
 ```
-Browser ──────► :8080 (Spring MVC / Thymeleaf)
-                   │ Spring Security + LDAP
-                   │
-                   ▼
-              Admin UI / REST
-                   │
-              ┌────┴──────┐
-              │  Services  │
-              │ MockService│
-              │ LogService │
-              └────┬──────┘
-                   │ JPA / PostgreSQL
-                   ▼
-              mock_definitions
-              request_logs
-              users
 
-Service A ──► :9000 (user alice's port)
-Service B ──► :9001 (user bob's port)   ──► CatchAllFilter
-                                               │ match mock
-                                               │ log + WebSocket push
-                                               ▼
-                                         Browser dashboard (live)
+### Run without Docker
+
+```bash
+# Build
+mvn package -DskipTests
+
+# Run
+java -jar target/mock-server-1.0.0.jar \
+  --spring.profiles.active=prod \
+  --DB_URL=jdbc:postgresql://localhost:5432/mockserver \
+  --DB_USER=mockserver \
+  --DB_PASS=strongpassword \
+  --LDAP_URL=ldap://ldap.company.com:389 \
+  --LDAP_BASE_DN=dc=company,dc=com
 ```
 
 ---
@@ -218,38 +372,116 @@ Service B ──► :9001 (user bob's port)   ──► CatchAllFilter
 ## Project structure
 
 ```
-src/main/java/com/rosogisoft/
-├── MocktailApplication.java
+src/main/java/com/mockserver/
+├── MockServerApplication.java
+│
 ├── config/
-│   ├── AppProperties.java          # port range config
+│   ├── AppProperties.java          # Port range config
 │   ├── BeanConfig.java             # AntPathMatcher bean
-│   ├── SecurityConfig.java         # LDAP + two filter chains
-│   └── WebSocketConfig.java        # STOMP broker
+│   ├── SecurityConfig.java         # LDAP auth + two filter chains
+│   └── WebSocketConfig.java        # STOMP broker setup
+│
 ├── converter/
-│   └── MapToJsonConverter.java     # Map<String,String> ↔ TEXT
+│   └── MapToJsonConverter.java     # JPA: Map<String,String> ↔ TEXT
+│
 ├── domain/
-│   ├── MockDefinition.java
-│   ├── RequestLog.java
-│   └── User.java
+│   ├── MockCollection.java         # Collection entity
+│   ├── MockDefinition.java         # Mock rule entity
+│   ├── RequestLog.java             # Incoming request log entity
+│   └── User.java                   # User entity (username + assigned port)
+│
 ├── repository/
+│   ├── MockCollectionRepository.java
 │   ├── MockDefinitionRepository.java
 │   ├── RequestLogRepository.java
 │   └── UserRepository.java
+│
 ├── service/
+│   ├── MockCollectionService.java  # Collection CRUD + enable/disable all
+│   ├── MockImportExportService.java# JSON serialization for export/import
 │   ├── MockMatcherService.java     # Ant-path matching logic
-│   ├── MockService.java            # CRUD
-│   ├── PortManagerService.java     # dynamic Tomcat connectors
-│   ├── RequestLogService.java
-│   └── UserService.java
+│   ├── MockService.java            # Mock CRUD
+│   ├── MockTemplateEngine.java     # {{variable}} substitution
+│   ├── PortManagerService.java     # Dynamic Tomcat connector registration
+│   ├── RequestLogService.java      # Log persistence and retrieval
+│   └── UserService.java            # User provisioning on first login
+│
 ├── web/
-│   ├── CatchAllFilter.java         # intercepts :9000-9999
-│   ├── CurrentUserHelper.java
+│   ├── CatchAllFilter.java         # Intercepts all requests on ports 9000–9999
+│   ├── CurrentUserHelper.java      # Resolves User from Spring Security context
 │   ├── DashboardController.java
 │   ├── LoginController.java
-│   ├── LoginSuccessHandler.java
+│   ├── LoginSuccessHandler.java    # Provisions user + port on first login
+│   ├── MockCollectionController.java
 │   ├── MockController.java
 │   └── dto/
-│       └── MockDefinitionForm.java
+│       ├── MockDefinitionForm.java
+│       └── MockExportDto.java
+│
 └── ws/
-    └── RequestEventPublisher.java  # STOMP broadcast
+    └── RequestEventPublisher.java  # Pushes new log entries over STOMP
+
+src/main/resources/
+├── application.yml                 # Base configuration
+├── application-dev.yml             # Dev profile (embedded LDAP)
+├── db/migration/
+│   ├── V1__init.sql                # users, mock_definitions, request_logs
+│   └── V2__collections.sql        # mock_collections + collection_id FK
+├── ldap/
+│   └── test-users.ldif             # Embedded LDAP test data
+├── static/
+│   ├── css/
+│   │   ├── badges.css              # HTTP method and status badges
+│   │   └── main.css                # Layout, sidebar, modals, forms
+│   └── js/
+│       ├── dashboard.js            # WebSocket, live log, request detail modal
+│       └── mocks.js                # Format button, fill preset, char counter
+└── templates/
+    ├── login.html
+    ├── dashboard.html
+    ├── collections/
+    │   ├── list.html
+    │   └── detail.html
+    ├── mocks/
+    │   ├── list.html
+    │   └── form.html
+    └── fragments/
+        ├── head.html               # <head> with CSS links
+        ├── sidebar.html            # Navigation sidebar
+        └── flash.html              # Success/error alert messages
+```
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Spring Boot 3.2 |
+| Language | Java 21 |
+| Security | Spring Security + Spring LDAP |
+| Persistence | Spring Data JPA + Hibernate 6 + PostgreSQL 16 |
+| Migrations | Flyway |
+| Real-time | WebSocket (STOMP + SockJS) |
+| Templates | Thymeleaf 3.1 |
+| Build | Maven 3.9 |
+| Frontend | Bootstrap 5.3 + Bootstrap Icons |
+| Container | Docker + Docker Compose |
+
+---
+
+## Development notes
+
+### Running locally without Docker
+
+```bash
+# Start PostgreSQL
+docker run -d --name mocktail-pg \
+  -e POSTGRES_DB=mockserver \
+  -e POSTGRES_USER=mockserver \
+  -e POSTGRES_PASSWORD=mockserver \
+  -p 5432:5432 postgres:16
+
+# Run with dev profile (embedded LDAP on port 8389)
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```

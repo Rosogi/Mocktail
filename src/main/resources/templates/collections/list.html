@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head('Collections')}"></head>
+
+<body>
+
+<nav th:replace="~{fragments/sidebar :: sidebar('collections', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4>Collections</h4>
+      <small class="text-muted">Group mocks and enable/disable them together</small>
+    </div>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCollectionModal">
+      <i class="bi bi-plus-lg me-1"></i>New collection
+    </button>
+  </div>
+
+  <!-- Collection cards -->
+  <div th:if="${collections.empty}" class="text-center text-muted py-5">
+    <i class="bi bi-collection d-block mb-2" style="font-size:2.2rem"></i>
+    No collections yet — create one to group your mocks
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6 col-lg-4" th:each="col : ${collections}">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="card-title mb-0 fw-semibold" th:text="${col.name}">Collection</h6>
+            <span class="badge bg-secondary" th:text="${mockCounts[col.id]} + ' mocks'">0 mocks</span>
+          </div>
+          <p class="card-text text-muted small mb-3"
+             th:text="${col.description != null ? col.description : 'No description'}"
+             style="min-height:1.4rem"></p>
+
+          <!-- Actions -->
+          <div class="d-flex gap-1 flex-wrap">
+            <!-- Enable all -->
+            <form th:action="@{/collections/{id}/enable-all(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-outline-success py-0">
+                <i class="bi bi-play-fill"></i> Enable all
+              </button>
+            </form>
+            <!-- Disable all -->
+            <form th:action="@{/collections/{id}/disable-all(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-outline-secondary py-0">
+                <i class="bi bi-pause-fill"></i> Disable all
+              </button>
+            </form>
+            <!-- Export -->
+            <a th:href="@{/collections/{id}/export(id=${col.id})}"
+               class="btn btn-sm btn-outline-primary py-0">
+              <i class="bi bi-download"></i> Export
+            </a>
+            <a th:href="@{/collections/{id}(id=${col.id})}"
+               class="btn btn-sm btn-outline-secondary py-0">
+              <i class="bi bi-eye"></i> View
+            </a>
+            <!-- Edit -->
+            <button class="btn btn-sm btn-outline-secondary py-0"
+                    data-bs-toggle="modal"
+                    th:data-bs-target="'#editModal-' + ${col.id}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <!-- Delete -->
+            <form th:action="@{/collections/{id}/delete(id=${col.id})}" method="post"
+                  class="d-inline"
+                  th:attr="data-name=${col.name}"
+                  onsubmit="return confirmDelete(this)">
+              <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit modal for this collection -->
+      <div class="modal fade" th:id="'editModal-' + ${col.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Edit collection</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/collections/{id}/edit(id=${col.id})}" method="post">
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Name</label>
+                  <input type="text" name="name" class="form-control"
+                         th:value="${col.name}" required/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Description</label>
+                  <textarea name="description" class="form-control" rows="2"
+                            th:text="${col.description}"></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- New collection modal -->
+<div class="modal fade" id="newCollectionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">New collection</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/collections/new}" method="post">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control"
+                   placeholder="e.g. Payment service mocks" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea name="description" class="form-control" rows="2"
+                      placeholder="Optional description"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

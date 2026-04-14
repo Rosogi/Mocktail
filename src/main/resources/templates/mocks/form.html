@@ -21,23 +21,31 @@
       <form th:action="${editing ? '/mocks/' + mockId + '/edit' : '/mocks/new'}"
             method="post" th:object="${form}">
 
-        <!-- Name -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" th:field="*{name}"
-                 placeholder="e.g. Get all users – 200 OK" required/>
-          <div class="form-text">A descriptive label shown in the request log.</div>
+        <!-- Name + Collection row -->
+        <div class="row g-3 mb-3">
+          <div class="col-sm-8">
+            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" th:field="*{name}"
+                   placeholder="e.g. Get all users – 200 OK" required/>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Collection</label>
+            <select class="form-select" th:field="*{collectionId}">
+              <option value="">— None —</option>
+              <option th:each="col : ${collections}"
+                      th:value="${col.id}"
+                      th:text="${col.name}"></option>
+            </select>
+          </div>
         </div>
 
         <div class="row g-3 mb-3">
-          <!-- Method -->
           <div class="col-sm-3">
             <label class="form-label fw-semibold">Method</label>
             <select class="form-select" th:field="*{httpMethod}">
               <option th:each="m : ${httpMethods}" th:value="${m.key}" th:text="${m.value}"></option>
             </select>
           </div>
-          <!-- Path pattern -->
           <div class="col-sm-9">
             <label class="form-label fw-semibold">Path pattern <span class="text-danger">*</span></label>
             <input type="text" class="form-control font-monospace" th:field="*{pathPattern}"
@@ -48,7 +56,6 @@
           </div>
         </div>
 
-        <!-- Body contains -->
         <div class="mb-3">
           <label class="form-label fw-semibold">
             Request body contains
@@ -63,25 +70,21 @@
         <h6 class="text-muted mb-3">Response</h6>
 
         <div class="row g-3 mb-3">
-          <!-- Status -->
           <div class="col-sm-2">
             <label class="form-label fw-semibold">Status</label>
             <input type="number" class="form-control" th:field="*{responseStatus}" min="100" max="599"/>
           </div>
-          <!-- Content-Type -->
           <div class="col-sm-5">
             <label class="form-label fw-semibold">Content-Type</label>
             <select class="form-select" th:field="*{responseContentType}" id="ctSelect">
               <option th:each="ct : ${contentTypes}" th:value="${ct.key}" th:text="${ct.value}"></option>
             </select>
           </div>
-          <!-- Priority -->
           <div class="col-sm-2">
             <label class="form-label fw-semibold">Priority</label>
             <input type="number" class="form-control" th:field="*{priority}" min="0" max="999"/>
             <div class="form-text">Higher = matched first.</div>
           </div>
-          <!-- Active -->
           <div class="col-sm-3 d-flex align-items-end pb-1">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" th:field="*{active}" id="activeCheck"/>
@@ -96,20 +99,24 @@
             <label class="form-label fw-semibold mb-0">Response body</label>
             <div class="d-flex gap-2 align-items-center">
               <span id="bodyCharCount" class="text-muted" style="font-size:.75rem"></span>
+              <span id="fmtFeedback" class="small"></span>
+              <button type="button" id="formatBodyBtn" class="btn btn-sm btn-outline-info py-0">
+                <i class="bi bi-braces me-1"></i>Format
+              </button>
               <button type="button" id="fillPresetBtn" class="btn btn-sm btn-outline-secondary py-0">
                 Fill preset
               </button>
             </div>
           </div>
           <textarea class="form-control code" th:field="*{responseBody}"
-                    id="responseBody" rows="8"
+                    id="responseBody" rows="10"
                     placeholder='{ "id": 1, "name": "Alice" }'></textarea>
         </div>
 
         <!-- Template variable hint -->
         <div class="template-hint mb-3">
           <i class="bi bi-braces me-1"></i>
-          <strong>Template variables</strong> — use values from the incoming request:
+          <strong>Template variables</strong> — values from the incoming request:
           <br/>
           <code>{{name}}</code> JSON body field &nbsp;·&nbsp;
           <code>{{user.address.city}}</code> nested JSON &nbsp;·&nbsp;

@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<!--
-  Usage:
-    <nav th:replace="~{fragments/sidebar :: sidebar('dashboard', ${user})}"></nav>
-
-  Parameters:
-    activePage  – 'dashboard' | 'mocks'
-    user        – User entity (may be null before first load)
--->
 <nav th:fragment="sidebar(activePage, user)"
      class="sidebar">
 
@@ -27,6 +19,13 @@
          th:classappend="${activePage == 'mocks'} ? 'active'"
          th:href="@{/mocks}">
         <i class="bi bi-layers"></i>Mocks
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link"
+         th:classappend="${activePage == 'collections'} ? 'active'"
+         th:href="@{/collections}">
+        <i class="bi bi-collection"></i>Collections
       </a>
     </li>
   </ul>

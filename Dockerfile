@@ -31,7 +31,7 @@ RUN chown mocktail:mocktail mocktail.jar
 USER mocktail
 
 # Admin UI port (fixed)
-EXPOSE 8080
+EXPOSE 8181
 # User mock ports range
 EXPOSE 9000-9020
 

@@ -49,58 +49,58 @@
       <div class="table-responsive">
         <table class="table table-hover table-sm mb-0">
           <thead class="table-dark">
-            <tr>
-              <th style="width:80px">Time</th>
-              <th style="width:85px">Method</th>
-              <th>Path</th>
-              <th style="width:65px">Status</th>
-              <th style="width:210px">Matched mock</th>
-              <th style="width:130px">Remote</th>
-            </tr>
+          <tr>
+            <th style="width:80px">Time</th>
+            <th style="width:85px">Method</th>
+            <th>Path</th>
+            <th style="width:65px">Status</th>
+            <th style="width:210px">Matched mock</th>
+            <th style="width:130px">Remote</th>
+          </tr>
           </thead>
           <tbody id="log-table-body">
-            <tr th:if="${logs.empty}">
-              <td colspan="6" class="text-center text-muted py-5 empty-state">
-                <i class="bi bi-inbox d-block mb-2" style="font-size:2.2rem"></i>
-                No requests yet — send something to your endpoint
-              </td>
-            </tr>
-            <tr th:each="log : ${logs}"
-                th:id="'log-' + ${log.id}"
-                th:data-log-id="${log.id}"
-                th:data-method="${log.method}"
-                th:data-path="${log.path}"
-                th:data-time="${#temporals.format(log.timestamp, 'HH:mm:ss')}"
-                th:data-remote="${log.remoteAddr}"
-                th:data-status="${log.responseStatus}"
-                th:data-mock="${log.matchedMock?.name}"
-                th:data-query="${log.queryParams}"
-                th:data-ct="${log.contentType}"
-                th:data-req-body="${log.requestBody}"
-                th:data-res-body="${log.responseBody}"
-                style="cursor:pointer">
-              <td class="log-time" th:text="${#temporals.format(log.timestamp, 'HH:mm:ss')}"></td>
-              <td>
+          <tr th:if="${logs.empty}">
+            <td colspan="6" class="text-center text-muted py-5 empty-state">
+              <i class="bi bi-inbox d-block mb-2" style="font-size:2.2rem"></i>
+              No requests yet — send something to your endpoint
+            </td>
+          </tr>
+          <tr th:each="log : ${logs}"
+              th:id="'log-' + ${log.id}"
+              th:data-log-id="${log.id}"
+              th:data-method="${log.method}"
+              th:data-path="${log.path}"
+              th:data-time="${#temporals.format(log.timestamp, 'HH:mm:ss')}"
+              th:data-remote="${log.remoteAddr}"
+              th:data-status="${log.responseStatus}"
+              th:data-mock="${log.matchedMock != null ? log.matchedMock.getName() : ''}"
+              th:data-query="${log.queryParams}"
+              th:data-ct="${log.contentType}"
+              th:data-req-body="${log.requestBody}"
+              th:data-res-body="${log.responseBody}"
+              style="cursor:pointer">
+            <td class="log-time" th:text="${#temporals.format(log.timestamp, 'HH:mm:ss')}"></td>
+            <td>
                 <span class="method-badge"
                       th:classappend="'method-' + ${log.method}"
                       th:text="${log.method}">GET</span>
-              </td>
-              <td class="log-path"
-                  th:title="${log.path + (log.queryParams != null ? '?' + log.queryParams : '')}"
-                  th:text="${log.path + (log.queryParams != null ? '?' + log.queryParams : '')}"></td>
-              <td>
+            </td>
+            <td class="log-path"
+                th:title="${log.path + (log.queryParams != null ? '?' + log.queryParams : '')}"
+                th:text="${log.path + (log.queryParams != null ? '?' + log.queryParams : '')}"></td>
+            <td>
                 <span class="badge"
                       th:classappend="${log.responseStatus != null and log.responseStatus < 300} ? 'status-2xx' :
                                        (${log.responseStatus != null and log.responseStatus < 400} ? 'status-3xx' :
                                         (${log.responseStatus != null and log.responseStatus < 500} ? 'status-4xx' : 'status-5xx'))"
                       th:text="${log.responseStatus}">200</span>
-              </td>
-              <td class="log-mock-name">
-                <span th:if="${log.matchedMock != null}" th:text="${log.matchedMock.name}"></span>
-                <span th:if="${log.matchedMock == null}" class="text-muted fst-italic">no match</span>
-              </td>
-              <td class="log-remote" th:text="${log.remoteAddr}"></td>
-            </tr>
+            </td>
+            <td class="log-mock-name">
+              <span th:if="${log.matchedMock != null}" th:text="${log.matchedMock.name}"></span>
+              <span th:if="${log.matchedMock == null}" class="text-muted fst-italic">no match</span>
+            </td>
+            <td class="log-remote" th:text="${log.remoteAddr}"></td>
+          </tr>
           </tbody>
         </table>
       </div>

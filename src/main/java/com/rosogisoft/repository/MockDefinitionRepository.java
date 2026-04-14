@@ -13,55 +13,66 @@ import java.util.Optional;
 @Repository
 public interface MockDefinitionRepository extends JpaRepository<MockDefinition, Long> {
 
-    /**
-     * All mocks for a given user, ordered by priority desc then created_at
-     */
+    /** All mocks for a given user, ordered by priority desc then created_at */
     @Query(value = """
-            SELECT * FROM mock_definitions
-            WHERE owner_id = :ownerId
-            ORDER BY priority DESC, created_at ASC
-            """, nativeQuery = true)
-    List<MockDefinition> findByOwnerId (@Param("ownerId") Long ownerId);
+        SELECT m FROM MockDefinition m
+        LEFT JOIN FETCH m.collection
+        WHERE m.owner.id = :ownerId
+        ORDER BY m.priority DESC, m.createdAt ASC
+        """)
+    List<MockDefinition> findByOwnerId(@Param("ownerId") Long ownerId);
 
-    /**
-     * Only active mocks for matching (called on every incoming request)
-     */
+    /** Only active mocks for matching (called on every incoming request) */
     @Query(value = """
-            SELECT * FROM mock_definitions
-            WHERE owner_id = :ownerId
-              AND is_active = TRUE
-            ORDER BY priority DESC, created_at ASC
-            """, nativeQuery = true)
-    List<MockDefinition> findActiveByOwnerId (@Param("ownerId") Long ownerId);
+        SELECT m FROM MockDefinition m
+        LEFT JOIN FETCH m.collection
+        WHERE m.owner.id = :ownerId AND m.active = TRUE
+        ORDER BY m.priority DESC, m.createdAt ASC
+        """)
+    List<MockDefinition> findActiveByOwnerId(@Param("ownerId") Long ownerId);
 
-    /**
-     * Fetch single mock ensuring it belongs to the given owner (security check)
-     */
+    /** Fetch single mock ensuring it belongs to the given owner (security check) */
     @Query(value = """
             SELECT * FROM mock_definitions
             WHERE id = :id AND owner_id = :ownerId
             """, nativeQuery = true)
-    Optional<MockDefinition> findByIdAndOwnerId (@Param("id") Long id,
-                                                 @Param("ownerId") Long ownerId);
+    Optional<MockDefinition> findByIdAndOwnerId(@Param("id") Long id,
+                                                @Param("ownerId") Long ownerId);
 
-    /**
-     * Toggle active flag
-     */
+    /** Toggle active flag */
     @Modifying
     @Query(value = """
             UPDATE mock_definitions
             SET is_active = NOT is_active, updated_at = NOW()
             WHERE id = :id AND owner_id = :ownerId
             """, nativeQuery = true)
-    int toggleActive (@Param("id") Long id, @Param("ownerId") Long ownerId);
+    int toggleActive(@Param("id") Long id, @Param("ownerId") Long ownerId);
 
-    /**
-     * Delete only if owned by the user
-     */
+    /** All mocks belonging to a specific collection */
+    @Query(value = """
+            SELECT * FROM mock_definitions
+            WHERE collection_id = :collectionId
+            ORDER BY priority DESC, created_at ASC
+            """, nativeQuery = true)
+    List<MockDefinition> findByCollectionId(@Param("collectionId") Long collectionId);
+
+    /** Toggle active for all mocks in a collection owned by user */
+    @Modifying
+    @Query(value = """
+            UPDATE mock_definitions
+            SET is_active = :active, updated_at = NOW()
+            WHERE collection_id = :collectionId
+              AND owner_id = :ownerId
+            """, nativeQuery = true)
+    int setActiveForCollection(@Param("collectionId") Long collectionId,
+                               @Param("ownerId") Long ownerId,
+                               @Param("active") boolean active);
+
+    /** Delete only if owned by the user */
     @Modifying
     @Query(value = """
             DELETE FROM mock_definitions
             WHERE id = :id AND owner_id = :ownerId
             """, nativeQuery = true)
-    int deleteByIdAndOwnerId (@Param("id") Long id, @Param("ownerId") Long ownerId);
+    int deleteByIdAndOwnerId(@Param("id") Long id, @Param("ownerId") Long ownerId);
 }

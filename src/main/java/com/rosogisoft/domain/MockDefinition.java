@@ -12,9 +12,7 @@ import java.util.Map;
 
 @Entity
 @Table(name = "mock_definitions")
-@Getter
-@Setter
-@NoArgsConstructor
+@Getter @Setter @NoArgsConstructor
 public class MockDefinition {
 
     @Id
@@ -25,9 +23,7 @@ public class MockDefinition {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
-    /**
-     * Human-readable name, e.g. "Get all users 200 OK"
-     */
+    /** Human-readable name, e.g. "Get all users 200 OK" */
     @Column(nullable = false)
     private String name;
 
@@ -78,6 +74,11 @@ public class MockDefinition {
     @Column(name = "priority", nullable = false)
     private int priority = 0;
 
+    /** Optional collection this mock belongs to */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "collection_id")
+    private MockCollection collection;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -85,7 +86,7 @@ public class MockDefinition {
     private Instant updatedAt = Instant.now();
 
     @PreUpdate
-    void onUpdate () {
+    void onUpdate() {
         updatedAt = Instant.now();
     }
 }
