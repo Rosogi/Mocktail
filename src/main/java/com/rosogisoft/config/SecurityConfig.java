@@ -5,10 +5,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.ldap.core.support.DefaultDirObjectFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.BindAuthenticator;
@@ -92,34 +94,52 @@ public class SecurityConfig {
     // LDAP Context Source
     // ---------------------------------------------------------------
     @Bean
-    public LdapContextSource ldapContextSource () {
+    public LdapContextSource ldapContextSource() {
         LdapContextSource source = new LdapContextSource();
         source.setUrl(ldapUrl);
         source.setBase(baseDn);
+
+        // Устанавливать manager DN только если он задан
         if (managerDn != null && !managerDn.isBlank()) {
             source.setUserDn(managerDn);
             source.setPassword(managerPassword);
         }
+
+        source.setPooled(false);
+
+        java.util.Hashtable<String, Object> env = new java.util.Hashtable<>();
+        env.put("com.sun.jndi.ldap.connect.timeout", "5000");
+        env.put("com.sun.jndi.ldap.read.timeout", "10000");
+        source.setBaseEnvironmentProperties(env);
+
         return source;
     }
 
-    // ---------------------------------------------------------------
-    // AuthenticationManager with LDAP bind
-    // ---------------------------------------------------------------
     @Bean
-    public AuthenticationManager ldapAuthenticationManager (LdapContextSource contextSource) {
+    public LdapAuthenticationProvider ldapAuthenticationProvider(LdapContextSource contextSource) {
+        FilterBasedLdapUserSearch userSearch = new FilterBasedLdapUserSearch(
+                "",
+                "(sAMAccountName={0})",
+                contextSource
+        );
+        userSearch.setSearchSubtree(true);
+
         BindAuthenticator authenticator = new BindAuthenticator(contextSource);
-        authenticator.setUserDnPatterns(new String[]{userDnPattern});
+        authenticator.setUserSearch(userSearch);
 
         DefaultLdapAuthoritiesPopulator authoritiesPopulator =
-                new DefaultLdapAuthoritiesPopulator(contextSource, groupSearchBase);
+                new DefaultLdapAuthoritiesPopulator(contextSource, "");
+        authoritiesPopulator.setGroupSearchFilter("(member={0})");
         authoritiesPopulator.setGroupRoleAttribute("cn");
-        authoritiesPopulator.setGroupSearchFilter("(uniqueMember={0})");
-        authoritiesPopulator.setSearchSubtree(false);
+        authoritiesPopulator.setSearchSubtree(true);
+        authoritiesPopulator.setIgnorePartialResultException(true);
 
-        LdapAuthenticationProvider provider =
-                new LdapAuthenticationProvider(authenticator, authoritiesPopulator);
-
-        return new ProviderManager(provider);
+        return new LdapAuthenticationProvider(authenticator, authoritiesPopulator);
     }
+
+    @Bean
+    public AuthenticationManager authenticationManager(LdapAuthenticationProvider ldapAuthenticationProvider) {
+        return new ProviderManager(ldapAuthenticationProvider);
+    }
+
 }
