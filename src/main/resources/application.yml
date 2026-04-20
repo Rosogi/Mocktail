@@ -1,14 +1,14 @@
 server:
-  port: 8181
+  port: 8999
 
 spring:
   application:
     name: mock-server
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/mockserver}
-    username: ${DB_USER:mockserver}
-    password: ${DB_PASS:mockserver}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mocktail}
+    username: ${DB_USER:mocktail}
+    password: ${DB_PASS:mocktail}
     driver-class-name: org.postgresql.Driver
 
   jpa:

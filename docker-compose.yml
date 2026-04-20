@@ -34,7 +34,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8181:8181"
+      - "8999:8999"
       - "9000-9020:9000-9020"
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}

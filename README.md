@@ -79,7 +79,7 @@ The admin UI runs on port **8080**. Mock endpoints run on ports **9000–9999**.
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/your-org/mocktail.git
+git clone https://github.com/Rosogi/mocktail.git
 cd mocktail
 cp .env.example .env
 ```
@@ -360,8 +360,8 @@ mvn package -DskipTests
 # Run
 java -jar target/mock-server-1.0.0.jar \
   --spring.profiles.active=prod \
-  --DB_URL=jdbc:postgresql://localhost:5432/mockserver \
-  --DB_USER=mockserver \
+  --DB_URL=jdbc:postgresql://localhost:5432/mocktail \
+  --DB_USER=mocktail \
   --DB_PASS=strongpassword \
   --LDAP_URL=ldap://ldap.company.com:389 \
   --LDAP_BASE_DN=dc=company,dc=com
@@ -477,9 +477,9 @@ src/main/resources/
 ```bash
 # Start PostgreSQL
 docker run -d --name mocktail-pg \
-  -e POSTGRES_DB=mockserver \
-  -e POSTGRES_USER=mockserver \
-  -e POSTGRES_PASSWORD=mockserver \
+  -e POSTGRES_DB=mocktail \
+  -e POSTGRES_USER=mocktail \
+  -e POSTGRES_PASSWORD=mocktail \
   -p 5432:5432 postgres:16
 
 # Run with dev profile (embedded LDAP on port 8389)
