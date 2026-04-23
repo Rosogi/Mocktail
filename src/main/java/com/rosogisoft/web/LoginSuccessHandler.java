@@ -20,6 +20,7 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
     public LoginSuccessHandler (UserService userService) {
         this.userService = userService;
         setDefaultTargetUrl("/dashboard");
+        setAlwaysUseDefaultTargetUrl(true);
     }
 
     @Override
