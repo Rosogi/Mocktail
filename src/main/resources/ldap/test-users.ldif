@@ -14,13 +14,14 @@ objectClass: organizationalUnit
 ou: groups
 
 # ---- Users ----
-
 dn: uid=admin,ou=people,dc=mockserver,dc=com
 objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: extensibleObject
 uid: admin
+sAMAccountName: admin
 cn: Admin User
 sn: Admin
 mail: admin@mockserver.local
@@ -31,7 +32,9 @@ objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: extensibleObject
 uid: alice
+sAMAccountName: alice
 cn: Alice Dev
 sn: Dev
 mail: alice@mockserver.local
@@ -42,7 +45,9 @@ objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: extensibleObject
 uid: bob
+sAMAccountName: bob
 cn: Bob Dev
 sn: Dev
 mail: bob@mockserver.local
@@ -53,19 +58,20 @@ objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: extensibleObject
 uid: charlie
+sAMAccountName: charlie
 cn: Charlie Dev
 sn: Dev
 mail: charlie@mockserver.local
 userPassword: charlie123
 
 # ---- Groups ----
-
 dn: cn=developers,ou=groups,dc=mockserver,dc=com
 objectClass: top
-objectClass: groupOfUniqueNames
+objectClass: groupOfNames
 cn: developers
-uniqueMember: uid=admin,ou=people,dc=mockserver,dc=com
-uniqueMember: uid=alice,ou=people,dc=mockserver,dc=com
-uniqueMember: uid=bob,ou=people,dc=mockserver,dc=com
-uniqueMember: uid=charlie,ou=people,dc=mockserver,dc=com
+member: uid=admin,ou=people,dc=mockserver,dc=com
+member: uid=alice,ou=people,dc=mockserver,dc=com
+member: uid=bob,ou=people,dc=mockserver,dc=com
+member: uid=charlie,ou=people,dc=mockserver,dc=com
