@@ -36,9 +36,13 @@
     <div th:if="${user != null}" class="port-badge">
       :<span th:text="${user.assignedPort}">9000</span>
     </div>
-    <a th:href="@{/logout}" class="btn btn-sm btn-outline-danger w-100 mt-2">
-      <i class="bi bi-box-arrow-right"></i> Logout
-    </a>
+    <form th:action="@{/logout}" method="post" class="w-100 mt-2">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+      <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </button>
+    </form>
   </div>
 </nav>
 </html>
