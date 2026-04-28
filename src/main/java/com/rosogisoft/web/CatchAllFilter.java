@@ -2,11 +2,13 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.RequestLog;
+import com.rosogisoft.domain.SettingKey;
 import com.rosogisoft.domain.User;
 import com.rosogisoft.service.MockMatcherService;
 import com.rosogisoft.service.MockTemplateEngine;
 import com.rosogisoft.service.RequestLogService;
 import com.rosogisoft.service.UserService;
+import com.rosogisoft.service.UserSettingsService;
 import com.rosogisoft.ws.RequestEventPublisher;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
@@ -34,6 +36,7 @@ public class CatchAllFilter implements Filter {
     private final RequestLogService logService;
     private final RequestEventPublisher publisher;
     private final MockTemplateEngine templateEngine;
+    private final UserSettingsService settingsService;
 
     @Override
     public void doFilter (ServletRequest req,
@@ -107,16 +110,19 @@ public class CatchAllFilter implements Filter {
             logEntry.setResponseBody(responseBody);
 
         } else {
-            // No mock found
-            response.setStatus(404);
-            response.setContentType("application/json");
-            String notFound = """
-                    {"error":"No mock matched","method":"%s","path":"%s"}
-                    """.formatted(method, path).trim();
-            response.getWriter().write(notFound);
+            var settings = settingsService.getSettings(owner);
+            String responseBody = templateEngine.render(
+                    settings.get(SettingKey.DEFAULT_RESPONSE_BODY),
+                    method, path, queryString, headers, body
+            );
+            int status = settings.getInt(SettingKey.DEFAULT_RESPONSE_STATUS);
 
-            logEntry.setResponseStatus(404);
-            logEntry.setResponseBody(notFound);
+            response.setStatus(status);
+            response.setContentType(settings.get(SettingKey.DEFAULT_RESPONSE_CT));
+            response.getWriter().write(responseBody);
+
+            logEntry.setResponseStatus(status);
+            logEntry.setResponseBody(responseBody);
         }
 
         // Persist and broadcast

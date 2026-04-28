@@ -28,6 +28,14 @@
         <i class="bi bi-collection"></i>Collections
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link"
+         th:classappend="${activePage == 'settings'} ? 'active'"
+         th:href="@{/settings}">
+        <i class="bi bi-gear"></i>
+        <span>Settings</span>
+      </a>
+    </li>
   </ul>
 
   <div class="sidebar-footer">

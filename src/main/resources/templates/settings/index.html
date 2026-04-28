@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Settings')}"></head>
+<body>
+<nav th:replace="~{fragments/sidebar :: sidebar('settings', ${user})}"></nav>
+<main class="main">
+
+    <div th:replace="~{fragments/flash :: flash}"></div>
+
+    <div class="page-header">
+        <div>
+            <h4>Settings</h4>
+            <small class="text-muted">Personal preferences for your mock endpoint</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-x-circle me-2 text-muted"></i>
+            Default response (no mock matched)
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4">
+                Returned when no active mock matches the request.
+                Template variables are supported:
+                <code>{{request.path}}</code>, <code>{{request.method}}</code>,
+                <code>{{param.x}}</code>, <code>{{header.x}}</code>
+            </p>
+            <form th:action="@{/settings/default-response}" method="post">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-3">
+                        <label class="form-label fw-semibold">Status code</label>
+                        <input type="number" class="form-control"
+                               name="defaultResponseStatus"
+                               th:value="${settings['DEFAULT_RESPONSE_STATUS']}"
+                               min="100" max="599"/>
+                    </div>
+                    <div class="col-sm-5">
+                        <label class="form-label fw-semibold">Content-Type</label>
+                        <select class="form-select" name="defaultResponseCt">
+                            <option value="application/json"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'application/json'}">
+                                application/json</option>
+                            <option value="application/xml"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'application/xml'}">
+                                application/xml</option>
+                            <option value="text/xml"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'text/xml'}">
+                                text/xml (SOAP)</option>
+                            <option value="text/plain"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'text/plain'}">
+                                text/plain</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Response body</label>
+                    <textarea class="form-control code" name="defaultResponseBody" rows="6"
+                              th:text="${settings['DEFAULT_RESPONSE_BODY']}"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-floppy me-1"></i>Save
+                </button>
+            </form>
+        </div>
+    </div>
+
+</main>
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
