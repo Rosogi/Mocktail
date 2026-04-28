@@ -45,7 +45,7 @@
           <th style="width:70px">Status</th>
           <th style="width:60px">Priority</th>
           <th style="width:80px">Active</th>
-          <th style="width:120px"></th>
+          <th style="width:160px"></th>
         </tr>
         </thead>
         <tbody>
@@ -89,6 +89,11 @@
                class="btn btn-sm btn-outline-secondary py-0 px-2 me-1">
               <i class="bi bi-pencil"></i>
             </a>
+            <a th:href="@{/mocks/{id}/export(id=${mock.id})}"
+               class="btn btn-sm btn-outline-secondary py-0 px-2 me-1"
+               title="Export mock">
+              <i class="bi bi-download"></i>
+            </a>
             <form th:action="@{/mocks/{id}/delete(id=${mock.id})}" method="post"
                   class="d-inline"
                   th:attr="data-name=${mock.name}"
@@ -117,7 +122,7 @@
       <form th:action="@{/mocks/import}" method="post" enctype="multipart/form-data">
         <div class="modal-body">
           <p class="text-muted small mb-3">
-            Upload a JSON file exported from MockServer.
+            Upload a JSON file exported from Mocktail.
             Existing mocks will not be modified — all imported mocks are added as new.
           </p>
           <div class="mb-3">

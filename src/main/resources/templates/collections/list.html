@@ -19,6 +19,10 @@
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCollectionModal">
       <i class="bi bi-plus-lg me-1"></i>New collection
     </button>
+    <button class="btn btn-sm btn-outline-secondary"
+            data-bs-toggle="modal" data-bs-target="#importCollectionModal">
+      <i class="bi bi-upload me-1"></i>Import
+    </button>
   </div>
 
   <!-- Collection cards -->
@@ -146,6 +150,42 @@
   </div>
 </div>
 
+<!-- Import collection modal -->
+<div class="modal fade" id="importCollectionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-upload me-2"></i>Import collection
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/collections/import}" method="post"
+            enctype="multipart/form-data">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Upload a JSON file exported from Mocktail.
+            The file must contain collections — standalone mocks are not accepted here.
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              File <span class="text-danger">*</span>
+            </label>
+            <input type="file" name="file" class="form-control"
+                   accept=".json" required/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm"
+                  data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-upload me-1"></i>Import
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 </body>
 </html>

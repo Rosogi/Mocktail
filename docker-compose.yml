@@ -22,7 +22,7 @@ services:
       - internal
 
   # ────────────────────────────────────────────────────────────
-  #  MockServer application
+  #  Mocktail application
   # ────────────────────────────────────────────────────────────
   app:
     build:

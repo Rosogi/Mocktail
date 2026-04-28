@@ -1,10 +1,13 @@
-package com.rosogisoft.repository;
+package com.rosogisoft.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.rosogisoft.domain.MockCollection;
 import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.User;
+import com.rosogisoft.repository.MockCollectionRepository;
+import com.rosogisoft.repository.MockDefinitionRepository;
+import com.rosogisoft.web.dto.ImportMode;
 import com.rosogisoft.web.dto.MockExportDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +24,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MockImportExportService {
 
-    private final MockDefinitionRepository  mockRepository;
-    private final MockCollectionRepository  collectionRepository;
+    private final MockDefinitionRepository mockRepository;
+    private final MockCollectionRepository collectionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -41,6 +44,17 @@ public class MockImportExportService {
                 .exportedBy(owner.getUsername())
                 .collections(List.of(toCollectionDto(collection)))
                 .mocks(List.of())
+                .build();
+        return objectMapper.writeValueAsBytes(dto);
+    }
+
+    public byte[] exportSingleMock(MockDefinition mock, User owner) throws IOException {
+        MockExportDto dto = MockExportDto.builder()
+                .version(1)
+                .exportedAt(Instant.now().toString())
+                .exportedBy(owner.getUsername())
+                .collections(List.of())
+                .mocks(List.of(toMockDto(mock)))
                 .build();
         return objectMapper.writeValueAsBytes(dto);
     }
@@ -107,8 +121,23 @@ public class MockImportExportService {
     // ── Import ────────────────────────────────────────────────────────
 
     @Transactional
-    public ImportResult importFromJson(byte[] data, User owner) throws IOException {
+    public ImportResult importFromJson(byte[] data, User owner, ImportMode mode) throws IOException {
         MockExportDto dto = objectMapper.readValue(data, MockExportDto.class);
+
+        boolean hasCollections = dto.getCollections() != null &&
+                dto.getCollections().stream().anyMatch(c ->
+                        c.getMocks() != null && !c.getMocks().isEmpty());
+        boolean hasLooseMocks = dto.getMocks() != null && !dto.getMocks().isEmpty();
+
+        if (mode == ImportMode.MOCKS_ONLY && hasCollections) {
+            throw new IllegalArgumentException(
+                    "This file contains collections. Use 'Import collection' on the Collections page.");
+        }
+        if (mode == ImportMode.COLLECTIONS_ONLY && hasLooseMocks) {
+            throw new IllegalArgumentException(
+                    "This file contains standalone mocks. Use 'Import' on the Mocks page.");
+        }
+
         int mocks = 0;
         int collections = 0;
 

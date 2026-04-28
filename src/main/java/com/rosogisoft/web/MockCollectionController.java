@@ -2,9 +2,10 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.User;
 import com.rosogisoft.repository.MockDefinitionRepository;
-import com.rosogisoft.repository.MockImportExportService;
+import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockCollectionService;
 import com.rosogisoft.service.MockService;
+import com.rosogisoft.web.dto.ImportMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
@@ -114,6 +116,28 @@ public class MockCollectionController {
                 throw new RuntimeException("Export failed", e);
             }
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/import")
+    public String importCollection(@RequestParam("file") MultipartFile file,
+                                   RedirectAttributes ra) {
+        User user = currentUserHelper.currentUser();
+        if (file.isEmpty()) {
+            ra.addFlashAttribute("errorMessage", "Please select a file to import.");
+            return "redirect:/collections";
+        }
+        try {
+            MockImportExportService.ImportResult result =
+                    exportService.importFromJson(
+                            file.getBytes(), user,
+                            ImportMode.COLLECTIONS_ONLY);
+            ra.addFlashAttribute("successMessage",
+                    "Imported %d mocks in %d collections."
+                            .formatted(result.mocks(), result.collections()));
+        } catch (Exception e) {
+            ra.addFlashAttribute("errorMessage", "Import failed: " + e.getMessage());
+        }
+        return "redirect:/collections";
     }
 
     @GetMapping("/{id}")

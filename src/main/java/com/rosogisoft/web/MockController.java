@@ -2,14 +2,21 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.User;
+import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockService;
+import com.rosogisoft.web.dto.ImportMode;
 import com.rosogisoft.web.dto.MockDefinitionForm;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +28,7 @@ public class MockController {
 
     private final MockService mockService;
     private final CurrentUserHelper currentUserHelper;
+    private final MockImportExportService importExportService;
 
     // ── List ─────────────────────────────────────────────────────────
     @GetMapping
@@ -103,6 +111,50 @@ public class MockController {
         redirectAttributes.addFlashAttribute(
                 deleted ? "successMessage" : "errorMessage",
                 deleted ? "Mock deleted." : "Mock not found.");
+        return "redirect:/mocks";
+    }
+
+    @GetMapping("/{id}/export")
+    public ResponseEntity<byte[]> exportSingleMock (@PathVariable Long id) throws IOException {
+        User user = currentUserHelper.currentUser();
+        return mockService.findByIdForUser(id, user).map(mock -> {
+            try {
+                byte[] data = importExportService.exportSingleMock(mock, user);
+                String filename = mock.getName()
+                        .toLowerCase().replaceAll("[^a-z0-9]+", "-") + "-mock.json";
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION,
+                                "attachment; filename=\"" + filename + "\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(data);
+            } catch (IOException e) {
+                throw new RuntimeException("Export failed", e);
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/import")
+    public String importMocks(@RequestParam("file") MultipartFile file,
+                              RedirectAttributes ra) {
+        User user = currentUserHelper.currentUser();
+        if (file.isEmpty()) {
+            ra.addFlashAttribute("errorMessage", "Please select a file to import.");
+            return "redirect:/mocks";
+        }
+        try {
+            MockImportExportService.ImportResult result =
+                    importExportService.importFromJson(
+                            file.getBytes(),
+                            user,
+                            ImportMode.MOCKS_ONLY);
+            ra.addFlashAttribute("successMessage",
+                    "Imported %d mocks in %d collections."
+                            .formatted(result.mocks(), result.collections()));
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        } catch (Exception e) {
+            ra.addFlashAttribute("errorMessage", "Import failed: " + e.getMessage());
+        }
         return "redirect:/mocks";
     }
 
