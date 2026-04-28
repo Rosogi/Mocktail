@@ -14,7 +14,7 @@
     <groupId>com.rosogisoft</groupId>
     <artifactId>Mocktail</artifactId>
     <version>1.0.0</version>
-    <name>MockServer</name>
+    <name>Mocktail</name>
     <description>HTTP Mock Server with per-user ports and LDAP auth</description>
 
     <properties>
