@@ -2,6 +2,7 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.User;
+import com.rosogisoft.service.MockCollectionService;
 import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockService;
 import com.rosogisoft.web.dto.ImportMode;
@@ -29,6 +30,7 @@ public class MockController {
     private final MockService mockService;
     private final CurrentUserHelper currentUserHelper;
     private final MockImportExportService importExportService;
+    private final MockCollectionService collectionService;
 
     // ── List ─────────────────────────────────────────────────────────
     @GetMapping
@@ -42,10 +44,12 @@ public class MockController {
     // ── Create form ──────────────────────────────────────────────────
     @GetMapping("/new")
     public String createForm (Model model) {
-        model.addAttribute("user", currentUserHelper.currentUser());
+        User user = currentUserHelper.currentUser();
+        model.addAttribute("user", user);
         model.addAttribute("form", new MockDefinitionForm());
         model.addAttribute("httpMethods", HTTP_METHODS);
         model.addAttribute("contentTypes", CONTENT_TYPES);
+        model.addAttribute("collections",  collectionService.findAllForUser(user));
         model.addAttribute("editing", false);
         return "mocks/form";
     }
