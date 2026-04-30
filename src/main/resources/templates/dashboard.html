@@ -109,16 +109,30 @@
 
   <!-- Request detail modal -->
   <div class="modal fade" id="requestDetailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header modal-header-custom">
-          <div class="d-flex align-items-center gap-2">
-            <span id="modal-method" class="method-badge method-GET">GET</span>
-            <span id="modal-path" class="font-monospace text-white" style="font-size:.9rem">/</span>
+    <div class="modal-dialog" id="detailModalDialog">
+      <div class="modal-content" id="detailModalContent">
+
+        <!-- Header — drag handle -->
+        <div class="modal-header modal-header-custom" id="detailModalHeader">
+          <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden">
+            <span id="modal-method" class="method-badge method-GET flex-shrink-0">GET</span>
+            <span id="modal-path"
+                  class="font-monospace text-white text-truncate"
+                  style="font-size:.88rem; min-width:0">/</span>
           </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <div class="d-flex align-items-center gap-2 ms-2 flex-shrink-0">
+            <button type="button" class="btn-expand-modal" id="btnExpandModal"
+                    title="Toggle fullscreen">
+              <i class="bi bi-fullscreen"></i>
+            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
         </div>
-        <div class="modal-body">
+
+        <!-- Body -->
+        <div class="modal-body" id="detailModalBody">
+
+          <!-- Meta row -->
           <div class="row g-2 mb-3">
             <div class="col-auto">
               <div class="detail-label">Time</div>
@@ -145,27 +159,58 @@
               <span id="modal-mock" class="text-muted">—</span>
             </div>
           </div>
+
+          <!-- Request headers -->
           <div class="mb-3">
-            <div class="detail-label">Request headers</div>
+            <div class="detail-label">
+              <span>Request headers</span>
+              <button class="detail-expand-btn" type="button"
+                      onclick="toggleExpand(this)" title="Expand / collapse">
+                <i class="bi bi-arrows-expand"></i>
+              </button>
+            </div>
             <pre class="detail-pre" id="modal-req-headers">—</pre>
           </div>
+
+          <!-- Request body + Response body -->
           <div class="row g-3">
             <div class="col-md-6">
-              <div class="detail-label">Request body</div>
+              <div class="detail-label">
+                <span>Request body</span>
+                <button class="detail-expand-btn" type="button"
+                        onclick="toggleExpand(this)" title="Expand / collapse">
+                  <i class="bi bi-arrows-expand"></i>
+                </button>
+              </div>
               <pre class="detail-pre" id="modal-req-body">(empty)</pre>
             </div>
             <div class="col-md-6">
-              <div class="detail-label">Response body</div>
+              <div class="detail-label">
+                <span>Response body</span>
+                <button class="detail-expand-btn" type="button"
+                        onclick="toggleExpand(this)" title="Expand / collapse">
+                  <i class="bi bi-arrows-expand"></i>
+                </button>
+              </div>
               <pre class="detail-pre" id="modal-res-body">(empty)</pre>
             </div>
           </div>
-        </div>
+
+        </div><!-- /.modal-body -->
+
         <div class="modal-footer py-2">
-          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+          <small class="text-muted me-auto" style="font-size:.7rem">
+            <i class="bi bi-arrows-move me-1"></i>Drag header to move
+            &nbsp;·&nbsp;
+            <i class="bi bi-arrow-down-right me-1"></i>Drag corner to resize
+          </small>
+          <button type="button" class="btn btn-sm btn-secondary"
+                  data-bs-dismiss="modal">Close</button>
         </div>
-      </div>
-    </div>
-  </div>
+
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /#requestDetailModal -->
 
 </main>
 

@@ -181,17 +181,43 @@ body {
 /* ============================================================
    Request detail modal
    ============================================================ */
+/* ── Request detail modal ──────────────────────────────────── */
+#requestDetailModal .modal-dialog {
+  max-width: 90vw;
+  width: 900px;
+  margin: 1.5rem auto;
+}
+
+#requestDetailModal .modal-content {
+  resize: both;
+  overflow: auto;
+  min-width: 500px;
+  min-height: 300px;
+  max-width: 98vw;
+  max-height: 95vh;
+}
+
+#requestDetailModal .modal-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
 .detail-pre {
   background: #1e1e2e;
   color: #cdd6f4;
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-size: 0.78rem;
-  max-height: 260px;
-  overflow: auto;
+  height: 220px;
+  min-height: 80px;
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
+  resize: vertical;
+  box-sizing: border-box;
 }
 
 .detail-label {
@@ -201,13 +227,29 @@ body {
   letter-spacing: 0.05em;
   color: #6c757d;
   margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
+
+.detail-expand-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+.detail-expand-btn:hover { color: #0d6efd; }
 
 .modal-header-custom {
   background: #212529;
   color: #fff;
   border-bottom: none;
   border-radius: calc(0.5rem - 1px) calc(0.5rem - 1px) 0 0;
+  cursor: move;
+  user-select: none;
 }
 
 .modal-header-custom .btn-close {

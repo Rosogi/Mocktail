@@ -180,3 +180,147 @@ stomp.connect({}, function onConnected() {
   liveBadge.className   = 'badge bg-secondary';
   liveBadge.textContent = 'OFFLINE';
 });
+
+// ── Modal drag (за header) ───────────────────────────────────
+(function initModalDrag() {
+  const modalEl = document.getElementById('requestDetailModal');
+  if (!modalEl) return;
+
+  modalEl.addEventListener('shown.bs.modal', function () {
+    const dialog  = modalEl.querySelector('.modal-dialog');
+    const header  = modalEl.querySelector('.modal-header-custom');
+    if (!dialog || !header) return;
+
+    // Позиционируем абсолютно чтобы drag работал
+    dialog.style.position = 'relative';
+
+    let startX, startY, startLeft, startTop;
+
+    header.addEventListener('mousedown', function (e) {
+      // Игнорируем клики по кнопке закрытия
+      if (e.target.closest('.btn-close')) return;
+
+      const rect = dialog.getBoundingClientRect();
+      startX    = e.clientX;
+      startY    = e.clientY;
+      startLeft = rect.left;
+      startTop  = rect.top;
+
+      function onMouseMove(e) {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        dialog.style.position  = 'fixed';
+        dialog.style.margin    = '0';
+        dialog.style.left      = Math.max(0, startLeft + dx) + 'px';
+        dialog.style.top       = Math.max(0, startTop  + dy) + 'px';
+      }
+
+      function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup',   onMouseUp);
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup',   onMouseUp);
+    });
+  });
+
+  // Сброс позиции при закрытии
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    const dialog = modalEl.querySelector('.modal-dialog');
+    if (dialog) {
+      dialog.style.position = '';
+      dialog.style.margin   = '';
+      dialog.style.left     = '';
+      dialog.style.top      = '';
+    }
+    const content = modalEl.querySelector('.modal-content');
+    if (content) {
+      content.style.width  = '';
+      content.style.height = '';
+    }
+  });
+})();
+
+// ── Expand/collapse individual pre blocks ────────────────────
+function toggleExpand(btn) {
+  const label = btn.closest('.detail-label');
+  const pre   = label.nextElementSibling;
+  const icon  = btn.querySelector('i');
+
+  if (pre.dataset.expanded === 'true') {
+    pre.style.height    = '';
+    pre.dataset.expanded = 'false';
+    icon.className      = 'bi bi-arrows-expand';
+    btn.title           = 'Expand';
+  } else {
+    pre.style.height    = '480px';
+    pre.dataset.expanded = 'true';
+    icon.className      = 'bi bi-arrows-collapse';
+    btn.title           = 'Collapse';
+  }
+}
+// ── Fullscreen toggle ────────────────────────────────────────
+(function initFullscreen() {
+  const btn     = document.getElementById('btnExpandModal');
+  const content = document.getElementById('detailModalContent');
+  const dialog  = document.getElementById('detailModalDialog');
+  const icon    = btn ? btn.querySelector('i') : null;
+  if (!btn || !content || !dialog) return;
+
+  let isFullscreen = false;
+  let savedStyles  = {};
+
+  btn.addEventListener('click', function () {
+    if (!isFullscreen) {
+      savedStyles = {
+        width:    content.style.width,
+        height:   content.style.height,
+        position: dialog.style.position,
+        margin:   dialog.style.margin,
+        left:     dialog.style.left,
+        top:      dialog.style.top,
+      };
+
+      dialog.style.position = 'fixed';
+      dialog.style.margin   = '0';
+      dialog.style.left     = '0';
+      dialog.style.top      = '0';
+      content.style.width   = '100vw';
+      content.style.height  = '100vh';
+      content.style.maxWidth  = '100vw';
+      content.style.maxHeight = '100vh';
+      content.style.borderRadius = '0';
+
+      icon.className = 'bi bi-fullscreen-exit';
+      btn.title      = 'Exit fullscreen';
+      isFullscreen   = true;
+    } else {
+      dialog.style.position = savedStyles.position;
+      dialog.style.margin   = savedStyles.margin;
+      dialog.style.left     = savedStyles.left;
+      dialog.style.top      = savedStyles.top;
+      content.style.width      = savedStyles.width;
+      content.style.height     = savedStyles.height;
+      content.style.maxWidth   = '';
+      content.style.maxHeight  = '';
+      content.style.borderRadius = '';
+
+      icon.className = 'bi bi-fullscreen';
+      btn.title      = 'Toggle fullscreen';
+      isFullscreen   = false;
+    }
+  });
+
+  document.getElementById('requestDetailModal')
+      .addEventListener('hidden.bs.modal', function () {
+        isFullscreen             = false;
+        icon.className           = 'bi bi-fullscreen';
+        btn.title                = 'Toggle fullscreen';
+        content.style.width      = '';
+        content.style.height     = '';
+        content.style.maxWidth   = '';
+        content.style.maxHeight  = '';
+        content.style.borderRadius = '';
+      });
+})();
