@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${collection.name})}"></head>
+
+<body>
+
+<nav th:replace="~{fragments/sidebar :: sidebar('shared', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a th:href="@{/shared}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h4 class="mb-0" th:text="${collection.name}">Collection</h4>
+        <span class="badge bg-light text-dark border">
+          <i class="bi bi-person me-1"></i><span th:text="${collection.owner.username}">author</span>
+        </span>
+        <span class="badge bg-light text-dark border">
+          rev <span th:text="${collection.revision}">1</span>
+        </span>
+        <span th:if="${subscription != null}" class="badge bg-info text-dark">Subscribed</span>
+        <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark">Update available</span>
+      </div>
+      <small class="text-muted" th:text="${collection.description}"></small>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+      <form th:if="${subscription == null}"
+            th:action="@{/shared/{id}/subscribe(id=${collection.id})}" method="post">
+        <button class="btn btn-sm btn-primary">
+          <i class="bi bi-bookmark-plus"></i> Subscribe
+        </button>
+      </form>
+      <a th:if="${subscription != null}"
+         th:href="@{/collections/{id}(id=${subscription.localCollection.id})}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-folder2-open"></i> Open
+      </a>
+      <form th:if="${subscription != null and hasUpdate == true}"
+            th:action="@{/shared/{id}/update(id=${collection.id})}" method="post">
+        <button class="btn btn-sm btn-warning">
+          <i class="bi bi-arrow-clockwise"></i> Update
+        </button>
+      </form>
+      <form th:action="@{/shared/{id}/copy(id=${collection.id})}" method="post">
+        <button class="btn btn-sm btn-outline-success">
+          <i class="bi bi-copy"></i> Copy
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold">
+      Mocks
+      <span class="badge bg-secondary ms-1" th:text="${mocks.size()}">0</span>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th style="width:80px">Method</th>
+          <th>Path</th>
+          <th style="width:70px">Status</th>
+          <th style="width:70px">Priority</th>
+          <th style="width:70px">Active</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${mocks.empty}">
+          <td colspan="6" class="text-center text-muted py-3">
+            No mocks in this collection
+          </td>
+        </tr>
+        <tr th:each="mock : ${mocks}">
+          <td th:text="${mock.name}">Mock</td>
+          <td>
+            <span class="method-badge"
+                  th:classappend="'method-' + (${mock.httpMethod == '*'} ? 'ANY' : ${mock.httpMethod})"
+                  th:text="${mock.httpMethod}"></span>
+          </td>
+          <td class="font-monospace" style="font-size:.8rem" th:text="${mock.pathPattern}"></td>
+          <td>
+            <span class="badge"
+                  th:classappend="${mock.responseStatus < 300} ? 'status-2xx' :
+                                   (${mock.responseStatus < 400} ? 'status-3xx' :
+                                    (${mock.responseStatus < 500} ? 'status-4xx' : 'status-5xx'))"
+                  th:text="${mock.responseStatus}"></span>
+          </td>
+          <td class="text-muted" th:text="${mock.priority}"></td>
+          <td>
+            <i th:class="${mock.active ? 'bi bi-toggle-on text-success fs-5' :
+                           'bi bi-toggle-off text-muted fs-5'}"></i>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

@@ -13,10 +13,18 @@
             <i class="bi bi-arrow-left"></i>
         </a>
         <div>
-            <h4 class="mb-0" th:text="${collection.name}">Collection</h4>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h4 class="mb-0" th:text="${collection.name}">Collection</h4>
+                <span th:if="${collection.shared}" class="badge bg-primary">Shared</span>
+                <span th:if="${collection.readOnly}" class="badge bg-info text-dark">
+                    <i class="bi bi-lock"></i> Read-only
+                </span>
+                <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark">Update available</span>
+                <span th:if="${collection.readOnly and sourceAvailable == false}" class="badge bg-secondary">Source unavailable</span>
+            </div>
             <small class="text-muted" th:text="${collection.description}"></small>
         </div>
-        <div class="ms-auto d-flex gap-2">
+        <div class="ms-auto d-flex gap-2 flex-wrap">
             <form th:action="@{/collections/{id}/enable-all(id=${collection.id})}" method="post">
                 <button class="btn btn-sm btn-outline-success">
                     <i class="bi bi-play-fill"></i> Enable all
@@ -27,17 +35,63 @@
                     <i class="bi bi-pause-fill"></i> Disable all
                 </button>
             </form>
-            <a th:href="@{/collections/{id}/export(id=${collection.id})}"
-               class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-download"></i> Export
-            </a>
+            <form th:if="${collection.readOnly and hasUpdate == true}"
+                  th:action="@{/shared/subscriptions/{id}/update(id=${collection.id})}" method="post">
+                <button class="btn btn-sm btn-warning">
+                    <i class="bi bi-arrow-clockwise"></i> Update
+                </button>
+            </form>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a th:href="@{/collections/{id}/export(id=${collection.id})}" class="dropdown-item">
+                            <i class="bi bi-download me-2"></i>Export
+                        </a>
+                    </li>
+                    <li th:if="${not collection.readOnly and not collection.shared}">
+                        <form th:action="@{/collections/{id}/share(id=${collection.id})}" method="post">
+                            <button class="dropdown-item" type="submit">
+                                <i class="bi bi-share me-2"></i>Share
+                            </button>
+                        </form>
+                    </li>
+                    <li th:if="${not collection.readOnly and collection.shared}">
+                        <form th:action="@{/collections/{id}/unshare(id=${collection.id})}" method="post">
+                            <button class="dropdown-item" type="submit">
+                                <i class="bi bi-slash-circle me-2"></i>Unshare
+                            </button>
+                        </form>
+                    </li>
+                    <li th:if="${collection.readOnly}">
+                        <form th:action="@{/shared/subscriptions/{id}/copy(id=${collection.id})}" method="post">
+                            <button class="dropdown-item" type="submit">
+                                <i class="bi bi-copy me-2"></i>Copy editable
+                            </button>
+                        </form>
+                    </li>
+                    <li th:if="${collection.readOnly}">
+                        <hr class="dropdown-divider"/>
+                    </li>
+                    <li th:if="${collection.readOnly}">
+                        <form th:action="@{/shared/subscriptions/{id}/unsubscribe(id=${collection.id})}" method="post">
+                            <button class="dropdown-item text-danger" type="submit">
+                                <i class="bi bi-bookmark-dash me-2"></i>Unsubscribe
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
     <div class="row g-3">
 
         <!-- Mocks in this collection -->
-        <div class="col-md-8">
+        <div th:class="${collection.readOnly ? 'col-md-12' : 'col-md-8'}">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold">
                     Mocks in collection
@@ -51,12 +105,12 @@
                             <th style="width:80px">Method</th>
                             <th>Path</th>
                             <th style="width:70px">Active</th>
-                            <th style="width:50px"></th>
+                            <th th:if="${not collection.readOnly}" style="width:50px"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:if="${mocks.empty}">
-                            <td colspan="5" class="text-center text-muted py-3">
+                            <td th:colspan="${collection.readOnly ? 4 : 5}" class="text-center text-muted py-3">
                                 No mocks in this collection yet
                             </td>
                         </tr>
@@ -72,7 +126,7 @@
                                 <i th:class="${mock.active ? 'bi bi-toggle-on text-success fs-5' :
                                                'bi bi-toggle-off text-muted fs-5'}"></i>
                             </td>
-                            <td>
+                            <td th:if="${not collection.readOnly}">
                                 <form th:action="@{/collections/{cid}/remove-mock(cid=${collection.id})}"
                                       method="post">
                                     <input type="hidden" name="mockId" th:value="${mock.id}"/>
@@ -90,7 +144,7 @@
         </div>
 
         <!-- Add mock panel -->
-        <div class="col-md-4">
+        <div class="col-md-4" th:if="${not collection.readOnly}">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold">Add mock</div>
                 <div class="card-body">
@@ -102,7 +156,7 @@
                             <select name="mockId" class="form-select form-select-sm" required>
                                 <option value="">— Select mock —</option>
                                 <option th:each="mock : ${allMocks}"
-                                        th:if="${mock.collection == null or mock.collection.id == collection.id}"
+                                        th:if="${(mock.collection == null or not mock.collection.readOnly) and (mock.collection == null or mock.collection.id == collection.id)}"
                                         th:value="${mock.id}"
                                         th:text="${mock.name + ' (' + mock.httpMethod + ' ' + mock.pathPattern + ')'}">
                                 </option>

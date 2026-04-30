@@ -100,6 +100,49 @@ body {
   margin-bottom: 0;
 }
 
+.min-width-0 {
+  min-width: 0;
+}
+
+/* ============================================================
+   Filters
+   ============================================================ */
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.filter-search {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.filter-search i {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+
+.filter-search .form-control {
+  padding-left: 2rem;
+}
+
+.filters-bar .form-select {
+  flex: 0 1 170px;
+  min-width: 140px;
+}
+
+.filters-bar [data-filter-reset] {
+  flex: 0 0 auto;
+}
+
 /* ============================================================
    Stat boxes (dashboard)
    ============================================================ */
@@ -219,6 +262,94 @@ body {
    ============================================================ */
 .mock-name {
   font-weight: 500;
+}
+
+.mock-table {
+  table-layout: fixed;
+  min-width: 1040px;
+}
+
+.mock-table th,
+.mock-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.mock-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mock-col-name { width: 20%; }
+.mock-col-method { width: 92px; }
+.mock-col-path { width: 28%; }
+.mock-col-collection { width: 190px; }
+.mock-col-status { width: 76px; }
+.mock-col-priority { width: 76px; }
+.mock-col-active { width: 76px; }
+.mock-col-actions { width: 136px; }
+
+.mock-path {
+  font-size: 0.82rem;
+}
+
+.mock-collection-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.mock-collection-badge .text-truncate {
+  min-width: 0;
+}
+
+.actions-cell {
+  text-align: right;
+  overflow: visible !important;
+}
+
+.actions-cell .btn,
+.actions-cell form {
+  margin-left: 0.2rem;
+}
+
+.active-toggle-btn {
+  line-height: 1;
+}
+
+/* ============================================================
+   Collection cards
+   ============================================================ */
+.collection-card {
+  border-radius: 6px;
+}
+
+.collection-description {
+  min-height: 2.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.collection-actions {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.collection-actions .btn {
+  width: 100%;
+  white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+  .collection-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================

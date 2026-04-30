@@ -33,25 +33,54 @@ public class MockService {
         MockDefinition mock = new MockDefinition();
         mock.setOwner(owner);
         applyForm(mock, form, owner);
-        return mockRepository.save(mock);
+        MockDefinition saved = mockRepository.save(mock);
+        touchCollection(saved.getCollection());
+        return saved;
     }
 
     @Transactional
     public Optional<MockDefinition> update(Long id, MockDefinitionForm form, User owner) {
         return mockRepository.findByIdAndOwnerId(id, owner.getId()).map(mock -> {
+            ensureEditable(mock);
+            Long previousCollectionId = mock.getCollection() != null
+                    ? mock.getCollection().getId()
+                    : null;
             applyForm(mock, form, owner);
-            return mockRepository.save(mock);
+            MockDefinition saved = mockRepository.save(mock);
+            touchCollection(saved.getCollection());
+            if (previousCollectionId != null &&
+                    (saved.getCollection() == null ||
+                            !previousCollectionId.equals(saved.getCollection().getId()))) {
+                touchCollectionById(previousCollectionId);
+            }
+            return saved;
         });
     }
 
     @Transactional
     public boolean toggleActive(Long id, User owner) {
-        return mockRepository.toggleActive(id, owner.getId()) > 0;
+        return mockRepository.findByIdAndOwnerId(id, owner.getId())
+                .map(mock -> {
+                    boolean updated = mockRepository.toggleActive(id, owner.getId()) > 0;
+                    touchCollection(mock.getCollection());
+                    return updated;
+                })
+                .orElse(false);
     }
 
     @Transactional
     public boolean delete(Long id, User owner) {
-        return mockRepository.deleteByIdAndOwnerId(id, owner.getId()) > 0;
+        return mockRepository.findByIdAndOwnerId(id, owner.getId())
+                .map(mock -> {
+                    ensureEditable(mock);
+                    Long collectionId = mock.getCollection() != null
+                            ? mock.getCollection().getId()
+                            : null;
+                    boolean deleted = mockRepository.deleteByIdAndOwnerId(id, owner.getId()) > 0;
+                    touchCollectionById(collectionId);
+                    return deleted;
+                })
+                .orElse(false);
     }
 
     private void applyForm(MockDefinition mock, MockDefinitionForm form, User owner) {
@@ -71,9 +100,31 @@ public class MockService {
             MockCollection col = collectionRepository
                     .findByIdAndOwnerId(form.getCollectionId(), owner.getId())
                     .orElse(null);
+            if (col != null && col.isReadOnly()) {
+                throw new IllegalStateException("Subscribed collections are read-only.");
+            }
             mock.setCollection(col);
         } else {
             mock.setCollection(null);
+        }
+    }
+
+    private void ensureEditable(MockDefinition mock) {
+        if (mock.getCollection() != null && mock.getCollection().isReadOnly()) {
+            throw new IllegalStateException("Subscribed collections are read-only.");
+        }
+    }
+
+    private void touchCollection(MockCollection collection) {
+        if (collection != null && !collection.isReadOnly()) {
+            collection.setRevision(collection.getRevision() + 1);
+            collectionRepository.save(collection);
+        }
+    }
+
+    private void touchCollectionById(Long collectionId) {
+        if (collectionId != null) {
+            collectionRepository.incrementRevision(collectionId);
         }
     }
 }

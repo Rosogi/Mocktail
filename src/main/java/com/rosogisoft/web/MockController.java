@@ -38,6 +38,7 @@ public class MockController {
         User user = currentUserHelper.currentUser();
         model.addAttribute("user", user);
         model.addAttribute("mocks", mockService.findAllForUser(user));
+        model.addAttribute("collections", collectionService.findAllForUser(user));
         return "mocks/list";
     }
 
@@ -49,7 +50,7 @@ public class MockController {
         model.addAttribute("form", new MockDefinitionForm());
         model.addAttribute("httpMethods", HTTP_METHODS);
         model.addAttribute("contentTypes", CONTENT_TYPES);
-        model.addAttribute("collections",  collectionService.findAllForUser(user));
+        model.addAttribute("collections",  collectionService.findEditableForUser(user));
         model.addAttribute("editing", false);
         return "mocks/form";
     }
@@ -59,9 +60,13 @@ public class MockController {
     public String create (@ModelAttribute("form") MockDefinitionForm form,
                           RedirectAttributes redirectAttributes) {
         User user = currentUserHelper.currentUser();
-        MockDefinition created = mockService.create(form, user);
-        redirectAttributes.addFlashAttribute("successMessage",
-                "Mock \"" + created.getName() + "\" created.");
+        try {
+            MockDefinition created = mockService.create(form, user);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Mock \"" + created.getName() + "\" created.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
         return "redirect:/mocks";
     }
 
@@ -71,6 +76,11 @@ public class MockController {
                             RedirectAttributes redirectAttributes) {
         User user = currentUserHelper.currentUser();
         return mockService.findByIdForUser(id, user).map(mock -> {
+            if (mock.getCollection() != null && mock.getCollection().isReadOnly()) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "Subscribed collections are read-only.");
+                return "redirect:/mocks";
+            }
             model.addAttribute("user", user);
             model.addAttribute("form", toForm(mock));
             model.addAttribute("mockId", id);
@@ -90,11 +100,15 @@ public class MockController {
                           @ModelAttribute("form") MockDefinitionForm form,
                           RedirectAttributes redirectAttributes) {
         User user = currentUserHelper.currentUser();
-        boolean updated = mockService.update(id, form, user).isPresent();
-        if (updated) {
-            redirectAttributes.addFlashAttribute("successMessage", "Mock updated.");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Mock not found.");
+        try {
+            boolean updated = mockService.update(id, form, user).isPresent();
+            if (updated) {
+                redirectAttributes.addFlashAttribute("successMessage", "Mock updated.");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "Mock not found.");
+            }
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/mocks";
     }
@@ -103,7 +117,11 @@ public class MockController {
     @PostMapping("/{id}/toggle")
     public String toggle (@PathVariable Long id, RedirectAttributes redirectAttributes) {
         User user = currentUserHelper.currentUser();
-        mockService.toggleActive(id, user);
+        try {
+            mockService.toggleActive(id, user);
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
         return "redirect:/mocks";
     }
 
@@ -111,10 +129,14 @@ public class MockController {
     @PostMapping("/{id}/delete")
     public String delete (@PathVariable Long id, RedirectAttributes redirectAttributes) {
         User user = currentUserHelper.currentUser();
-        boolean deleted = mockService.delete(id, user);
-        redirectAttributes.addFlashAttribute(
-                deleted ? "successMessage" : "errorMessage",
-                deleted ? "Mock deleted." : "Mock not found.");
+        try {
+            boolean deleted = mockService.delete(id, user);
+            redirectAttributes.addFlashAttribute(
+                    deleted ? "successMessage" : "errorMessage",
+                    deleted ? "Mock deleted." : "Mock not found.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
         return "redirect:/mocks";
     }
 

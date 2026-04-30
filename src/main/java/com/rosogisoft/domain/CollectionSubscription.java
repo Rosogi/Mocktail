@@ -18,45 +18,34 @@ import lombok.Setter;
 import java.time.Instant;
 
 @Entity
-@Table(name = "mock_collections",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"owner_id", "name"}))
+@Table(name = "collection_subscriptions",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"subscriber_id", "source_collection_id"}),
+                @UniqueConstraint(columnNames = {"local_collection_id"})
+        })
 @Getter
 @Setter
 @NoArgsConstructor
-public class MockCollection {
+public class CollectionSubscription {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
-
-    @Column(nullable = false)
-    private String name;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(name = "is_shared", nullable = false)
-    private boolean shared = false;
-
-    @Column(name = "shared_at")
-    private Instant sharedAt;
-
-    @Column(nullable = false)
-    private int revision = 1;
-
-    @Column(name = "read_only", nullable = false)
-    private boolean readOnly = false;
+    @JoinColumn(name = "subscriber_id", nullable = false)
+    private User subscriber;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_collection_id")
     private MockCollection sourceCollection;
 
-    @Column(name = "source_revision")
-    private Integer sourceRevision;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "local_collection_id", nullable = false)
+    private MockCollection localCollection;
+
+    @Column(name = "source_revision", nullable = false)
+    private int sourceRevision = 1;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
@@ -65,11 +54,17 @@ public class MockCollection {
     private Instant updatedAt = Instant.now();
 
     @PreUpdate
-    void onUpdate() { updatedAt = Instant.now(); }
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 
-    public MockCollection(User owner, String name, String description) {
-        this.owner       = owner;
-        this.name        = name;
-        this.description = description;
+    public CollectionSubscription(User subscriber,
+                                  MockCollection sourceCollection,
+                                  MockCollection localCollection,
+                                  int sourceRevision) {
+        this.subscriber = subscriber;
+        this.sourceCollection = sourceCollection;
+        this.localCollection = localCollection;
+        this.sourceRevision = sourceRevision;
     }
 }
