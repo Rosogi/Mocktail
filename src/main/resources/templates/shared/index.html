@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head('Shared')}"></head>
+
+<body>
+
+<nav th:replace="~{fragments/sidebar :: sidebar('shared', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4>Shared</h4>
+      <small class="text-muted">Collections shared by other users</small>
+    </div>
+  </div>
+
+  <div class="filters-bar mb-3" data-filter-scope="collections">
+    <div class="filter-search">
+      <i class="bi bi-search"></i>
+      <input type="search" class="form-control form-control-sm"
+             data-filter="search" placeholder="Search shared collections"/>
+    </div>
+    <select class="form-select form-select-sm" data-filter="type" aria-label="Shared state">
+      <option value="">All shared</option>
+      <option value="shared">Available</option>
+      <option value="subscribed">Subscribed</option>
+      <option value="updates">Updates available</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="state" aria-label="Collection state">
+      <option value="">Any state</option>
+      <option value="with-mocks">Has mocks</option>
+      <option value="empty">Empty</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="sort" aria-label="Sort collections">
+      <option value="name">Name</option>
+      <option value="mocks-desc">Mocks count</option>
+      <option value="revision-desc">Revision</option>
+    </select>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-filter-reset>
+      Reset
+    </button>
+  </div>
+
+  <div th:if="${sharedCollections.empty}" class="text-center text-muted py-5">
+    <i class="bi bi-share d-block mb-2" style="font-size:2.2rem"></i>
+    No shared collections yet
+  </div>
+
+  <div id="collectionsEmptyFiltered" class="text-center text-muted py-5 d-none">
+    <i class="bi bi-funnel d-block mb-2" style="font-size:2.2rem"></i>
+    No shared collections match filters
+  </div>
+
+  <div class="row g-3" id="collectionsGrid">
+    <div class="col-md-6 col-xl-4 collection-card-wrap"
+         th:each="col : ${sharedCollections}"
+         th:with="sub=${subscriptions[col.id]}, hasUpdate=${updateAvailable[col.id]}, mocksCount=${mockCounts[col.id]}"
+         th:data-name="${#strings.toLowerCase(col.name)}"
+         th:data-description="${col.description != null ? #strings.toLowerCase(col.description) : ''}"
+         th:data-author="${#strings.toLowerCase(col.owner.username)}"
+         th:data-type="${sub != null ? 'subscribed' : 'shared'}"
+         th:data-state="${mocksCount > 0 ? 'with-mocks' : 'empty'}"
+         th:data-update="${hasUpdate == true}"
+         th:data-mocks="${mocksCount}"
+         th:data-revision="${col.revision}">
+      <div class="card border-0 shadow-sm h-100 collection-card">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div class="min-width-0">
+              <h6 class="card-title mb-1 fw-semibold text-truncate" th:text="${col.name}">Collection</h6>
+              <div class="d-flex align-items-center gap-1 flex-wrap">
+                <span class="badge bg-secondary" th:text="${mocksCount} + ' mocks'">0 mocks</span>
+                <span class="badge bg-light text-dark border">
+                  <i class="bi bi-person me-1"></i><span th:text="${col.owner.username}">author</span>
+                </span>
+                <span class="badge bg-light text-dark border">
+                  rev <span th:text="${col.revision}">1</span>
+                </span>
+                <span th:if="${sub != null}" class="badge bg-info text-dark">Subscribed</span>
+                <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark">Update</span>
+              </div>
+            </div>
+            <div class="dropdown flex-shrink-0" th:if="${sub != null and hasUpdate == true}">
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                      type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                      title="More actions">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <form th:action="@{/shared/{id}/update(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-arrow-clockwise me-2"></i>Update
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="card-text text-muted small collection-description"
+             th:text="${not #strings.isEmpty(col.description) ? col.description : 'No description'}"></p>
+
+          <div class="collection-actions mt-auto">
+            <a th:href="@{/shared/{id}(id=${col.id})}"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i> View
+            </a>
+            <form th:if="${sub == null}"
+                  th:action="@{/shared/{id}/subscribe(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-bookmark-plus"></i> Subscribe
+              </button>
+            </form>
+            <a th:if="${sub != null}"
+               th:href="@{/collections/{id}(id=${sub.localCollection.id})}"
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-folder2-open"></i> Open
+            </a>
+            <form th:action="@{/shared/{id}/copy(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-copy"></i> Copy
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/list-filters.js}"></script>
+</body>
+</html>

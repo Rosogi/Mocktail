@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -144,14 +145,19 @@ public class MockImportExportService {
         // Import collections + their mocks
         if (dto.getCollections() != null) {
             for (MockExportDto.CollectionDto cDto : dto.getCollections()) {
-                MockCollection collection = collectionRepository
+                Optional<MockCollection> existing = collectionRepository
                         .findByOwnerId(owner.getId()).stream()
                         .filter(c -> c.getName().equals(cDto.getName()))
-                        .findFirst()
-                        .orElseGet(() -> {
-                            MockCollection c = new MockCollection(owner, cDto.getName(), cDto.getDescription());
-                            return collectionRepository.save(c);
-                        });
+                        .findFirst();
+                if (existing.isPresent() && existing.get().isReadOnly()) {
+                    throw new IllegalArgumentException(
+                            "Collection \"%s\" is a read-only subscription.".formatted(cDto.getName()));
+                }
+
+                MockCollection collection = existing.orElseGet(() -> {
+                    MockCollection c = new MockCollection(owner, cDto.getName(), cDto.getDescription());
+                    return collectionRepository.save(c);
+                });
                 collections++;
 
                 if (cDto.getMocks() != null) {
@@ -159,6 +165,10 @@ public class MockImportExportService {
                         mockRepository.save(fromDto(mDto, owner, collection));
                         mocks++;
                     }
+                }
+                if (!collection.isReadOnly() && cDto.getMocks() != null && !cDto.getMocks().isEmpty()) {
+                    collection.setRevision(collection.getRevision() + 1);
+                    collectionRepository.save(collection);
                 }
             }
         }

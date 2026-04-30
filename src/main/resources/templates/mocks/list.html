@@ -16,102 +16,189 @@
       <h4>Mock definitions</h4>
       <small class="text-muted" th:text="${mocks.size()} + ' mocks configured'"></small>
     </div>
-    <div class="d-flex gap-2">
-      <!-- Import -->
+    <div class="d-flex gap-2 flex-wrap">
       <button class="btn btn-sm btn-outline-secondary"
               data-bs-toggle="modal" data-bs-target="#importModal">
         <i class="bi bi-upload me-1"></i>Import
       </button>
-      <!-- Export all -->
       <a th:href="@{/mocks/export}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-download me-1"></i>Export all
       </a>
-      <!-- New mock -->
       <a th:href="@{/mocks/new}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg me-1"></i>New mock
       </a>
     </div>
   </div>
 
+  <div class="filters-bar mb-3" data-filter-scope="mocks">
+    <div class="filter-search">
+      <i class="bi bi-search"></i>
+      <input type="search" class="form-control form-control-sm"
+             data-filter="search" placeholder="Search mocks"/>
+    </div>
+    <select class="form-select form-select-sm" data-filter="method" aria-label="HTTP method">
+      <option value="">All methods</option>
+      <option value="GET">GET</option>
+      <option value="POST">POST</option>
+      <option value="PUT">PUT</option>
+      <option value="PATCH">PATCH</option>
+      <option value="DELETE">DELETE</option>
+      <option value="HEAD">HEAD</option>
+      <option value="OPTIONS">OPTIONS</option>
+      <option value="*">*</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="collection" aria-label="Collection">
+      <option value="">All collections</option>
+      <option value="__none">Uncollected</option>
+      <option th:each="col : ${collections}"
+              th:value="${col.id}"
+              th:text="${col.name}">Collection</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="active" aria-label="Active state">
+      <option value="">Any state</option>
+      <option value="true">Active</option>
+      <option value="false">Inactive</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="type" aria-label="Collection type">
+      <option value="">Any type</option>
+      <option value="own">Own</option>
+      <option value="shared">Shared by me</option>
+      <option value="subscribed">Subscribed</option>
+      <option value="uncollected">Uncollected</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="priority" aria-label="Priority">
+      <option value="">Any priority</option>
+      <option value="0">0</option>
+      <option value="1-9">1-9</option>
+      <option value="10+">10+</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="status" aria-label="Status">
+      <option value="">Any status</option>
+      <option value="2xx">2xx</option>
+      <option value="3xx">3xx</option>
+      <option value="4xx">4xx</option>
+      <option value="5xx">5xx</option>
+    </select>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-filter-reset>
+      Reset
+    </button>
+  </div>
+
   <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
-      <table class="table table-hover table-sm mb-0">
-        <thead class="table-dark">
-        <tr>
-          <th>Name</th>
-          <th style="width:90px">Method</th>
-          <th>Path pattern</th>
-          <th style="width:130px">Collection</th>
-          <th style="width:70px">Status</th>
-          <th style="width:60px">Priority</th>
-          <th style="width:80px">Active</th>
-          <th style="width:160px"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:if="${mocks.empty}">
-          <td colspan="8" class="text-center text-muted py-5">
-            <i class="bi bi-layers d-block mb-2" style="font-size:2.2rem"></i>
-            No mocks yet. <a th:href="@{/mocks/new}">Create your first mock</a>
-          </td>
-        </tr>
-        <tr th:each="mock : ${mocks}">
-          <td class="mock-name" th:text="${mock.name}"></td>
-          <td>
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0 mock-table">
+          <colgroup>
+            <col class="mock-col-name"/>
+            <col class="mock-col-method"/>
+            <col class="mock-col-path"/>
+            <col class="mock-col-collection"/>
+            <col class="mock-col-status"/>
+            <col class="mock-col-priority"/>
+            <col class="mock-col-active"/>
+            <col class="mock-col-actions"/>
+          </colgroup>
+          <thead class="table-dark">
+          <tr>
+            <th>Name</th>
+            <th>Method</th>
+            <th>Path pattern</th>
+            <th>Collection</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Active</th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody id="mocksTableBody">
+          <tr th:if="${mocks.empty}">
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="bi bi-layers d-block mb-2" style="font-size:2.2rem"></i>
+              No mocks yet. <a th:href="@{/mocks/new}">Create your first mock</a>
+            </td>
+          </tr>
+          <tr id="mocksEmptyFiltered" class="d-none">
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="bi bi-funnel d-block mb-2" style="font-size:2.2rem"></i>
+              No mocks match filters
+            </td>
+          </tr>
+          <tr th:each="mock : ${mocks}"
+              class="mock-row"
+              th:data-name="${#strings.toLowerCase(mock.name)}"
+              th:data-path="${#strings.toLowerCase(mock.pathPattern)}"
+              th:data-method="${mock.httpMethod}"
+              th:data-active="${mock.active}"
+              th:data-collection="${mock.collection != null ? mock.collection.id : '__none'}"
+              th:data-collection-name="${mock.collection != null ? #strings.toLowerCase(mock.collection.name) : ''}"
+              th:data-type="${mock.collection == null ? 'uncollected' : (mock.collection.readOnly ? 'subscribed' : (mock.collection.shared ? 'shared' : 'own'))}"
+              th:data-priority="${mock.priority}"
+              th:data-status-group="${mock.responseStatus < 300 ? '2xx' : (mock.responseStatus < 400 ? '3xx' : (mock.responseStatus < 500 ? '4xx' : '5xx'))}">
+            <td class="mock-name text-truncate" th:title="${mock.name}" th:text="${mock.name}"></td>
+            <td>
               <span class="method-badge"
                     th:classappend="'method-' + (${mock.httpMethod == '*'} ? 'ANY' : ${mock.httpMethod})"
                     th:text="${mock.httpMethod == '*'} ? '* ANY' : ${mock.httpMethod}"></span>
-          </td>
-          <td class="font-monospace" style="font-size:.82rem" th:text="${mock.pathPattern}"></td>
-          <td>
+            </td>
+            <td class="font-monospace mock-path text-truncate"
+                th:title="${mock.pathPattern}"
+                th:text="${mock.pathPattern}"></td>
+            <td>
               <span th:if="${mock.collection != null}"
-                    class="badge bg-light text-dark border"
-                    th:text="${mock.collection.name}"></span>
-            <span th:if="${mock.collection == null}" class="text-muted" style="font-size:.75rem">—</span>
-          </td>
-          <td>
+                    class="badge bg-light text-dark border mock-collection-badge"
+                    th:title="${mock.collection.name}">
+                <span class="text-truncate" th:text="${mock.collection.name}"></span>
+                <i th:if="${mock.collection.readOnly}" class="bi bi-lock ms-1"></i>
+                <i th:if="${not mock.collection.readOnly and mock.collection.shared}" class="bi bi-share ms-1"></i>
+              </span>
+              <span th:if="${mock.collection == null}" class="text-muted small">—</span>
+            </td>
+            <td>
               <span class="badge"
                     th:classappend="${mock.responseStatus < 300} ? 'status-2xx' :
                                      (${mock.responseStatus < 400} ? 'status-3xx' :
                                       (${mock.responseStatus < 500} ? 'status-4xx' : 'status-5xx'))"
                     th:text="${mock.responseStatus}"></span>
-          </td>
-          <td class="text-center text-muted" th:text="${mock.priority}"></td>
-          <td>
-            <form th:action="@{/mocks/{id}/toggle(id=${mock.id})}" method="post" class="d-inline">
-              <button type="submit" class="btn p-0 border-0 bg-transparent">
-                <i th:class="${mock.active ? 'bi bi-toggle-on text-success fs-5' : 'bi bi-toggle-off text-muted fs-5'}"></i>
-              </button>
-            </form>
-          </td>
-          <td>
-            <a th:href="@{/mocks/{id}/edit(id=${mock.id})}"
-               class="btn btn-sm btn-outline-secondary py-0 px-2 me-1">
-              <i class="bi bi-pencil"></i>
-            </a>
-            <a th:href="@{/mocks/{id}/export(id=${mock.id})}"
-               class="btn btn-sm btn-outline-secondary py-0 px-2 me-1"
-               title="Export mock">
-              <i class="bi bi-download"></i>
-            </a>
-            <form th:action="@{/mocks/{id}/delete(id=${mock.id})}" method="post"
-                  class="d-inline"
-                  th:attr="data-name=${mock.name}"
-                  onsubmit="return confirmDelete(this)">
-              <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
-                <i class="bi bi-trash"></i>
-              </button>
-            </form>
-          </td>
-        </tr>
-        </tbody>
-      </table>
+            </td>
+            <td class="text-center text-muted" th:text="${mock.priority}"></td>
+            <td>
+              <form th:action="@{/mocks/{id}/toggle(id=${mock.id})}" method="post" class="d-inline">
+                <button type="submit" class="btn p-0 border-0 bg-transparent active-toggle-btn">
+                  <i th:class="${mock.active ? 'bi bi-toggle-on text-success fs-5' : 'bi bi-toggle-off text-muted fs-5'}"></i>
+                </button>
+              </form>
+            </td>
+            <td class="actions-cell">
+              <a th:if="${mock.collection == null or not mock.collection.readOnly}"
+                 th:href="@{/mocks/{id}/edit(id=${mock.id})}"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2"
+                 title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a th:href="@{/mocks/{id}/export(id=${mock.id})}"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2"
+                 title="Export mock">
+                <i class="bi bi-download"></i>
+              </a>
+              <form th:if="${mock.collection == null or not mock.collection.readOnly}"
+                    th:action="@{/mocks/{id}/delete(id=${mock.id})}" method="post"
+                    class="d-inline"
+                    th:attr="data-name=${mock.name}"
+                    onsubmit="return confirmDelete(this)">
+                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
 </main>
 
-<!-- Import modal -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -142,5 +229,6 @@
 </div>
 
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/list-filters.js}"></script>
 </body>
 </html>

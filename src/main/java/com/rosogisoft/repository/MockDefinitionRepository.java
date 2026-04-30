@@ -32,10 +32,11 @@ public interface MockDefinitionRepository extends JpaRepository<MockDefinition, 
     List<MockDefinition> findActiveByOwnerId(@Param("ownerId") Long ownerId);
 
     /** Fetch single mock ensuring it belongs to the given owner (security check) */
-    @Query(value = """
-            SELECT * FROM mock_definitions
-            WHERE id = :id AND owner_id = :ownerId
-            """, nativeQuery = true)
+    @Query("""
+            SELECT m FROM MockDefinition m
+            LEFT JOIN FETCH m.collection
+            WHERE m.id = :id AND m.owner.id = :ownerId
+            """)
     Optional<MockDefinition> findByIdAndOwnerId(@Param("id") Long id,
                                                 @Param("ownerId") Long ownerId);
 
@@ -49,12 +50,19 @@ public interface MockDefinitionRepository extends JpaRepository<MockDefinition, 
     int toggleActive(@Param("id") Long id, @Param("ownerId") Long ownerId);
 
     /** All mocks belonging to a specific collection */
-    @Query(value = """
-            SELECT * FROM mock_definitions
-            WHERE collection_id = :collectionId
-            ORDER BY priority DESC, created_at ASC
-            """, nativeQuery = true)
+    @Query("""
+            SELECT m FROM MockDefinition m
+            LEFT JOIN FETCH m.collection
+            WHERE m.collection.id = :collectionId
+            ORDER BY m.priority DESC, m.createdAt ASC
+            """)
     List<MockDefinition> findByCollectionId(@Param("collectionId") Long collectionId);
+
+    @Query("""
+            SELECT COUNT(m) FROM MockDefinition m
+            WHERE m.collection.id = :collectionId
+            """)
+    long countByCollectionId(@Param("collectionId") Long collectionId);
 
     /** Toggle active for all mocks in a collection owned by user */
     @Modifying
@@ -67,6 +75,14 @@ public interface MockDefinitionRepository extends JpaRepository<MockDefinition, 
     int setActiveForCollection(@Param("collectionId") Long collectionId,
                                @Param("ownerId") Long ownerId,
                                @Param("active") boolean active);
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM mock_definitions
+            WHERE collection_id = :collectionId AND owner_id = :ownerId
+            """, nativeQuery = true)
+    int deleteByCollectionIdAndOwnerId(@Param("collectionId") Long collectionId,
+                                       @Param("ownerId") Long ownerId);
 
     /** Delete only if owned by the user */
     @Modifying
