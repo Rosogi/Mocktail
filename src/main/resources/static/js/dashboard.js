@@ -8,6 +8,11 @@
 // ── Globals injected from Thymeleaf via data- attributes ────
 const dashboardEl = document.getElementById('dashboard-root');
 const USERNAME    = dashboardEl.dataset.username;
+const I18N        = dashboardEl.dataset;
+
+function uiText(key, fallback) {
+  return I18N[key] || fallback;
+}
 
 // ── State ───────────────────────────────────────────────────
 let totalCount = parseInt(document.getElementById('log-count').textContent, 10) || 0;
@@ -98,12 +103,12 @@ function fillModal(d) {
   modalRemote.textContent      = d.remoteAddr || '—';
   modalStatus.textContent      = d.status || '—';
   modalStatus.className        = 'badge ' + statusClass(parseInt(d.status));
-  modalMock.textContent        = d.matchedMock || '— no match —';
+  modalMock.textContent        = d.matchedMock || '— ' + uiText('i18nNoMatch', 'no match') + ' —';
   modalQuery.textContent       = d.queryParams || '—';
   modalContentType.textContent = d.contentType || '—';
   modalReqHeaders.textContent  = d.requestHeaders || '—';
-  modalReqBody.textContent     = tryPrettyJson(d.requestBody) || '(empty)';
-  modalResBody.textContent     = tryPrettyJson(d.responseBody) || '(empty)';
+  modalReqBody.textContent     = tryPrettyJson(d.requestBody) || uiText('i18nEmpty', '(empty)');
+  modalResBody.textContent     = tryPrettyJson(d.responseBody) || uiText('i18nEmpty', '(empty)');
 }
 
 // Make rows from server-side render clickable
@@ -147,7 +152,7 @@ function addLiveRow(log) {
     <td><span class="method-badge ${methodClass(log.method)}">${escHtml(log.method)}</span></td>
     <td class="log-path" title="${escHtml(path)}">${escHtml(path)}</td>
     <td><span class="badge ${statusClass(log.status)}">${log.status ?? '?'}</span></td>
-    <td class="log-mock-name">${escHtml(log.matchedMock) || '<span class="text-muted fst-italic">no match</span>'}</td>
+    <td class="log-mock-name">${escHtml(log.matchedMock) || '<span class="text-muted fst-italic">' + escHtml(uiText('i18nNoMatch', 'no match')) + '</span>'}</td>
     <td class="log-remote">${escHtml(log.remoteAddr) || ''}</td>`;
 
   tr.addEventListener('click', () => openDetail(log.id));
@@ -169,7 +174,7 @@ stomp.debug  = null; // silence console noise
 
 stomp.connect({}, function onConnected() {
   liveBadge.className   = 'badge bg-success';
-  liveBadge.textContent = '● LIVE';
+  liveBadge.textContent = uiText('i18nLive', '● LIVE');
 
   stomp.subscribe('/topic/logs/' + USERNAME, function(msg) {
     const log = JSON.parse(msg.body);
@@ -178,7 +183,7 @@ stomp.connect({}, function onConnected() {
 
 }, function onError() {
   liveBadge.className   = 'badge bg-secondary';
-  liveBadge.textContent = 'OFFLINE';
+  liveBadge.textContent = uiText('i18nOffline', 'OFFLINE');
 });
 
 // ── Modal drag (за header) ───────────────────────────────────
@@ -252,12 +257,12 @@ function toggleExpand(btn) {
     pre.style.height    = '';
     pre.dataset.expanded = 'false';
     icon.className      = 'bi bi-arrows-expand';
-    btn.title           = 'Expand';
+    btn.title           = uiText('i18nExpand', 'Expand');
   } else {
     pre.style.height    = '480px';
     pre.dataset.expanded = 'true';
     icon.className      = 'bi bi-arrows-collapse';
-    btn.title           = 'Collapse';
+    btn.title           = uiText('i18nCollapse', 'Collapse');
   }
 }
 // ── Fullscreen toggle ────────────────────────────────────────
@@ -293,7 +298,7 @@ function toggleExpand(btn) {
       content.style.borderRadius = '0';
 
       icon.className = 'bi bi-fullscreen-exit';
-      btn.title      = 'Exit fullscreen';
+      btn.title      = uiText('i18nExitFullscreen', 'Exit fullscreen');
       isFullscreen   = true;
     } else {
       dialog.style.position = savedStyles.position;
@@ -307,7 +312,7 @@ function toggleExpand(btn) {
       content.style.borderRadius = '';
 
       icon.className = 'bi bi-fullscreen';
-      btn.title      = 'Toggle fullscreen';
+      btn.title      = uiText('i18nToggleFullscreen', 'Toggle fullscreen');
       isFullscreen   = false;
     }
   });
@@ -316,7 +321,7 @@ function toggleExpand(btn) {
       .addEventListener('hidden.bs.modal', function () {
         isFullscreen             = false;
         icon.className           = 'bi bi-fullscreen';
-        btn.title                = 'Toggle fullscreen';
+        btn.title                = uiText('i18nToggleFullscreen', 'Toggle fullscreen');
         content.style.width      = '';
         content.style.height     = '';
         content.style.maxWidth   = '';

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Login – Mocktail</title>
+  <title th:text="${@i18n.t('login.title')} + ' – Mocktail'">Login – Mocktail</title>
   <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
   <style>
     body { background: #212529; display:flex; align-items:center; justify-content:center; min-height:100vh; }
@@ -18,33 +18,37 @@
 
   <div class="card shadow-sm border-0">
     <div class="card-body p-4">
-      <h5 class="card-title mb-4 text-center text-muted fw-normal">Sign in with LDAP</h5>
+      <h5 class="card-title mb-4 text-center text-muted fw-normal"
+          th:text="${@i18n.t('login.heading')}">Sign in with LDAP</h5>
 
       <div th:if="${param.error}" class="alert alert-danger py-2">
-        <small>Invalid username or password.</small>
+        <small th:text="${@i18n.t('login.invalid')}">Invalid username or password.</small>
       </div>
       <div th:if="${param.logout}" class="alert alert-success py-2">
-        <small>You have been logged out.</small>
+        <small th:text="${@i18n.t('login.loggedOut')}">You have been logged out.</small>
       </div>
 
       <form th:action="@{/login}" method="post">
         <div class="mb-3">
-          <label for="username" class="form-label small fw-semibold">Username</label>
+          <label for="username" class="form-label small fw-semibold"
+                 th:text="${@i18n.t('login.username')}">Username</label>
           <input type="text" id="username" name="username"
-                 class="form-control" placeholder="e.g. alice" autofocus required/>
+                 class="form-control" th:placeholder="${@i18n.t('login.usernamePlaceholder')}" autofocus required/>
         </div>
         <div class="mb-4">
-          <label for="password" class="form-label small fw-semibold">Password</label>
+          <label for="password" class="form-label small fw-semibold"
+                 th:text="${@i18n.t('login.password')}">Password</label>
           <input type="password" id="password" name="password"
                  class="form-control" placeholder="••••••••" required/>
         </div>
-        <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        <button type="submit" class="btn btn-primary w-100"
+                th:text="${@i18n.t('actions.signIn')}">Sign In</button>
       </form>
     </div>
   </div>
 
   <p class="text-center text-muted mt-3" style="font-size:.8rem;">
-    HTTP Mock Server &nbsp;·&nbsp; Self-hosted
+    <span th:text="${@i18n.t('login.tagline')}">HTTP Mock Server · Self-hosted</span>
   </p>
 </div>
 

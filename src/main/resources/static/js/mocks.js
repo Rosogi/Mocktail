@@ -19,9 +19,21 @@ const PRESETS = {
   'text/html':  '<!DOCTYPE html>\n<html><body><p>OK</p></body></html>',
 };
 
+const mockFormRoot = document.getElementById('mock-form-root');
+const UI = mockFormRoot ? mockFormRoot.dataset : {};
+
+function uiText(key, fallback) {
+  return UI[key] || fallback;
+}
+
+function formatTemplate(template, ...args) {
+  return template.replace(/\{(\d+)}/g, (_, index) =>
+      args[index] === undefined ? '' : args[index]);
+}
+
 function confirmDelete(form) {
   const name = form.dataset.name;
-  return confirm(`Delete ${name}?`);
+  return confirm(form.dataset.confirmMessage || `Delete ${name}?`);
 }
 
 const ctSelect = document.getElementById('ctSelect');
@@ -34,7 +46,10 @@ if (fillBtn && ctSelect && bodyArea) {
   fillBtn.addEventListener('click', function () {
     const preset = PRESETS[ctSelect.value];
     if (!preset) return;
-    if (!bodyArea.value.trim() || confirm('Replace current body with preset for ' + ctSelect.value + '?')) {
+    const message = formatTemplate(
+        uiText('confirmReplacePreset', 'Replace current body with preset for {0}?'),
+        ctSelect.value);
+    if (!bodyArea.value.trim() || confirm(message)) {
       bodyArea.value = preset;
       updateCounter();
     }
@@ -55,13 +70,16 @@ if (fmtBtn && ctSelect && bodyArea) {
         bodyArea.value = formatXml(raw);
       } else {
         // nothing to format for plain text / html
-        showFmtFeedback('Nothing to format for ' + ct, 'warning');
+        showFmtFeedback(formatTemplate(uiText('formatNothing', 'Nothing to format for {0}'), ct), 'warning');
         return;
       }
       updateCounter();
-      showFmtFeedback('Formatted ✓', 'success');
+      showFmtFeedback(uiText('formatSuccess', 'Formatted'), 'success');
     } catch (e) {
-      showFmtFeedback('Invalid ' + ct.split('/')[1].toUpperCase() + ': ' + e.message, 'danger');
+      showFmtFeedback(formatTemplate(
+          uiText('formatInvalid', 'Invalid {0}: {1}'),
+          ct.split('/')[1].toUpperCase(),
+          e.message), 'danger');
     }
   });
 }
@@ -98,7 +116,7 @@ function formatXml(xml) {
 function updateCounter() {
   const counter = document.getElementById('bodyCharCount');
   if (counter && bodyArea) {
-    counter.textContent = bodyArea.value.length + ' chars';
+    counter.textContent = formatTemplate(uiText('charCount', '{0} chars'), bodyArea.value.length);
   }
 }
 if (bodyArea) {

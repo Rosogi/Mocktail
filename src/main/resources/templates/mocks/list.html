@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments/head :: head('Mocks')}"></head>
+<head th:replace="~{fragments/head :: head(${@i18n.t('mocks.title')})}"></head>
 
 <body>
 
@@ -13,19 +13,19 @@
 
   <div class="page-header">
     <div>
-      <h4>Mock definitions</h4>
-      <small class="text-muted" th:text="${mocks.size()} + ' mocks configured'"></small>
+      <h4 th:text="${@i18n.t('mocks.title')}">Mock definitions</h4>
+      <small class="text-muted" th:text="${@i18n.t('mocks.subtitle', mocks.size())}"></small>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       <button class="btn btn-sm btn-outline-secondary"
               data-bs-toggle="modal" data-bs-target="#importModal">
-        <i class="bi bi-upload me-1"></i>Import
+        <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('actions.import')}">Import</span>
       </button>
       <a th:href="@{/mocks/export}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-download me-1"></i>Export all
+        <i class="bi bi-download me-1"></i><span th:text="${@i18n.t('actions.exportAll')}">Export all</span>
       </a>
       <a th:href="@{/mocks/new}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>New mock
+        <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('actions.newMock')}">New mock</span>
       </a>
     </div>
   </div>
@@ -34,10 +34,10 @@
     <div class="filter-search">
       <i class="bi bi-search"></i>
       <input type="search" class="form-control form-control-sm"
-             data-filter="search" placeholder="Search mocks"/>
+             data-filter="search" th:placeholder="${@i18n.t('filters.searchMocks')}"/>
     </div>
-    <select class="form-select form-select-sm" data-filter="method" aria-label="HTTP method">
-      <option value="">All methods</option>
+    <select class="form-select form-select-sm" data-filter="method" th:aria-label="${@i18n.t('filters.httpMethod')}">
+      <option value="" th:text="${@i18n.t('filters.allMethods')}">All methods</option>
       <option value="GET">GET</option>
       <option value="POST">POST</option>
       <option value="PUT">PUT</option>
@@ -47,40 +47,40 @@
       <option value="OPTIONS">OPTIONS</option>
       <option value="*">*</option>
     </select>
-    <select class="form-select form-select-sm" data-filter="collection" aria-label="Collection">
-      <option value="">All collections</option>
-      <option value="__none">Uncollected</option>
+    <select class="form-select form-select-sm" data-filter="collection" th:aria-label="${@i18n.t('filters.collection')}">
+      <option value="" th:text="${@i18n.t('filters.allCollections')}">All collections</option>
+      <option value="__none" th:text="${@i18n.t('filters.uncollected')}">Uncollected</option>
       <option th:each="col : ${collections}"
               th:value="${col.id}"
               th:text="${col.name}">Collection</option>
     </select>
-    <select class="form-select form-select-sm" data-filter="active" aria-label="Active state">
-      <option value="">Any state</option>
-      <option value="true">Active</option>
-      <option value="false">Inactive</option>
+    <select class="form-select form-select-sm" data-filter="active" th:aria-label="${@i18n.t('filters.anyState')}">
+      <option value="" th:text="${@i18n.t('filters.anyState')}">Any state</option>
+      <option value="true" th:text="${@i18n.t('filters.active')}">Active</option>
+      <option value="false" th:text="${@i18n.t('filters.inactive')}">Inactive</option>
     </select>
-    <select class="form-select form-select-sm" data-filter="type" aria-label="Collection type">
-      <option value="">Any type</option>
-      <option value="own">Own</option>
-      <option value="shared">Shared by me</option>
-      <option value="subscribed">Subscribed</option>
-      <option value="uncollected">Uncollected</option>
+    <select class="form-select form-select-sm" data-filter="type" th:aria-label="${@i18n.t('filters.collectionType')}">
+      <option value="" th:text="${@i18n.t('filters.anyType')}">Any type</option>
+      <option value="own" th:text="${@i18n.t('filters.own')}">Own</option>
+      <option value="shared" th:text="${@i18n.t('filters.sharedByMe')}">Shared by me</option>
+      <option value="subscribed" th:text="${@i18n.t('filters.subscribed')}">Subscribed</option>
+      <option value="uncollected" th:text="${@i18n.t('filters.uncollected')}">Uncollected</option>
     </select>
-    <select class="form-select form-select-sm" data-filter="priority" aria-label="Priority">
-      <option value="">Any priority</option>
+    <select class="form-select form-select-sm" data-filter="priority" th:aria-label="${@i18n.t('mocks.priority')}">
+      <option value="" th:text="${@i18n.t('filters.anyPriority')}">Any priority</option>
       <option value="0">0</option>
       <option value="1-9">1-9</option>
       <option value="10+">10+</option>
     </select>
-    <select class="form-select form-select-sm" data-filter="status" aria-label="Status">
-      <option value="">Any status</option>
+    <select class="form-select form-select-sm" data-filter="status" th:aria-label="${@i18n.t('mocks.status')}">
+      <option value="" th:text="${@i18n.t('filters.anyStatus')}">Any status</option>
       <option value="2xx">2xx</option>
       <option value="3xx">3xx</option>
       <option value="4xx">4xx</option>
       <option value="5xx">5xx</option>
     </select>
     <button type="button" class="btn btn-sm btn-outline-secondary" data-filter-reset>
-      Reset
+      <span th:text="${@i18n.t('actions.reset')}">Reset</span>
     </button>
   </div>
 
@@ -100,13 +100,13 @@
           </colgroup>
           <thead class="table-dark">
           <tr>
-            <th>Name</th>
-            <th>Method</th>
-            <th>Path pattern</th>
-            <th>Collection</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Active</th>
+            <th th:text="${@i18n.t('mocks.name')}">Name</th>
+            <th th:text="${@i18n.t('mocks.method')}">Method</th>
+            <th th:text="${@i18n.t('mocks.pathPattern')}">Path pattern</th>
+            <th th:text="${@i18n.t('mocks.collection')}">Collection</th>
+            <th th:text="${@i18n.t('mocks.status')}">Status</th>
+            <th th:text="${@i18n.t('mocks.priority')}">Priority</th>
+            <th th:text="${@i18n.t('mocks.active')}">Active</th>
             <th></th>
           </tr>
           </thead>
@@ -114,13 +114,14 @@
           <tr th:if="${mocks.empty}">
             <td colspan="8" class="text-center text-muted py-5">
               <i class="bi bi-layers d-block mb-2" style="font-size:2.2rem"></i>
-              No mocks yet. <a th:href="@{/mocks/new}">Create your first mock</a>
+              <span th:text="${@i18n.t('mocks.empty')}">No mocks yet.</span>
+              <a th:href="@{/mocks/new}" th:text="${@i18n.t('mocks.emptyAction')}">Create your first mock</a>
             </td>
           </tr>
           <tr id="mocksEmptyFiltered" class="d-none">
             <td colspan="8" class="text-center text-muted py-5">
               <i class="bi bi-funnel d-block mb-2" style="font-size:2.2rem"></i>
-              No mocks match filters
+              <span th:text="${@i18n.t('mocks.noMatches')}">No mocks match filters</span>
             </td>
           </tr>
           <tr th:each="mock : ${mocks}"
@@ -172,20 +173,21 @@
               <a th:if="${mock.collection == null or not mock.collection.readOnly}"
                  th:href="@{/mocks/{id}/edit(id=${mock.id})}"
                  class="btn btn-sm btn-outline-secondary py-0 px-2"
-                 title="Edit">
+                 th:title="${@i18n.t('tooltips.edit')}">
                 <i class="bi bi-pencil"></i>
               </a>
               <a th:href="@{/mocks/{id}/export(id=${mock.id})}"
                  class="btn btn-sm btn-outline-secondary py-0 px-2"
-                 title="Export mock">
+                 th:title="${@i18n.t('tooltips.exportMock')}">
                 <i class="bi bi-download"></i>
               </a>
               <form th:if="${mock.collection == null or not mock.collection.readOnly}"
                     th:action="@{/mocks/{id}/delete(id=${mock.id})}" method="post"
                     class="d-inline"
                     th:attr="data-name=${mock.name}"
+                    th:data-confirm-message="${@i18n.t('confirm.delete', mock.name)}"
                     onsubmit="return confirmDelete(this)">
-                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete">
+                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" th:title="${@i18n.t('actions.delete')}">
                   <i class="bi bi-trash"></i>
                 </button>
               </form>
@@ -203,24 +205,26 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Import mocks</h5>
+        <h5 class="modal-title"><i class="bi bi-upload me-2"></i><span th:text="${@i18n.t('mocks.importTitle')}">Import mocks</span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form th:action="@{/mocks/import}" method="post" enctype="multipart/form-data">
         <div class="modal-body">
           <p class="text-muted small mb-3">
-            Upload a JSON file exported from Mocktail.
-            Existing mocks will not be modified — all imported mocks are added as new.
+            <span th:text="${@i18n.t('mocks.importHelp')}">
+              Upload a JSON file exported from Mocktail. Existing mocks will not be modified — all imported mocks are added as new.
+            </span>
           </p>
           <div class="mb-3">
-            <label class="form-label fw-semibold">File <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold"><span th:text="${@i18n.t('forms.file')}">File</span> <span class="text-danger">*</span></label>
             <input type="file" name="file" class="form-control" accept=".json" required/>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                  th:text="${@i18n.t('actions.cancel')}">Cancel</button>
           <button type="submit" class="btn btn-primary btn-sm">
-            <i class="bi bi-upload me-1"></i>Import
+            <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('actions.import')}">Import</span>
           </button>
         </div>
       </form>

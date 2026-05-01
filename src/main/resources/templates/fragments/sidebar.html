@@ -11,42 +11,43 @@
       <a class="nav-link"
          th:classappend="${activePage == 'dashboard'} ? 'active'"
          th:href="@{/dashboard}">
-        <i class="bi bi-speedometer2"></i>Dashboard
+        <i class="bi bi-speedometer2"></i><span th:text="${@i18n.t('nav.dashboard')}">Dashboard</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'mocks'} ? 'active'"
          th:href="@{/mocks}">
-        <i class="bi bi-layers"></i>Mocks
+        <i class="bi bi-layers"></i><span th:text="${@i18n.t('nav.mocks')}">Mocks</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'collections'} ? 'active'"
          th:href="@{/collections}">
-        <i class="bi bi-collection"></i>Collections
+        <i class="bi bi-collection"></i><span th:text="${@i18n.t('nav.collections')}">Collections</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'shared'} ? 'active'"
          th:href="@{/shared}">
-        <i class="bi bi-share"></i>Shared
+        <i class="bi bi-share"></i><span th:text="${@i18n.t('nav.shared')}">Shared</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'settings'} ? 'active'"
-         th:href="@{/settings}">
+        th:href="@{/settings}">
         <i class="bi bi-gear"></i>
-        <span>Settings</span>
+        <span th:text="${@i18n.t('nav.settings')}">Settings</span>
       </a>
     </li>
   </ul>
 
   <div class="sidebar-footer">
-    <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Signed in as</div>
+    <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em"
+         th:text="${@i18n.t('nav.signedInAs')}">Signed in as</div>
     <div class="username" sec:authentication="name">username</div>
     <div th:if="${user != null}" class="port-badge">
       :<span th:text="${user.assignedPort}">9000</span>
@@ -55,7 +56,7 @@
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
       <button type="submit" class="btn btn-sm btn-outline-danger w-100">
         <i class="bi bi-box-arrow-right"></i>
-        <span>Logout</span>
+        <span th:text="${@i18n.t('nav.logout')}">Logout</span>
       </button>
     </form>
   </div>

@@ -2,6 +2,7 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.User;
 import com.rosogisoft.repository.MockDefinitionRepository;
+import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockCollectionService;
 import com.rosogisoft.service.MockService;
@@ -34,6 +35,7 @@ public class MockCollectionController {
     private final MockDefinitionRepository mockRepository;
     private final MockService mockService;
     private final SharedCollectionService sharedCollectionService;
+    private final I18nService i18n;
 
     // ── List ─────────────────────────────────────────────────────────
     @GetMapping
@@ -66,7 +68,7 @@ public class MockCollectionController {
                          RedirectAttributes ra) {
         User user = currentUserHelper.currentUser();
         collectionService.create(name, description, user);
-        ra.addFlashAttribute("successMessage", "Collection \"" + name + "\" created.");
+        ra.addFlashAttribute("successMessage", i18n.t("flash.collectionCreated", name));
         return "redirect:/collections";
     }
 
@@ -80,9 +82,9 @@ public class MockCollectionController {
         try {
             boolean ok = collectionService.update(id, name, description, user).isPresent();
             ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
-                    ok ? "Collection updated." : "Collection not found.");
+                    ok ? i18n.t("flash.collectionUpdated") : i18n.t("flash.collectionNotFound"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections";
     }
@@ -94,10 +96,10 @@ public class MockCollectionController {
         try {
             boolean ok = collectionService.delete(id, user);
             ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
-                    ok ? "Collection deleted. Mocks were kept (uncollected)."
-                            : "Collection not found.");
+                    ok ? i18n.t("flash.collectionDeleted")
+                            : i18n.t("flash.collectionNotFound"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections";
     }
@@ -108,9 +110,9 @@ public class MockCollectionController {
         User user = currentUserHelper.currentUser();
         try {
             collectionService.enableAll(id, user);
-            ra.addFlashAttribute("successMessage", "All mocks in collection enabled.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.allMocksEnabled"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections";
     }
@@ -121,9 +123,9 @@ public class MockCollectionController {
         User user = currentUserHelper.currentUser();
         try {
             collectionService.disableAll(id, user);
-            ra.addFlashAttribute("successMessage", "All mocks in collection disabled.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.allMocksDisabled"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections";
     }
@@ -134,9 +136,9 @@ public class MockCollectionController {
         try {
             boolean ok = sharedCollectionService.shareCollection(id, user);
             ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
-                    ok ? "Collection shared." : "Collection not found.");
+                    ok ? i18n.t("flash.collectionShared") : i18n.t("flash.collectionNotFound"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections";
     }
@@ -147,9 +149,9 @@ public class MockCollectionController {
         try {
             boolean ok = sharedCollectionService.unshareCollection(id, user);
             ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
-                    ok ? "Collection is no longer shared." : "Collection not found.");
+                    ok ? i18n.t("flash.collectionUnshared") : i18n.t("flash.collectionNotFound"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections";
     }
@@ -177,7 +179,7 @@ public class MockCollectionController {
                                    RedirectAttributes ra) {
         User user = currentUserHelper.currentUser();
         if (file.isEmpty()) {
-            ra.addFlashAttribute("errorMessage", "Please select a file to import.");
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.selectFile"));
             return "redirect:/collections";
         }
         try {
@@ -186,10 +188,11 @@ public class MockCollectionController {
                             file.getBytes(), user,
                             ImportMode.COLLECTIONS_ONLY);
             ra.addFlashAttribute("successMessage",
-                    "Imported %d mocks in %d collections."
-                            .formatted(result.mocks(), result.collections()));
+                    i18n.t("flash.imported", result.mocks(), result.collections()));
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("errorMessage", importErrorMessage(e));
         } catch (Exception e) {
-            ra.addFlashAttribute("errorMessage", "Import failed: " + e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.importFailed", e.getMessage()));
         }
         return "redirect:/collections";
     }
@@ -211,7 +214,7 @@ public class MockCollectionController {
                     sharedCollectionService.isSourceAvailable(subscription));
             return "collections/detail";
         }).orElseGet(() -> {
-            ra.addFlashAttribute("errorMessage", "Collection not found.");
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.collectionNotFound"));
             return "redirect:/collections";
         });
     }
@@ -223,9 +226,9 @@ public class MockCollectionController {
         User user = currentUserHelper.currentUser();
         try {
             collectionService.addMock(id, mockId, user);
-            ra.addFlashAttribute("successMessage", "Mock added to collection.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.mockAddedToCollection"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections/" + id;
     }
@@ -237,14 +240,28 @@ public class MockCollectionController {
         User user = currentUserHelper.currentUser();
         try {
             collectionService.removeMock(id, mockId, user);
-            ra.addFlashAttribute("successMessage", "Mock removed from collection.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.mockRemovedFromCollection"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/collections/" + id;
     }
 
     private String slugify(String name) {
         return name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+    }
+
+    private String importErrorMessage(IllegalArgumentException e) {
+        String message = e.getMessage();
+        if ("This file contains collections. Use 'Import collection' on the Collections page.".equals(message)) {
+            return i18n.t("flash.importContainsCollections");
+        }
+        if ("This file contains standalone mocks. Use 'Import' on the Mocks page.".equals(message)) {
+            return i18n.t("flash.importContainsStandaloneMocks");
+        }
+        if (message != null && message.contains("read-only subscription")) {
+            return i18n.t("flash.importReadOnlySubscription");
+        }
+        return i18n.t("flash.importFailed", message);
     }
 }

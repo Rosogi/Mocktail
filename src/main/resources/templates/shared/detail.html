@@ -22,10 +22,12 @@
           <i class="bi bi-person me-1"></i><span th:text="${collection.owner.username}">author</span>
         </span>
         <span class="badge bg-light text-dark border">
-          rev <span th:text="${collection.revision}">1</span>
+          <span th:text="${@i18n.t('shared.rev')}">rev</span> <span th:text="${collection.revision}">1</span>
         </span>
-        <span th:if="${subscription != null}" class="badge bg-info text-dark">Subscribed</span>
-        <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark">Update available</span>
+        <span th:if="${subscription != null}" class="badge bg-info text-dark"
+              th:text="${@i18n.t('badges.subscribed')}">Subscribed</span>
+        <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark"
+              th:text="${@i18n.t('badges.updateAvailable')}">Update available</span>
       </div>
       <small class="text-muted" th:text="${collection.description}"></small>
     </div>
@@ -33,23 +35,23 @@
       <form th:if="${subscription == null}"
             th:action="@{/shared/{id}/subscribe(id=${collection.id})}" method="post">
         <button class="btn btn-sm btn-primary">
-          <i class="bi bi-bookmark-plus"></i> Subscribe
+          <i class="bi bi-bookmark-plus"></i> <span th:text="${@i18n.t('actions.subscribe')}">Subscribe</span>
         </button>
       </form>
       <a th:if="${subscription != null}"
          th:href="@{/collections/{id}(id=${subscription.localCollection.id})}"
          class="btn btn-sm btn-outline-primary">
-        <i class="bi bi-folder2-open"></i> Open
+        <i class="bi bi-folder2-open"></i> <span th:text="${@i18n.t('actions.open')}">Open</span>
       </a>
       <form th:if="${subscription != null and hasUpdate == true}"
             th:action="@{/shared/{id}/update(id=${collection.id})}" method="post">
         <button class="btn btn-sm btn-warning">
-          <i class="bi bi-arrow-clockwise"></i> Update
+          <i class="bi bi-arrow-clockwise"></i> <span th:text="${@i18n.t('actions.update')}">Update</span>
         </button>
       </form>
       <form th:action="@{/shared/{id}/copy(id=${collection.id})}" method="post">
         <button class="btn btn-sm btn-outline-success">
-          <i class="bi bi-copy"></i> Copy
+        <i class="bi bi-copy"></i> <span th:text="${@i18n.t('actions.copy')}">Copy</span>
         </button>
       </form>
     </div>
@@ -57,25 +59,25 @@
 
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white fw-semibold">
-      Mocks
+      <span th:text="${@i18n.t('shared.mocks')}">Mocks</span>
       <span class="badge bg-secondary ms-1" th:text="${mocks.size()}">0</span>
     </div>
     <div class="card-body p-0">
       <table class="table table-sm table-hover mb-0">
         <thead class="table-light">
         <tr>
-          <th>Name</th>
-          <th style="width:80px">Method</th>
-          <th>Path</th>
-          <th style="width:70px">Status</th>
-          <th style="width:70px">Priority</th>
-          <th style="width:70px">Active</th>
+          <th th:text="${@i18n.t('mocks.name')}">Name</th>
+          <th style="width:80px" th:text="${@i18n.t('mocks.method')}">Method</th>
+          <th th:text="${@i18n.t('dashboard.table.path')}">Path</th>
+          <th style="width:70px" th:text="${@i18n.t('mocks.status')}">Status</th>
+          <th style="width:70px" th:text="${@i18n.t('mocks.priority')}">Priority</th>
+          <th style="width:70px" th:text="${@i18n.t('mocks.active')}">Active</th>
         </tr>
         </thead>
         <tbody>
         <tr th:if="${mocks.empty}">
           <td colspan="6" class="text-center text-muted py-3">
-            No mocks in this collection
+            <span th:text="${@i18n.t('shared.emptyMocks')}">No mocks in this collection</span>
           </td>
         </tr>
         <tr th:each="mock : ${mocks}">

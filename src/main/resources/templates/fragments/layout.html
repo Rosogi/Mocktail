@@ -42,18 +42,18 @@
   <ul class="nav flex-column flex-grow-1">
     <li class="nav-item">
       <a class="nav-link" th:classappend="${activePage == 'dashboard'} ? 'active'" th:href="@{/dashboard}">
-        <i class="bi bi-speedometer2"></i> Dashboard
+        <i class="bi bi-speedometer2"></i> <span th:text="${@i18n.t('nav.dashboard')}">Dashboard</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link" th:classappend="${activePage == 'mocks'} ? 'active'" th:href="@{/mocks}">
-        <i class="bi bi-layers"></i> Mocks
+        <i class="bi bi-layers"></i> <span th:text="${@i18n.t('nav.mocks')}">Mocks</span>
       </a>
     </li>
   </ul>
 
   <div class="px-3 pb-3" style="font-size:.8rem;" sec:authorize="isAuthenticated()">
-    <div class="text-muted mb-1">Logged in as</div>
+    <div class="text-muted mb-1" th:text="${@i18n.t('nav.signedInAs')}">Signed in as</div>
     <div class="text-white fw-semibold" sec:authentication="name">username</div>
     <div class="port-badge mt-1" th:if="${user != null}">
       Port: <strong th:text="${user.assignedPort}">9000</strong>
@@ -62,7 +62,7 @@
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
       <button type="submit" class="btn btn-sm btn-outline-danger w-100">
         <i class="bi bi-box-arrow-right"></i>
-        <span>Logout</span>
+        <span th:text="${@i18n.t('nav.logout')}">Logout</span>
       </button>
     </form>
   </div>

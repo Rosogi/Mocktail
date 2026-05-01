@@ -2,6 +2,11 @@ function lower(value) {
   return (value || '').toString().toLowerCase();
 }
 
+function confirmDelete(form) {
+  const name = form.dataset.name || '';
+  return confirm(form.dataset.confirmMessage || `Delete ${name}?`);
+}
+
 function bindReset(container, onChange) {
   const reset = container.querySelector('[data-filter-reset]');
   if (!reset) return;

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Settings')}"></head>
+<head th:replace="~{fragments/head :: head(${@i18n.t('settings.title')})}"></head>
 <body>
 <nav th:replace="~{fragments/sidebar :: sidebar('settings', ${user})}"></nav>
 <main class="main">
@@ -9,27 +9,57 @@
 
     <div class="page-header">
         <div>
-            <h4>Settings</h4>
-            <small class="text-muted">Personal preferences for your mock endpoint</small>
+            <h4 th:text="${@i18n.t('settings.title')}">Settings</h4>
+            <small class="text-muted" th:text="${@i18n.t('settings.subtitle')}">Personal preferences for your mock endpoint</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-translate me-2 text-muted"></i>
+            <span th:text="${@i18n.t('settings.languageTitle')}">Interface language</span>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4" th:text="${@i18n.t('settings.languageHelp')}">
+                Choose the language used by the application UI.
+            </p>
+            <form th:action="@{/settings/language}" method="post">
+                <div class="row g-3 align-items-end">
+                    <div class="col-sm-5">
+                        <label class="form-label fw-semibold" th:text="${@i18n.t('settings.language')}">Language</label>
+                        <select class="form-select" name="language">
+                            <option th:each="language : ${languages}"
+                                    th:value="${language.code}"
+                                    th:selected="${settings['LANGUAGE'] == language.code}"
+                                    th:text="${language.label}">English</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            <span th:text="${@i18n.t('actions.save')}">Save</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
     <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
         <div class="card-header bg-white fw-semibold">
             <i class="bi bi-x-circle me-2 text-muted"></i>
-            Default response (no mock matched)
+            <span th:text="${@i18n.t('settings.defaultResponseTitle')}">Default response (no mock matched)</span>
         </div>
         <div class="card-body p-4">
             <p class="text-muted small mb-4">
-                Returned when no active mock matches the request.
-                Template variables are supported:
+                <span th:text="${@i18n.t('settings.defaultResponseHelp')}">Returned when no active mock matches the request. Template variables are supported:</span>
                 <code>{{request.path}}</code>, <code>{{request.method}}</code>,
                 <code>{{param.x}}</code>, <code>{{header.x}}</code>
             </p>
             <form th:action="@{/settings/default-response}" method="post">
                 <div class="row g-3 mb-3">
                     <div class="col-sm-3">
-                        <label class="form-label fw-semibold">Status code</label>
+                        <label class="form-label fw-semibold" th:text="${@i18n.t('settings.statusCode')}">Status code</label>
                         <input type="number" class="form-control"
                                name="defaultResponseStatus"
                                th:value="${settings['DEFAULT_RESPONSE_STATUS']}"
@@ -54,12 +84,13 @@
                     </div>
                 </div>
                 <div class="mb-4">
-                    <label class="form-label fw-semibold">Response body</label>
+                    <label class="form-label fw-semibold" th:text="${@i18n.t('settings.responseBody')}">Response body</label>
                     <textarea class="form-control code" name="defaultResponseBody" rows="6"
                               th:text="${settings['DEFAULT_RESPONSE_BODY']}"></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-floppy me-1"></i>Save
+                    <i class="bi bi-floppy me-1"></i>
+                    <span th:text="${@i18n.t('actions.save')}">Save</span>
                 </button>
             </form>
         </div>

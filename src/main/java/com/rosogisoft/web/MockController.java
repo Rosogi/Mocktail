@@ -2,6 +2,7 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.User;
+import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.MockCollectionService;
 import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockService;
@@ -31,6 +32,7 @@ public class MockController {
     private final CurrentUserHelper currentUserHelper;
     private final MockImportExportService importExportService;
     private final MockCollectionService collectionService;
+    private final I18nService i18n;
 
     // ── List ─────────────────────────────────────────────────────────
     @GetMapping
@@ -63,9 +65,9 @@ public class MockController {
         try {
             MockDefinition created = mockService.create(form, user);
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Mock \"" + created.getName() + "\" created.");
+                    i18n.t("flash.mockCreated", created.getName()));
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/mocks";
     }
@@ -78,7 +80,7 @@ public class MockController {
         return mockService.findByIdForUser(id, user).map(mock -> {
             if (mock.getCollection() != null && mock.getCollection().isReadOnly()) {
                 redirectAttributes.addFlashAttribute("errorMessage",
-                        "Subscribed collections are read-only.");
+                        i18n.t("flash.readOnlyCollection"));
                 return "redirect:/mocks";
             }
             model.addAttribute("user", user);
@@ -89,7 +91,7 @@ public class MockController {
             model.addAttribute("editing", true);
             return "mocks/form";
         }).orElseGet(() -> {
-            redirectAttributes.addFlashAttribute("errorMessage", "Mock not found.");
+            redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.mockNotFound"));
             return "redirect:/mocks";
         });
     }
@@ -103,12 +105,12 @@ public class MockController {
         try {
             boolean updated = mockService.update(id, form, user).isPresent();
             if (updated) {
-                redirectAttributes.addFlashAttribute("successMessage", "Mock updated.");
+                redirectAttributes.addFlashAttribute("successMessage", i18n.t("flash.mockUpdated"));
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "Mock not found.");
+                redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.mockNotFound"));
             }
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/mocks";
     }
@@ -120,7 +122,7 @@ public class MockController {
         try {
             mockService.toggleActive(id, user);
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/mocks";
     }
@@ -133,9 +135,9 @@ public class MockController {
             boolean deleted = mockService.delete(id, user);
             redirectAttributes.addFlashAttribute(
                     deleted ? "successMessage" : "errorMessage",
-                    deleted ? "Mock deleted." : "Mock not found.");
+                    deleted ? i18n.t("flash.mockDeleted") : i18n.t("flash.mockNotFound"));
         } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
         }
         return "redirect:/mocks";
     }
@@ -164,7 +166,7 @@ public class MockController {
                               RedirectAttributes ra) {
         User user = currentUserHelper.currentUser();
         if (file.isEmpty()) {
-            ra.addFlashAttribute("errorMessage", "Please select a file to import.");
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.selectFile"));
             return "redirect:/mocks";
         }
         try {
@@ -174,17 +176,30 @@ public class MockController {
                             user,
                             ImportMode.MOCKS_ONLY);
             ra.addFlashAttribute("successMessage",
-                    "Imported %d mocks in %d collections."
-                            .formatted(result.mocks(), result.collections()));
+                    i18n.t("flash.imported", result.mocks(), result.collections()));
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", importErrorMessage(e));
         } catch (Exception e) {
-            ra.addFlashAttribute("errorMessage", "Import failed: " + e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.importFailed", e.getMessage()));
         }
         return "redirect:/mocks";
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
+    private String importErrorMessage(IllegalArgumentException e) {
+        String message = e.getMessage();
+        if ("This file contains collections. Use 'Import collection' on the Collections page.".equals(message)) {
+            return i18n.t("flash.importContainsCollections");
+        }
+        if ("This file contains standalone mocks. Use 'Import' on the Mocks page.".equals(message)) {
+            return i18n.t("flash.importContainsStandaloneMocks");
+        }
+        if (message != null && message.contains("read-only subscription")) {
+            return i18n.t("flash.importReadOnlySubscription");
+        }
+        return i18n.t("flash.importFailed", message);
+    }
+
     private MockDefinitionForm toForm (MockDefinition mock) {
         MockDefinitionForm form = new MockDefinitionForm();
         form.setName(mock.getName());

@@ -15,30 +15,32 @@
         <div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <h4 class="mb-0" th:text="${collection.name}">Collection</h4>
-                <span th:if="${collection.shared}" class="badge bg-primary">Shared</span>
+                <span th:if="${collection.shared}" class="badge bg-primary" th:text="${@i18n.t('badges.shared')}">Shared</span>
                 <span th:if="${collection.readOnly}" class="badge bg-info text-dark">
-                    <i class="bi bi-lock"></i> Read-only
+                    <i class="bi bi-lock"></i> <span th:text="${@i18n.t('badges.readOnly')}">Read-only</span>
                 </span>
-                <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark">Update available</span>
-                <span th:if="${collection.readOnly and sourceAvailable == false}" class="badge bg-secondary">Source unavailable</span>
+                <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark"
+                      th:text="${@i18n.t('badges.updateAvailable')}">Update available</span>
+                <span th:if="${collection.readOnly and sourceAvailable == false}" class="badge bg-secondary"
+                      th:text="${@i18n.t('badges.sourceUnavailable')}">Source unavailable</span>
             </div>
             <small class="text-muted" th:text="${collection.description}"></small>
         </div>
         <div class="ms-auto d-flex gap-2 flex-wrap">
             <form th:action="@{/collections/{id}/enable-all(id=${collection.id})}" method="post">
                 <button class="btn btn-sm btn-outline-success">
-                    <i class="bi bi-play-fill"></i> Enable all
+                    <i class="bi bi-play-fill"></i> <span th:text="${@i18n.t('actions.enableAll')}">Enable all</span>
                 </button>
             </form>
             <form th:action="@{/collections/{id}/disable-all(id=${collection.id})}" method="post">
                 <button class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-pause-fill"></i> Disable all
+                    <i class="bi bi-pause-fill"></i> <span th:text="${@i18n.t('actions.disableAll')}">Disable all</span>
                 </button>
             </form>
             <form th:if="${collection.readOnly and hasUpdate == true}"
                   th:action="@{/shared/subscriptions/{id}/update(id=${collection.id})}" method="post">
                 <button class="btn btn-sm btn-warning">
-                    <i class="bi bi-arrow-clockwise"></i> Update
+                    <i class="bi bi-arrow-clockwise"></i> <span th:text="${@i18n.t('actions.update')}">Update</span>
                 </button>
             </form>
             <div class="dropdown">
@@ -49,27 +51,27 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
                         <a th:href="@{/collections/{id}/export(id=${collection.id})}" class="dropdown-item">
-                            <i class="bi bi-download me-2"></i>Export
+                            <i class="bi bi-download me-2"></i><span th:text="${@i18n.t('actions.export')}">Export</span>
                         </a>
                     </li>
                     <li th:if="${not collection.readOnly and not collection.shared}">
                         <form th:action="@{/collections/{id}/share(id=${collection.id})}" method="post">
                             <button class="dropdown-item" type="submit">
-                                <i class="bi bi-share me-2"></i>Share
+                                <i class="bi bi-share me-2"></i><span th:text="${@i18n.t('actions.share')}">Share</span>
                             </button>
                         </form>
                     </li>
                     <li th:if="${not collection.readOnly and collection.shared}">
                         <form th:action="@{/collections/{id}/unshare(id=${collection.id})}" method="post">
                             <button class="dropdown-item" type="submit">
-                                <i class="bi bi-slash-circle me-2"></i>Unshare
+                                <i class="bi bi-slash-circle me-2"></i><span th:text="${@i18n.t('actions.unshare')}">Unshare</span>
                             </button>
                         </form>
                     </li>
                     <li th:if="${collection.readOnly}">
                         <form th:action="@{/shared/subscriptions/{id}/copy(id=${collection.id})}" method="post">
                             <button class="dropdown-item" type="submit">
-                                <i class="bi bi-copy me-2"></i>Copy editable
+                                <i class="bi bi-copy me-2"></i><span th:text="${@i18n.t('actions.copyEditable')}">Copy editable</span>
                             </button>
                         </form>
                     </li>
@@ -79,7 +81,7 @@
                     <li th:if="${collection.readOnly}">
                         <form th:action="@{/shared/subscriptions/{id}/unsubscribe(id=${collection.id})}" method="post">
                             <button class="dropdown-item text-danger" type="submit">
-                                <i class="bi bi-bookmark-dash me-2"></i>Unsubscribe
+                                <i class="bi bi-bookmark-dash me-2"></i><span th:text="${@i18n.t('actions.unsubscribe')}">Unsubscribe</span>
                             </button>
                         </form>
                     </li>
@@ -94,24 +96,24 @@
         <div th:class="${collection.readOnly ? 'col-md-12' : 'col-md-8'}">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold">
-                    Mocks in collection
+                    <span th:text="${@i18n.t('collections.mocksInCollection')}">Mocks in collection</span>
                     <span class="badge bg-secondary ms-1" th:text="${mocks.size()}">0</span>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm table-hover mb-0">
                         <thead class="table-light">
                         <tr>
-                            <th>Name</th>
-                            <th style="width:80px">Method</th>
-                            <th>Path</th>
-                            <th style="width:70px">Active</th>
+                            <th th:text="${@i18n.t('mocks.name')}">Name</th>
+                            <th style="width:80px" th:text="${@i18n.t('mocks.method')}">Method</th>
+                            <th th:text="${@i18n.t('dashboard.table.path')}">Path</th>
+                            <th style="width:70px" th:text="${@i18n.t('mocks.active')}">Active</th>
                             <th th:if="${not collection.readOnly}" style="width:50px"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:if="${mocks.empty}">
                             <td th:colspan="${collection.readOnly ? 4 : 5}" class="text-center text-muted py-3">
-                                No mocks in this collection yet
+                                <span th:text="${@i18n.t('collections.emptyInCollection')}">No mocks in this collection yet</span>
                             </td>
                         </tr>
                         <tr th:each="mock : ${mocks}">
@@ -131,7 +133,7 @@
                                       method="post">
                                     <input type="hidden" name="mockId" th:value="${mock.id}"/>
                                     <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
-                                            title="Remove from collection">
+                                            th:title="${@i18n.t('tooltips.removeFromCollection')}">
                                         <i class="bi bi-x"></i>
                                     </button>
                                 </form>
@@ -146,15 +148,15 @@
         <!-- Add mock panel -->
         <div class="col-md-4" th:if="${not collection.readOnly}">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold">Add mock</div>
+                <div class="card-header bg-white fw-semibold" th:text="${@i18n.t('collections.addMock')}">Add mock</div>
                 <div class="card-body">
-                    <p class="text-muted small mb-3">
+                    <p class="text-muted small mb-3" th:text="${@i18n.t('collections.addMockHelp')}">
                         Select a mock to add to this collection. Only mocks not already in a collection are shown.
                     </p>
                     <form th:action="@{/collections/{id}/add-mock(id=${collection.id})}" method="post">
                         <div class="mb-2">
                             <select name="mockId" class="form-select form-select-sm" required>
-                                <option value="">— Select mock —</option>
+                                <option value="" th:text="${@i18n.t('collections.selectMock')}">— Select mock —</option>
                                 <option th:each="mock : ${allMocks}"
                                         th:if="${(mock.collection == null or not mock.collection.readOnly) and (mock.collection == null or mock.collection.id == collection.id)}"
                                         th:value="${mock.id}"
@@ -163,7 +165,7 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-sm btn-primary w-100">
-                            <i class="bi bi-plus-lg me-1"></i>Add to collection
+                            <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('actions.addToCollection')}">Add to collection</span>
                         </button>
                     </form>
                 </div>

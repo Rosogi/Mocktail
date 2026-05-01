@@ -1,6 +1,7 @@
 package com.rosogisoft.web;
 
 import com.rosogisoft.domain.SettingKey;
+import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.UserSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,7 @@ public class SettingsController {
 
     private final UserSettingsService settingsService;
     private final CurrentUserHelper   currentUserHelper;
+    private final I18nService         i18n;
 
     @GetMapping
     public String settings(Model model) {
@@ -25,7 +27,19 @@ public class SettingsController {
         model.addAttribute("user",     user);
         model.addAttribute("settings", settings.asStringMap());
         model.addAttribute("keys",     SettingKey.values());
+        model.addAttribute("languages", i18n.supportedLanguages());
         return "settings/index";
+    }
+
+    @PostMapping("/language")
+    public String saveLanguage(@RequestParam String language,
+                               RedirectAttributes ra) {
+        var user = currentUserHelper.currentUser();
+        String normalized = i18n.normalizeLanguage(language);
+        settingsService.set(user, SettingKey.LANGUAGE, normalized);
+        ra.addFlashAttribute("successMessage",
+                i18n.tForLanguage(normalized, "flash.settingsSaved"));
+        return "redirect:/settings";
     }
 
     @PostMapping("/default-response")
@@ -40,7 +54,7 @@ public class SettingsController {
                 SettingKey.DEFAULT_RESPONSE_BODY,   defaultResponseBody,
                 SettingKey.DEFAULT_RESPONSE_CT,     defaultResponseCt
         ));
-        ra.addFlashAttribute("successMessage", "Settings saved.");
+        ra.addFlashAttribute("successMessage", i18n.t("flash.settingsSaved"));
         return "redirect:/settings";
     }
 }

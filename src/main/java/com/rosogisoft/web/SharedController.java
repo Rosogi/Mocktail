@@ -2,6 +2,7 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.User;
 import com.rosogisoft.repository.MockDefinitionRepository;
+import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.SharedCollectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -20,6 +21,7 @@ public class SharedController {
     private final CurrentUserHelper currentUserHelper;
     private final SharedCollectionService sharedCollectionService;
     private final MockDefinitionRepository mockRepository;
+    private final I18nService i18n;
 
     @GetMapping
     public String list(Model model) {
@@ -57,7 +59,7 @@ public class SharedController {
                     sharedCollectionService.isUpdateAvailable(subscription));
             return "shared/detail";
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", i18n.t("flash.collectionNotFound"));
             return "redirect:/shared";
         }
     }
@@ -67,10 +69,10 @@ public class SharedController {
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.subscribe(id, user);
-            ra.addFlashAttribute("successMessage", "Subscribed to collection.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.subscribed"));
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
             return "redirect:/shared";
         }
     }
@@ -80,10 +82,10 @@ public class SharedController {
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.copySharedCollection(id, user);
-            ra.addFlashAttribute("successMessage", "Collection copied.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.collectionCopied"));
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
             return "redirect:/shared";
         }
     }
@@ -93,10 +95,10 @@ public class SharedController {
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.updateSubscriptionBySource(id, user);
-            ra.addFlashAttribute("successMessage", "Subscription updated.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.subscriptionUpdated"));
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
             return "redirect:/shared";
         }
     }
@@ -106,10 +108,10 @@ public class SharedController {
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.updateSubscriptionByLocal(localId, user);
-            ra.addFlashAttribute("successMessage", "Subscription updated.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.subscriptionUpdated"));
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
             return "redirect:/collections/" + localId;
         }
     }
@@ -119,10 +121,10 @@ public class SharedController {
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.copySubscribedCollection(localId, user);
-            ra.addFlashAttribute("successMessage", "Editable copy created.");
+            ra.addFlashAttribute("successMessage", i18n.t("flash.editableCopyCreated"));
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
-            ra.addFlashAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
             return "redirect:/collections/" + localId;
         }
     }
@@ -132,7 +134,27 @@ public class SharedController {
         User user = currentUserHelper.currentUser();
         boolean ok = sharedCollectionService.unsubscribe(localId, user);
         ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
-                ok ? "Subscription removed." : "Subscription not found.");
+                ok ? i18n.t("flash.subscriptionRemoved") : i18n.t("flash.subscriptionNotFound"));
         return "redirect:/collections";
+    }
+
+    private String sharedErrorMessage(RuntimeException e) {
+        String message = e.getMessage();
+        if ("Shared collection not found.".equals(message)) {
+            return i18n.t("flash.collectionNotFound");
+        }
+        if ("Subscription not found.".equals(message)) {
+            return i18n.t("flash.subscriptionNotFound");
+        }
+        if ("Source collection is no longer shared.".equals(message)) {
+            return i18n.t("flash.sourceNoLongerShared");
+        }
+        if ("Subscription local copy is invalid.".equals(message)) {
+            return i18n.t("flash.subscriptionInvalid");
+        }
+        if ("Subscribed collections are read-only.".equals(message)) {
+            return i18n.t("flash.readOnlyCollection");
+        }
+        return message;
     }
 }
