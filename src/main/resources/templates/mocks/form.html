@@ -131,7 +131,9 @@
           <code>{{name}}</code> <span th:text="${@i18n.t('mocks.jsonBodyField')}">JSON body field</span> &nbsp;·&nbsp;
           <code>{{user.address.city}}</code> <span th:text="${@i18n.t('mocks.nestedJson')}">nested JSON</span> &nbsp;·&nbsp;
           <code>{{param.id}}</code> <span th:text="${@i18n.t('mocks.queryString')}">query string</span> &nbsp;·&nbsp;
-          <code>{{header.Authorization}}</code> <span th:text="${@i18n.t('mocks.requestHeader')}">request header</span> &nbsp;·&nbsp;
+          <code>{{header.Authorization}}</code> <span th:text="${@i18n.t('mocks.requestHeader')}">request header</span>
+          <br/>
+          <code>{{xpath:string(//*[local-name()='CustomerId'])}}</code> <span th:text="${@i18n.t('mocks.xmlXPath')}">XML/SOAP XPath</span> &nbsp;·&nbsp;
           <code>{{request.method}}</code> / <code>{{request.path}}</code>
         </div>
 

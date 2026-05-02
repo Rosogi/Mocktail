@@ -165,6 +165,7 @@
     "nestedJson": "nested JSON",
     "queryString": "query string",
     "requestHeader": "request header",
+    "xmlXPath": "XML/SOAP XPath",
     "extraHeaders": "Extra response headers",
     "extraHeadersHint": "One header per line —",
     "importTitle": "Import mocks",
