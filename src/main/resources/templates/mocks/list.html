@@ -62,8 +62,8 @@
     <select class="form-select form-select-sm" data-filter="type" th:aria-label="${@i18n.t('filters.collectionType')}">
       <option value="" th:text="${@i18n.t('filters.anyType')}">Any type</option>
       <option value="own" th:text="${@i18n.t('filters.own')}">Own</option>
-      <option value="shared" th:text="${@i18n.t('filters.sharedByMe')}">Shared by me</option>
-      <option value="subscribed" th:text="${@i18n.t('filters.subscribed')}">Subscribed</option>
+      <option th:if="${@capabilities.shared}" value="shared" th:text="${@i18n.t('filters.sharedByMe')}">Shared by me</option>
+      <option th:if="${@capabilities.shared}" value="subscribed" th:text="${@i18n.t('filters.subscribed')}">Subscribed</option>
       <option value="uncollected" th:text="${@i18n.t('filters.uncollected')}">Uncollected</option>
     </select>
     <select class="form-select form-select-sm" data-filter="priority" th:aria-label="${@i18n.t('mocks.priority')}">
@@ -132,7 +132,7 @@
               th:data-active="${mock.active}"
               th:data-collection="${mock.collection != null ? mock.collection.id : '__none'}"
               th:data-collection-name="${mock.collection != null ? #strings.toLowerCase(mock.collection.name) : ''}"
-              th:data-type="${mock.collection == null ? 'uncollected' : (mock.collection.readOnly ? 'subscribed' : (mock.collection.shared ? 'shared' : 'own'))}"
+              th:data-type="${mock.collection == null ? 'uncollected' : (@capabilities.shared ? (mock.collection.readOnly ? 'subscribed' : (mock.collection.shared ? 'shared' : 'own')) : 'own')}"
               th:data-priority="${mock.priority}"
               th:data-status-group="${mock.responseStatus < 300 ? '2xx' : (mock.responseStatus < 400 ? '3xx' : (mock.responseStatus < 500 ? '4xx' : '5xx'))}">
             <td class="mock-name text-truncate" th:title="${mock.name}" th:text="${mock.name}"></td>
@@ -149,8 +149,8 @@
                     class="badge bg-light text-dark border mock-collection-badge"
                     th:title="${mock.collection.name}">
                 <span class="text-truncate" th:text="${mock.collection.name}"></span>
-                <i th:if="${mock.collection.readOnly}" class="bi bi-lock ms-1"></i>
-                <i th:if="${not mock.collection.readOnly and mock.collection.shared}" class="bi bi-share ms-1"></i>
+                <i th:if="${@capabilities.shared and mock.collection.readOnly}" class="bi bi-lock ms-1"></i>
+                <i th:if="${@capabilities.shared and not mock.collection.readOnly and mock.collection.shared}" class="bi bi-share ms-1"></i>
               </span>
               <span th:if="${mock.collection == null}" class="text-muted small">—</span>
             </td>

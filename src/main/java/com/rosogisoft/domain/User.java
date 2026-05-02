@@ -18,16 +18,31 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String username;
+    @Column(name = "display_name", nullable = false)
+    private String displayName;
 
     @Column(name = "assigned_port", unique = true)
     private Integer assignedPort;
 
+    @Column(nullable = false)
+    private boolean enabled = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
-    public User (String username) {
-        this.username = username;
+    public User (String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getUsername() {
+        return displayName;
+    }
+
+    public void setUsername(String username) {
+        this.displayName = username;
     }
 }

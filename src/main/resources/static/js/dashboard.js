@@ -7,7 +7,7 @@
 
 // ── Globals injected from Thymeleaf via data- attributes ────
 const dashboardEl = document.getElementById('dashboard-root');
-const USERNAME    = dashboardEl.dataset.username;
+const LOG_TOPIC   = dashboardEl.dataset.logTopic;
 const I18N        = dashboardEl.dataset;
 
 function uiText(key, fallback) {
@@ -176,7 +176,7 @@ stomp.connect({}, function onConnected() {
   liveBadge.className   = 'badge bg-success';
   liveBadge.textContent = uiText('i18nLive', '● LIVE');
 
-  stomp.subscribe('/topic/logs/' + USERNAME, function(msg) {
+  stomp.subscribe('/topic/logs/' + LOG_TOPIC, function(msg) {
     const log = JSON.parse(msg.body);
     addLiveRow(log);
   });

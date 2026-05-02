@@ -1,6 +1,6 @@
 # 🍸 Mocktail
 
-**Self-hosted HTTP mock server with per-user endpoints, LDAP authentication, real-time request inspection, and mock collections.**
+**Self-hosted HTTP mock server with per-user endpoints, LDAP/database/standalone deployment modes, real-time request inspection, and mock collections.**
 
 Mocktail lets your team intercept and inspect HTTP requests during development and testing — without touching real downstream services. Each developer gets a personal endpoint on a dedicated port, with a live web dashboard, full request history, and flexible mock rules that support JSON/XML/SOAP responses and dynamic templating.
 
@@ -31,7 +31,7 @@ Mocktail lets your team intercept and inspect HTTP requests during development a
 | Feature | Description |
 |---|---|
 | **Per-user ports** | Every user gets a dedicated port (9000–9999). Requests to your port are only matched against your mocks. |
-| **LDAP authentication** | Integrates with any LDAP/Active Directory server. Embedded LDAP available for local development. |
+| **Deployment modes** | Run with LDAP auth, database auth, or standalone without auth. |
 | **Real-time request log** | Incoming requests appear instantly in your browser via WebSocket. Click any row to see full request and response details. |
 | **Flexible mock matching** | Match by HTTP method, Ant-style path pattern, and optional request body substring. |
 | **Template variables** | Use values from the incoming request inside your mock response body — JSON fields, query params, headers, and more. |
@@ -63,9 +63,9 @@ Your service  ──────────────────────
                                     sees the request live
 ```
 
-Each user logs in via LDAP. On first login, Mocktail assigns a port and registers a live Tomcat connector. The port is persisted in PostgreSQL and restored automatically on restart.
+In LDAP and database modes, each user gets a dedicated port and Mocktail registers a live Tomcat connector for that port. In standalone mode, Mocktail creates one local user and one mock port. Ports are persisted in PostgreSQL and restored automatically on restart.
 
-The admin UI runs on port **8080**. Mock endpoints run on ports **9000–9999**.
+The UI runs on port **8999**. Mock endpoints run on ports **9000–9999** in LDAP/database modes, and on `MOCKTAIL_STANDALONE_USER_PORT` in standalone mode.
 
 ---
 
@@ -74,17 +74,16 @@ The admin UI runs on port **8080**. Mock endpoints run on ports **9000–9999**.
 ### Prerequisites
 
 - Docker and Docker Compose
-- Ports 8080 and 9000–9020 available on your machine
+- Ports 8999 and 9000–9020 available on your machine
 
 ### 1. Clone and configure
 
 ```bash
 git clone https://github.com/Rosogi/mocktail.git
 cd mocktail
-cp .env.example .env
 ```
 
-The default `.env` uses the embedded LDAP with test users — no changes needed for local development.
+The default `docker-compose.yml` starts LDAP mode with embedded LDAP test users.
 
 ### 2. Start
 
@@ -97,7 +96,7 @@ First build takes 3–5 minutes (Maven dependency download). Subsequent builds t
 ### 3. Open the UI
 
 ```
-http://localhost:8080
+http://localhost:8999
 ```
 
 ### Default test users (dev profile)
@@ -120,6 +119,8 @@ All configuration is done via environment variables, either in `.env` (Docker Co
 ### `.env` reference
 
 ```env
+MOCKTAIL_MODE=ldap # ldap | database | standalone
+
 # ── Application profile ───────────────────────────────────────
 # "dev"  – embedded LDAP, verbose SQL logging
 # "prod" – real LDAP, optimised for production
@@ -128,15 +129,37 @@ SPRING_PROFILES_ACTIVE=dev
 # ── Database ──────────────────────────────────────────────────
 DB_PASS=mockserver
 
-# ── LDAP (required when SPRING_PROFILES_ACTIVE=prod) ─────────
-LDAP_URL=ldap://your-ldap-server:389
-LDAP_BASE_DN=dc=company,dc=com
-LDAP_USER_DN_PATTERN=uid={0},ou=people
-LDAP_GROUP_SEARCH_BASE=ou=groups
+# ── LDAP (required in LDAP mode with real LDAP) ───────────────
+MOCKTAIL_LDAP_URL=ldap://your-ldap-server:389
+MOCKTAIL_LDAP_BASE_DN=dc=company,dc=com
+MOCKTAIL_LDAP_USER_SEARCH_FILTER=(sAMAccountName={0})
+MOCKTAIL_LDAP_GROUP_SEARCH_BASE=ou=groups
 
 # Manager account — only if anonymous bind is not allowed
-LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
-LDAP_MANAGER_PASSWORD=secret
+MOCKTAIL_LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
+MOCKTAIL_LDAP_MANAGER_PASSWORD=secret
+
+# ── Database auth bootstrap admin ─────────────────────────────
+MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_LOGIN=admin
+# Optional. If empty, Mocktail generates a 20-character temporary password
+# and prints it once in application logs.
+MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_PASSWORD=
+
+# ── Standalone ────────────────────────────────────────────────
+MOCKTAIL_STANDALONE_USER_PORT=9000
+```
+
+### Deployment modes
+
+```bash
+# LDAP mode with embedded LDAP dev users
+docker compose up --build
+
+# Database auth mode
+docker compose -f docker-compose.database.yml up --build
+
+# Standalone mode, no login and no Shared section
+docker compose -f docker-compose.standalone.yml up --build
 ```
 
 ### Port range
@@ -144,7 +167,7 @@ LDAP_MANAGER_PASSWORD=secret
 By default Mocktail assigns ports from **9000 to 9999**, supporting up to 1000 users. The range is configurable in `application.yml`:
 
 ```yaml
-app:
+mocktail:
   ports:
     range-start: 9000
     range-end:   9999
@@ -325,12 +348,13 @@ Set the following in your `.env`:
 
 ```env
 SPRING_PROFILES_ACTIVE=prod
-LDAP_URL=ldap://ldap.company.com:389
-LDAP_BASE_DN=dc=company,dc=com
-LDAP_USER_DN_PATTERN=uid={0},ou=people
-LDAP_GROUP_SEARCH_BASE=ou=groups
-LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
-LDAP_MANAGER_PASSWORD=your-password
+MOCKTAIL_MODE=ldap
+MOCKTAIL_LDAP_URL=ldap://ldap.company.com:389
+MOCKTAIL_LDAP_BASE_DN=dc=company,dc=com
+MOCKTAIL_LDAP_USER_SEARCH_FILTER=(sAMAccountName={0})
+MOCKTAIL_LDAP_GROUP_SEARCH_BASE=ou=groups
+MOCKTAIL_LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
+MOCKTAIL_LDAP_MANAGER_PASSWORD=your-password
 ```
 
 ### Expose more ports
@@ -339,14 +363,14 @@ If you expect more than 21 users, expand the port range in `docker-compose.yml`:
 
 ```yaml
 ports:
-  - "8080:8080"
+  - "8999:8999"
   - "9000-9099:9000-9099"   # up to 100 users
 ```
 
 And update `application.yml`:
 
 ```yaml
-app:
+mocktail:
   ports:
     range-end: 9099
 ```
@@ -360,11 +384,12 @@ mvn package -DskipTests
 # Run
 java -jar target/mock-server-1.0.0.jar \
   --spring.profiles.active=prod \
+  --mocktail.deployment.mode=ldap \
   --DB_URL=jdbc:postgresql://localhost:5432/mocktail \
   --DB_USER=mocktail \
   --DB_PASS=strongpassword \
-  --LDAP_URL=ldap://ldap.company.com:389 \
-  --LDAP_BASE_DN=dc=company,dc=com
+  --mocktail.auth.ldap.url=ldap://ldap.company.com:389 \
+  --mocktail.auth.ldap.base-dn=dc=company,dc=com
 ```
 
 ---

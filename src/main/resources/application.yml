@@ -34,16 +34,24 @@ spring:
   mvc:
     throw-exception-if-no-handler-found: false
 
-# LDAP config for production (override via env or application-prod.yml)
-app:
-  ldap:
-    url: ${LDAP_URL:ldap://localhost:389}
-    base-dn: ${LDAP_BASE_DN:dc=mockserver,dc=com}
-    user-dn-pattern: ${LDAP_USER_DN_PATTERN:uid={0},ou=people}
-    group-search-base: ${LDAP_GROUP_SEARCH_BASE:ou=groups}
-    manager-dn: ${LDAP_MANAGER_DN:}
-    manager-password: ${LDAP_MANAGER_PASSWORD:}
-
+mocktail:
+  deployment:
+    mode: ${MOCKTAIL_MODE:ldap}
   ports:
-    range-start: 9000
-    range-end: 9999
+    range-start: ${MOCKTAIL_PORT_RANGE_START:9000}
+    range-end: ${MOCKTAIL_PORT_RANGE_END:9999}
+  standalone:
+    user-port: ${MOCKTAIL_STANDALONE_USER_PORT:9000}
+  auth:
+    ldap:
+      url: ${MOCKTAIL_LDAP_URL:${LDAP_URL:ldap://localhost:389}}
+      base-dn: ${MOCKTAIL_LDAP_BASE_DN:${LDAP_BASE_DN:dc=mockserver,dc=com}}
+      user-search-base: ${MOCKTAIL_LDAP_USER_SEARCH_BASE:}
+      user-search-filter: ${MOCKTAIL_LDAP_USER_SEARCH_FILTER:(sAMAccountName={0})}
+      group-search-base: ${MOCKTAIL_LDAP_GROUP_SEARCH_BASE:${LDAP_GROUP_SEARCH_BASE:ou=groups}}
+      manager-dn: ${MOCKTAIL_LDAP_MANAGER_DN:${LDAP_MANAGER_DN:}}
+      manager-password: ${MOCKTAIL_LDAP_MANAGER_PASSWORD:${LDAP_MANAGER_PASSWORD:}}
+    database:
+      bootstrap-admin:
+        login: ${MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_LOGIN:${MOCKTAIL_BOOTSTRAP_ADMIN_LOGIN:admin}}
+        password: ${MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_PASSWORD:${MOCKTAIL_BOOTSTRAP_ADMIN_PASSWORD:}}

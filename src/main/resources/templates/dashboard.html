@@ -9,7 +9,7 @@
 <nav th:replace="~{fragments/sidebar :: sidebar('dashboard', ${user})}"></nav>
 
 <main class="main" id="dashboard-root"
-      th:data-username="${#authentication.name}"
+      th:data-log-topic="${'user-' + user.id}"
       th:data-i18n-live="${@i18n.t('dashboard.live')}"
       th:data-i18n-offline="${@i18n.t('dashboard.offline')}"
       th:data-i18n-no-match="${@i18n.t('dashboard.detail.noMatch')}"

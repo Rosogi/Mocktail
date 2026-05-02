@@ -1,5 +1,7 @@
 package com.rosogisoft.web;
 
+import com.rosogisoft.config.DeploymentMode;
+import com.rosogisoft.config.MocktailProperties;
 import com.rosogisoft.service.UserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,9 +18,12 @@ import java.io.IOException;
 public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
 
     private final UserService userService;
+    private final MocktailProperties mocktailProperties;
 
-    public LoginSuccessHandler (UserService userService) {
+    public LoginSuccessHandler (UserService userService,
+                                MocktailProperties mocktailProperties) {
         this.userService = userService;
+        this.mocktailProperties = mocktailProperties;
         setDefaultTargetUrl("/dashboard");
         setAlwaysUseDefaultTargetUrl(true);
     }
@@ -28,9 +33,16 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
                                          HttpServletResponse response,
                                          Authentication authentication)
             throws IOException, ServletException {
-        String username = authentication.getName();
-        userService.ensureUserExists(username);
-        log.info("Пользователь '{}' вошел в систему", username);
+        String login = authentication.getName();
+        if (mocktailProperties.mode() == DeploymentMode.LDAP) {
+            userService.ensureLdapUserExists(login);
+        }
+        log.info("Пользователь '{}' вошел в систему", login);
+        if (mocktailProperties.mode() == DeploymentMode.DATABASE &&
+                userService.isPasswordChangeRequired(login)) {
+            getRedirectStrategy().sendRedirect(request, response, "/password/change");
+            return;
+        }
         super.onAuthenticationSuccess(request, response, authentication);
     }
 }

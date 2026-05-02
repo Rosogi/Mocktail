@@ -19,7 +19,7 @@
   <div class="card shadow-sm border-0">
     <div class="card-body p-4">
       <h5 class="card-title mb-4 text-center text-muted fw-normal"
-          th:text="${@i18n.t('login.heading')}">Sign in with LDAP</h5>
+          th:text="${@capabilities.admin ? @i18n.t('login.headingDatabase') : @i18n.t('login.heading')}">Sign in</h5>
 
       <div th:if="${param.error}" class="alert alert-danger py-2">
         <small th:text="${@i18n.t('login.invalid')}">Invalid username or password.</small>

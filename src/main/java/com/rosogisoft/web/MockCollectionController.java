@@ -1,5 +1,7 @@
 package com.rosogisoft.web;
 
+import com.rosogisoft.config.ApplicationCapabilities;
+import com.rosogisoft.domain.CollectionSubscription;
 import com.rosogisoft.domain.User;
 import com.rosogisoft.repository.MockDefinitionRepository;
 import com.rosogisoft.service.I18nService;
@@ -9,6 +11,7 @@ import com.rosogisoft.service.MockService;
 import com.rosogisoft.service.SharedCollectionService;
 import com.rosogisoft.web.dto.ImportMode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +23,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/collections")
@@ -36,6 +41,7 @@ public class MockCollectionController {
     private final MockService mockService;
     private final SharedCollectionService sharedCollectionService;
     private final I18nService i18n;
+    private final ApplicationCapabilities capabilities;
 
     // ── List ─────────────────────────────────────────────────────────
     @GetMapping
@@ -48,13 +54,21 @@ public class MockCollectionController {
         var counts = new java.util.HashMap<Long, Integer>();
         collections.forEach(c -> counts.put(c.getId(), collectionService.countMocks(c.getId())));
         model.addAttribute("mockCounts", counts);
-        var subscriptions = sharedCollectionService.subscriptionsByLocal(user);
-        var updates = new java.util.HashMap<Long, Boolean>();
-        var sourceAvailable = new java.util.HashMap<Long, Boolean>();
-        subscriptions.forEach((id, subscription) -> {
-            updates.put(id, sharedCollectionService.isUpdateAvailable(subscription));
-            sourceAvailable.put(id, sharedCollectionService.isSourceAvailable(subscription));
-        });
+        Map<Long, CollectionSubscription> subscriptions = Map.of();
+        Map<Long, Boolean> updates = Map.of();
+        Map<Long, Boolean> sourceAvailable = Map.of();
+        if (capabilities.isShared()) {
+            var sharedSubscriptions = sharedCollectionService.subscriptionsByLocal(user);
+            var sharedUpdates = new java.util.HashMap<Long, Boolean>();
+            var sharedSourceAvailable = new java.util.HashMap<Long, Boolean>();
+            sharedSubscriptions.forEach((id, subscription) -> {
+                sharedUpdates.put(id, sharedCollectionService.isUpdateAvailable(subscription));
+                sharedSourceAvailable.put(id, sharedCollectionService.isSourceAvailable(subscription));
+            });
+            subscriptions = sharedSubscriptions;
+            updates = sharedUpdates;
+            sourceAvailable = sharedSourceAvailable;
+        }
         model.addAttribute("subscriptions", subscriptions);
         model.addAttribute("updateAvailable", updates);
         model.addAttribute("sourceAvailable", sourceAvailable);
@@ -132,6 +146,7 @@ public class MockCollectionController {
 
     @PostMapping("/{id}/share")
     public String share(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             boolean ok = sharedCollectionService.shareCollection(id, user);
@@ -145,6 +160,7 @@ public class MockCollectionController {
 
     @PostMapping("/{id}/unshare")
     public String unshare(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             boolean ok = sharedCollectionService.unshareCollection(id, user);
@@ -205,7 +221,9 @@ public class MockCollectionController {
             model.addAttribute("collection", collection);
             model.addAttribute("mocks",      mockRepository.findByCollectionId(id));
             model.addAttribute("allMocks",   mockService.findAllForUser(user));
-            var subscriptions = sharedCollectionService.subscriptionsByLocal(user);
+            var subscriptions = capabilities.isShared()
+                    ? sharedCollectionService.subscriptionsByLocal(user)
+                    : Map.<Long, CollectionSubscription>of();
             var subscription = subscriptions.get(id);
             model.addAttribute("subscription", subscription);
             model.addAttribute("hasUpdate", subscription != null &&
@@ -249,6 +267,12 @@ public class MockCollectionController {
 
     private String slugify(String name) {
         return name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+    }
+
+    private void ensureSharedEnabled() {
+        if (!capabilities.isShared()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
     }
 
     private String importErrorMessage(IllegalArgumentException e) {

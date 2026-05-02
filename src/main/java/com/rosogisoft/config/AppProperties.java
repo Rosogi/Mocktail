@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "app.ports")
+@ConfigurationProperties(prefix = "mocktail.ports")
 public class AppProperties {
 
     private int rangeStart = 9000;
