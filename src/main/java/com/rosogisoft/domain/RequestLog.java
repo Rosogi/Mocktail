@@ -1,5 +1,7 @@
 package com.rosogisoft.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rosogisoft.converter.MapToJsonConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -16,6 +18,8 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 public class RequestLog {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,4 +66,16 @@ public class RequestLog {
 
     @Column(name = "remote_addr", length = 100)
     private String remoteAddr;
+
+    @Transient
+    public String getRequestHeadersJson() {
+        if (requestHeaders == null || requestHeaders.isEmpty()) {
+            return "";
+        }
+        try {
+            return MAPPER.writeValueAsString(requestHeaders);
+        } catch (JsonProcessingException e) {
+            return requestHeaders.toString();
+        }
+    }
 }

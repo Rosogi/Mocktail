@@ -4,7 +4,7 @@
 <nav th:fragment="sidebar(activePage, user)"
      class="sidebar">
 
-  <div class="brand">Mock<span>tail</span></div>
+  <div class="brand">Mock<span>tail</span><small th:text="'v' + ${@appVersion.version}">vdev</small></div>
 
   <ul class="nav flex-column flex-grow-1">
     <li class="nav-item">

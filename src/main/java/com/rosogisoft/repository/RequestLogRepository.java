@@ -43,6 +43,10 @@ public interface RequestLogRepository extends JpaRepository<RequestLog, Long> {
     @Query(value = "DELETE FROM request_logs WHERE owner_id = :ownerId", nativeQuery = true)
     void deleteAllByOwnerId (@Param("ownerId") Long ownerId);
 
+    @Modifying
+    @Query(value = "DELETE FROM request_logs WHERE id = :id AND owner_id = :ownerId", nativeQuery = true)
+    int deleteByIdAndOwnerId(@Param("id") Long id, @Param("ownerId") Long ownerId);
+
     @Query(value = """
             SELECT COUNT(*) FROM request_logs
             WHERE owner_id = :ownerId

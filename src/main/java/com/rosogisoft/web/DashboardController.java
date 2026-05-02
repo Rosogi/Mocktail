@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -33,6 +34,13 @@ public class DashboardController {
     public String clearLogs () {
         User user = currentUserHelper.currentUser();
         logService.clearForUser(user);
+        return "redirect:/dashboard";
+    }
+
+    @PostMapping("/logs/{id}/delete")
+    public String deleteLog(@PathVariable Long id) {
+        User user = currentUserHelper.currentUser();
+        logService.deleteForUser(id, user);
         return "redirect:/dashboard";
     }
 }

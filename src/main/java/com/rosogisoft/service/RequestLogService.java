@@ -35,4 +35,9 @@ public class RequestLogService {
     public void clearForUser (User user) {
         logRepository.deleteAllByOwnerId(user.getId());
     }
+
+    @Transactional
+    public boolean deleteForUser(Long logId, User user) {
+        return logRepository.deleteByIdAndOwnerId(logId, user.getId()) > 0;
+    }
 }

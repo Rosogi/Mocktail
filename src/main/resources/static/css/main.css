@@ -28,11 +28,18 @@ body {
   font-size: 1.2rem;
   padding: 0.5rem 1.25rem 1rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .sidebar .brand span {
   color: #0d6efd;
+}
+
+.sidebar .brand small {
+  color: #6c757d;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-left: 0.4rem;
 }
 
 .sidebar .nav-link {
@@ -285,6 +292,20 @@ body {
   line-height: 1;
 }
 .detail-expand-btn:hover { color: #0d6efd; }
+
+.detail-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.detail-view-toggle .btn {
+  --bs-btn-padding-y: 0.05rem;
+  --bs-btn-padding-x: 0.35rem;
+  --bs-btn-font-size: 0.65rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 .modal-header-custom {
   background: #212529;

@@ -31,7 +31,9 @@ public class RequestEventPublisher {
                 log.getQueryParams(),
                 log.getResponseStatus(),
                 log.getMatchedMock() != null ? log.getMatchedMock().getName() : null,
+                log.getRequestHeadersJson(),
                 log.getRequestBody(),
+                log.getResponseBody(),
                 log.getContentType(),
                 log.getRemoteAddr()
         );
@@ -47,7 +49,9 @@ public class RequestEventPublisher {
             String queryParams,
             Integer status,
             String matchedMock,
+            String requestHeaders,
             String requestBody,
+            String responseBody,
             String contentType,
             String remoteAddr
     ) {

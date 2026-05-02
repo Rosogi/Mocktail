@@ -9,6 +9,8 @@
 const dashboardEl = document.getElementById('dashboard-root');
 const LOG_TOPIC   = dashboardEl.dataset.logTopic;
 const I18N        = dashboardEl.dataset;
+const CSRF_PARAM  = dashboardEl.dataset.csrfParam;
+const CSRF_TOKEN  = dashboardEl.dataset.csrfToken;
 
 function uiText(key, fallback) {
   return I18N[key] || fallback;
@@ -53,6 +55,14 @@ function tryPrettyJson(str) {
   }
 }
 
+function prettyText(str, contentType) {
+  if (!str) return '';
+  if (window.MocktailBodyTools) {
+    return window.MocktailBodyTools.prettyText(str, contentType);
+  }
+  return tryPrettyJson(str);
+}
+
 // ── Request detail modal ─────────────────────────────────────
 const detailModal     = new bootstrap.Modal(document.getElementById('requestDetailModal'));
 const modalMethod     = document.getElementById('modal-method');
@@ -66,6 +76,13 @@ const modalReqBody    = document.getElementById('modal-req-body');
 const modalResBody    = document.getElementById('modal-res-body');
 const modalContentType= document.getElementById('modal-content-type');
 const modalQuery      = document.getElementById('modal-query');
+const modalDeleteForm = document.getElementById('modal-delete-log-form');
+
+const detailBlocks = {
+  'modal-req-headers': { raw: '', pretty: '', mode: 'pretty', element: modalReqHeaders },
+  'modal-req-body':    { raw: '', pretty: '', mode: 'pretty', element: modalReqBody },
+  'modal-res-body':    { raw: '', pretty: '', mode: 'pretty', element: modalResBody },
+};
 
 // Store full log data keyed by id (for live rows)
 const logStore = {};
@@ -85,9 +102,10 @@ function openDetail(logId) {
       matchedMock: row.dataset.mock,
       queryParams: row.dataset.query,
       contentType: row.dataset.ct,
-      requestHeaders: tryPrettyJson(row.dataset.reqHeaders) || row.dataset.reqHeaders,
+      requestHeaders: row.dataset.reqHeaders,
       requestBody: row.dataset.reqBody,
       responseBody: row.dataset.resBody,
+      id: logId,
     });
   } else {
     fillModal(data);
@@ -96,6 +114,7 @@ function openDetail(logId) {
 }
 
 function fillModal(d) {
+  const logId = d.id || d.logId;
   modalMethod.textContent      = d.method || '—';
   modalMethod.className        = 'method-badge ' + methodClass(d.method);
   modalPath.textContent        = d.path || '—';
@@ -106,10 +125,42 @@ function fillModal(d) {
   modalMock.textContent        = d.matchedMock || '— ' + uiText('i18nNoMatch', 'no match') + ' —';
   modalQuery.textContent       = d.queryParams || '—';
   modalContentType.textContent = d.contentType || '—';
-  modalReqHeaders.textContent  = d.requestHeaders || '—';
-  modalReqBody.textContent     = tryPrettyJson(d.requestBody) || uiText('i18nEmpty', '(empty)');
-  modalResBody.textContent     = tryPrettyJson(d.responseBody) || uiText('i18nEmpty', '(empty)');
+  setDetailBlock('modal-req-headers', d.requestHeaders, 'application/json');
+  setDetailBlock('modal-req-body', d.requestBody, d.contentType);
+  setDetailBlock('modal-res-body', d.responseBody, '');
+  if (modalDeleteForm && logId) {
+    modalDeleteForm.action = `/dashboard/logs/${logId}/delete`;
+  }
 }
+
+function setDetailBlock(id, raw, contentType) {
+  const block = detailBlocks[id];
+  if (!block) return;
+  block.raw = raw || '';
+  block.pretty = prettyText(block.raw, contentType);
+  renderDetailBlock(id);
+}
+
+function renderDetailBlock(id) {
+  const block = detailBlocks[id];
+  if (!block || !block.element) return;
+  const value = block.mode === 'raw' ? block.raw : block.pretty;
+  block.element.textContent = value || uiText('i18nEmpty', '(empty)');
+}
+
+document.querySelectorAll('.detail-view-toggle').forEach(group => {
+  const target = group.dataset.detailTarget;
+  group.querySelectorAll('button[data-view-mode]').forEach(button => {
+    button.addEventListener('click', function () {
+      const block = detailBlocks[target];
+      if (!block) return;
+      block.mode = button.dataset.viewMode;
+      group.querySelectorAll('button[data-view-mode]').forEach(btn =>
+          btn.classList.toggle('active', btn === button));
+      renderDetailBlock(target);
+    });
+  });
+});
 
 // Make rows from server-side render clickable
 document.querySelectorAll('tr[data-log-id]').forEach(row => {
@@ -143,8 +194,9 @@ function addLiveRow(log) {
   tr.dataset.mock            = log.matchedMock || '';
   tr.dataset.query           = log.queryParams || '';
   tr.dataset.ct              = log.contentType || '';
+  tr.dataset.reqHeaders      = log.requestHeaders || '';
   tr.dataset.reqBody         = log.requestBody || '';
-  tr.dataset.resBody         = '';
+  tr.dataset.resBody         = log.responseBody || '';
   tr.style.cursor            = 'pointer';
 
   tr.innerHTML = `
@@ -153,7 +205,8 @@ function addLiveRow(log) {
     <td class="log-path" title="${escHtml(path)}">${escHtml(path)}</td>
     <td><span class="badge ${statusClass(log.status)}">${log.status ?? '?'}</span></td>
     <td class="log-mock-name">${escHtml(log.matchedMock) || '<span class="text-muted fst-italic">' + escHtml(uiText('i18nNoMatch', 'no match')) + '</span>'}</td>
-    <td class="log-remote">${escHtml(log.remoteAddr) || ''}</td>`;
+    <td class="log-remote">${escHtml(log.remoteAddr) || ''}</td>
+    <td class="actions-cell">${deleteLogFormHtml(log.id)}</td>`;
 
   tr.addEventListener('click', () => openDetail(log.id));
 
@@ -163,6 +216,23 @@ function addLiveRow(log) {
   // Update counter
   totalCount++;
   document.getElementById('log-count').textContent = totalCount;
+}
+
+function deleteLogFormHtml(logId) {
+  const csrfInput = CSRF_PARAM && CSRF_TOKEN
+      ? `<input type="hidden" name="${escHtml(CSRF_PARAM)}" value="${escHtml(CSRF_TOKEN)}"/>`
+      : '';
+  return `
+    <form action="/dashboard/logs/${logId}/delete" method="post" class="d-inline" onclick="event.stopPropagation()">
+      ${csrfInput}
+      <button type="submit"
+              class="btn btn-sm btn-outline-danger py-0 px-2"
+              title="${escHtml(uiText('actionsDelete', 'Delete'))}"
+              data-confirm-message="${escHtml(uiText('i18nDeleteLogConfirm', 'Delete this request log?'))}"
+              onclick="event.stopPropagation(); return confirm(this.dataset.confirmMessage)">
+        <i class="bi bi-trash"></i>
+      </button>
+    </form>`;
 }
 
 // ── WebSocket / STOMP ────────────────────────────────────────

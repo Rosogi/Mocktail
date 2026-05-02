@@ -106,6 +106,7 @@
     "offline": "OFFLINE",
     "empty": "No requests yet — send something to your endpoint",
     "clearConfirm": "Clear all request logs?",
+    "deleteConfirm": "Delete this request log?",
     "table": {
       "time": "Time",
       "method": "Method",
@@ -124,6 +125,8 @@
       "requestHeaders": "Request headers",
       "requestBody": "Request body",
       "responseBody": "Response body",
+      "pretty": "Pretty",
+      "raw": "Raw",
       "noMatch": "no match",
       "empty": "(empty)",
       "dragHeader": "Drag header to move",

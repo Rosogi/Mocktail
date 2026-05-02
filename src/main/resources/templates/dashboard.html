@@ -10,12 +10,18 @@
 
 <main class="main" id="dashboard-root"
       th:data-log-topic="${'user-' + user.id}"
+      th:data-csrf-param="${_csrf != null ? _csrf.parameterName : ''}"
+      th:data-csrf-token="${_csrf != null ? _csrf.token : ''}"
       th:data-i18n-live="${@i18n.t('dashboard.live')}"
       th:data-i18n-offline="${@i18n.t('dashboard.offline')}"
       th:data-i18n-no-match="${@i18n.t('dashboard.detail.noMatch')}"
       th:data-i18n-empty="${@i18n.t('dashboard.detail.empty')}"
+      th:data-i18n-pretty="${@i18n.t('dashboard.detail.pretty')}"
+      th:data-i18n-raw="${@i18n.t('dashboard.detail.raw')}"
+      th:data-actions-delete="${@i18n.t('actions.delete')}"
       th:data-i18n-expand="${@i18n.t('tooltips.expand')}"
       th:data-i18n-collapse="${@i18n.t('tooltips.collapse')}"
+      th:data-i18n-delete-log-confirm="${@i18n.t('dashboard.deleteConfirm')}"
       th:data-i18n-toggle-fullscreen="${@i18n.t('tooltips.toggleFullscreen')}"
       th:data-i18n-exit-fullscreen="${@i18n.t('tooltips.exitFullscreen')}">
 
@@ -66,11 +72,12 @@
             <th style="width:65px" th:text="${@i18n.t('dashboard.table.status')}">Status</th>
             <th style="width:210px" th:text="${@i18n.t('dashboard.table.matchedMock')}">Matched mock</th>
             <th style="width:130px" th:text="${@i18n.t('dashboard.table.remote')}">Remote</th>
+            <th style="width:54px"></th>
           </tr>
           </thead>
           <tbody id="log-table-body">
           <tr th:if="${logs.empty}">
-            <td colspan="6" class="text-center text-muted py-5 empty-state">
+            <td colspan="7" class="text-center text-muted py-5 empty-state">
               <i class="bi bi-inbox d-block mb-2" style="font-size:2.2rem"></i>
               <span th:text="${@i18n.t('dashboard.empty')}">No requests yet — send something to your endpoint</span>
             </td>
@@ -86,6 +93,7 @@
               th:data-mock="${log.matchedMock != null ? log.matchedMock.getName() : ''}"
               th:data-query="${log.queryParams}"
               th:data-ct="${log.contentType}"
+              th:data-req-headers="${log.requestHeadersJson}"
               th:data-req-body="${log.requestBody}"
               th:data-res-body="${log.responseBody}"
               style="cursor:pointer">
@@ -111,6 +119,18 @@
                     th:text="${@i18n.t('dashboard.detail.noMatch')}">no match</span>
             </td>
             <td class="log-remote" th:text="${log.remoteAddr}"></td>
+            <td class="actions-cell">
+              <form th:action="@{/dashboard/logs/{id}/delete(id=${log.id})}" method="post"
+                    class="d-inline" onclick="event.stopPropagation()">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-danger py-0 px-2"
+                        th:title="${@i18n.t('actions.delete')}"
+                        th:data-confirm-message="${@i18n.t('dashboard.deleteConfirm')}"
+                        onclick="event.stopPropagation(); return confirm(this.dataset.confirmMessage)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
           </tr>
           </tbody>
         </table>
@@ -175,10 +195,18 @@
           <div class="mb-3">
             <div class="detail-label">
               <span th:text="${@i18n.t('dashboard.detail.requestHeaders')}">Request headers</span>
-              <button class="detail-expand-btn" type="button"
-                      onclick="toggleExpand(this)" th:title="${@i18n.t('tooltips.expandCollapse')}">
-                <i class="bi bi-arrows-expand"></i>
-              </button>
+              <div class="detail-tools">
+                <div class="btn-group btn-group-sm detail-view-toggle" data-detail-target="modal-req-headers">
+                  <button type="button" class="btn btn-outline-secondary active" data-view-mode="pretty"
+                          th:text="${@i18n.t('dashboard.detail.pretty')}">Pretty</button>
+                  <button type="button" class="btn btn-outline-secondary" data-view-mode="raw"
+                          th:text="${@i18n.t('dashboard.detail.raw')}">Raw</button>
+                </div>
+                <button class="detail-expand-btn" type="button"
+                        onclick="toggleExpand(this)" th:title="${@i18n.t('tooltips.expandCollapse')}">
+                  <i class="bi bi-arrows-expand"></i>
+                </button>
+              </div>
             </div>
             <pre class="detail-pre" id="modal-req-headers">—</pre>
           </div>
@@ -188,20 +216,36 @@
             <div class="col-md-6">
               <div class="detail-label">
                 <span th:text="${@i18n.t('dashboard.detail.requestBody')}">Request body</span>
-                <button class="detail-expand-btn" type="button"
-                        onclick="toggleExpand(this)" th:title="${@i18n.t('tooltips.expandCollapse')}">
-                  <i class="bi bi-arrows-expand"></i>
-                </button>
+                <div class="detail-tools">
+                  <div class="btn-group btn-group-sm detail-view-toggle" data-detail-target="modal-req-body">
+                    <button type="button" class="btn btn-outline-secondary active" data-view-mode="pretty"
+                            th:text="${@i18n.t('dashboard.detail.pretty')}">Pretty</button>
+                    <button type="button" class="btn btn-outline-secondary" data-view-mode="raw"
+                            th:text="${@i18n.t('dashboard.detail.raw')}">Raw</button>
+                  </div>
+                  <button class="detail-expand-btn" type="button"
+                          onclick="toggleExpand(this)" th:title="${@i18n.t('tooltips.expandCollapse')}">
+                    <i class="bi bi-arrows-expand"></i>
+                  </button>
+                </div>
               </div>
               <pre class="detail-pre" id="modal-req-body" th:text="${@i18n.t('dashboard.detail.empty')}">(empty)</pre>
             </div>
             <div class="col-md-6">
               <div class="detail-label">
                 <span th:text="${@i18n.t('dashboard.detail.responseBody')}">Response body</span>
-                <button class="detail-expand-btn" type="button"
-                        onclick="toggleExpand(this)" th:title="${@i18n.t('tooltips.expandCollapse')}">
-                  <i class="bi bi-arrows-expand"></i>
-                </button>
+                <div class="detail-tools">
+                  <div class="btn-group btn-group-sm detail-view-toggle" data-detail-target="modal-res-body">
+                    <button type="button" class="btn btn-outline-secondary active" data-view-mode="pretty"
+                            th:text="${@i18n.t('dashboard.detail.pretty')}">Pretty</button>
+                    <button type="button" class="btn btn-outline-secondary" data-view-mode="raw"
+                            th:text="${@i18n.t('dashboard.detail.raw')}">Raw</button>
+                  </div>
+                  <button class="detail-expand-btn" type="button"
+                          onclick="toggleExpand(this)" th:title="${@i18n.t('tooltips.expandCollapse')}">
+                    <i class="bi bi-arrows-expand"></i>
+                  </button>
+                </div>
               </div>
               <pre class="detail-pre" id="modal-res-body" th:text="${@i18n.t('dashboard.detail.empty')}">(empty)</pre>
             </div>
@@ -215,6 +259,16 @@
             &nbsp;·&nbsp;
             <i class="bi bi-arrow-down-right me-1"></i><span th:text="${@i18n.t('dashboard.detail.dragCorner')}">Drag corner to resize</span>
           </small>
+          <form id="modal-delete-log-form" method="post" class="me-2">
+            <input type="hidden" th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn btn-sm btn-outline-danger"
+                    th:data-confirm-message="${@i18n.t('dashboard.deleteConfirm')}"
+                    onclick="return confirm(this.dataset.confirmMessage)">
+              <i class="bi bi-trash"></i>
+              <span th:text="${@i18n.t('actions.delete')}">Delete</span>
+            </button>
+          </form>
           <button type="button" class="btn btn-sm btn-secondary"
                   data-bs-dismiss="modal" th:text="${@i18n.t('actions.close')}">Close</button>
         </div>
@@ -228,6 +282,7 @@
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
 <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
+<script th:src="@{/js/body-tools.js}"></script>
 <script th:src="@{/js/dashboard.js}"></script>
 
 </body>

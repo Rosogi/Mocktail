@@ -235,6 +235,7 @@ public class MockController {
     private static final Map<String, String> CONTENT_TYPES = new LinkedHashMap<>() {{
         put("application/json", "application/json");
         put("application/xml", "application/xml");
+        put("application/soap+xml", "application/soap+xml (SOAP)");
         put("text/xml", "text/xml (SOAP)");
         put("text/plain", "text/plain");
         put("text/html", "text/html");

@@ -16,6 +16,7 @@
     }
     .sidebar .brand { color: #fff; font-size: 1.2rem; padding: 0.5rem 1.25rem 1rem; font-weight: 600; }
     .sidebar .brand span { color: #0d6efd; }
+    .sidebar .brand small { color: #6c757d; font-size: .68rem; margin-left: .4rem; font-weight: 600; }
     .sidebar .nav-link { color: #adb5bd; padding: .45rem 1.25rem; border-radius: 0; }
     .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background: #0d6efd22; }
     .sidebar .nav-link i { margin-right: .5rem; }
@@ -37,7 +38,7 @@
 </head>
 <body>
 <nav class="sidebar d-flex flex-column">
-  <div class="brand">Mock<span>tail</span></div>
+  <div class="brand">Mock<span>tail</span><small th:text="'v' + ${@appVersion.version}">vdev</small></div>
 
   <ul class="nav flex-column flex-grow-1">
     <li class="nav-item">
