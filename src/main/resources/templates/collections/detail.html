@@ -15,13 +15,13 @@
         <div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <h4 class="mb-0" th:text="${collection.name}">Collection</h4>
-                <span th:if="${collection.shared}" class="badge bg-primary" th:text="${@i18n.t('badges.shared')}">Shared</span>
-                <span th:if="${collection.readOnly}" class="badge bg-info text-dark">
+                <span th:if="${@capabilities.shared and collection.shared}" class="badge bg-primary" th:text="${@i18n.t('badges.shared')}">Shared</span>
+                <span th:if="${@capabilities.shared and collection.readOnly}" class="badge bg-info text-dark">
                     <i class="bi bi-lock"></i> <span th:text="${@i18n.t('badges.readOnly')}">Read-only</span>
                 </span>
-                <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark"
+                <span th:if="${@capabilities.shared and hasUpdate == true}" class="badge bg-warning text-dark"
                       th:text="${@i18n.t('badges.updateAvailable')}">Update available</span>
-                <span th:if="${collection.readOnly and sourceAvailable == false}" class="badge bg-secondary"
+                <span th:if="${@capabilities.shared and collection.readOnly and sourceAvailable == false}" class="badge bg-secondary"
                       th:text="${@i18n.t('badges.sourceUnavailable')}">Source unavailable</span>
             </div>
             <small class="text-muted" th:text="${collection.description}"></small>
@@ -37,7 +37,7 @@
                     <i class="bi bi-pause-fill"></i> <span th:text="${@i18n.t('actions.disableAll')}">Disable all</span>
                 </button>
             </form>
-            <form th:if="${collection.readOnly and hasUpdate == true}"
+            <form th:if="${@capabilities.shared and collection.readOnly and hasUpdate == true}"
                   th:action="@{/shared/subscriptions/{id}/update(id=${collection.id})}" method="post">
                 <button class="btn btn-sm btn-warning">
                     <i class="bi bi-arrow-clockwise"></i> <span th:text="${@i18n.t('actions.update')}">Update</span>
@@ -54,31 +54,31 @@
                             <i class="bi bi-download me-2"></i><span th:text="${@i18n.t('actions.export')}">Export</span>
                         </a>
                     </li>
-                    <li th:if="${not collection.readOnly and not collection.shared}">
+                    <li th:if="${@capabilities.shared and not collection.readOnly and not collection.shared}">
                         <form th:action="@{/collections/{id}/share(id=${collection.id})}" method="post">
                             <button class="dropdown-item" type="submit">
                                 <i class="bi bi-share me-2"></i><span th:text="${@i18n.t('actions.share')}">Share</span>
                             </button>
                         </form>
                     </li>
-                    <li th:if="${not collection.readOnly and collection.shared}">
+                    <li th:if="${@capabilities.shared and not collection.readOnly and collection.shared}">
                         <form th:action="@{/collections/{id}/unshare(id=${collection.id})}" method="post">
                             <button class="dropdown-item" type="submit">
                                 <i class="bi bi-slash-circle me-2"></i><span th:text="${@i18n.t('actions.unshare')}">Unshare</span>
                             </button>
                         </form>
                     </li>
-                    <li th:if="${collection.readOnly}">
+                    <li th:if="${@capabilities.shared and collection.readOnly}">
                         <form th:action="@{/shared/subscriptions/{id}/copy(id=${collection.id})}" method="post">
                             <button class="dropdown-item" type="submit">
                                 <i class="bi bi-copy me-2"></i><span th:text="${@i18n.t('actions.copyEditable')}">Copy editable</span>
                             </button>
                         </form>
                     </li>
-                    <li th:if="${collection.readOnly}">
+                    <li th:if="${@capabilities.shared and collection.readOnly}">
                         <hr class="dropdown-divider"/>
                     </li>
-                    <li th:if="${collection.readOnly}">
+                    <li th:if="${@capabilities.shared and collection.readOnly}">
                         <form th:action="@{/shared/subscriptions/{id}/unsubscribe(id=${collection.id})}" method="post">
                             <button class="dropdown-item text-danger" type="submit">
                                 <i class="bi bi-bookmark-dash me-2"></i><span th:text="${@i18n.t('actions.unsubscribe')}">Unsubscribe</span>

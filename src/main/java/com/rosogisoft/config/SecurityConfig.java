@@ -1,51 +1,37 @@
 package com.rosogisoft.config;
 
 import com.rosogisoft.web.LoginSuccessHandler;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.ldap.core.support.DefaultDirObjectFactory;
+import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.BindAuthenticator;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.ldap.core.support.LdapContextSource;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${app.ldap.url}")
-    private String ldapUrl;
-
-    @Value("${app.ldap.base-dn}")
-    private String baseDn;
-
-    @Value("${app.ldap.user-dn-pattern}")
-    private String userDnPattern;
-
-    @Value("${app.ldap.group-search-base:ou=groups}")
-    private String groupSearchBase;
-
-    @Value("${app.ldap.manager-dn:}")
-    private String managerDn;
-
-    @Value("${app.ldap.manager-password:}")
-    private String managerPassword;
-
-    @Autowired
-    private LoginSuccessHandler loginSuccessHandler;
+    private final AppProperties appProperties;
+    private final MocktailProperties mocktailProperties;
+    private final LoginSuccessHandler loginSuccessHandler;
 
     // ---------------------------------------------------------------
-    // Chain 1: user mock-ports (9000–9999) — no auth, no CSRF
+    // Chain 1: user mock-ports — no auth, no CSRF
     // ---------------------------------------------------------------
     @Bean
     @Order(1)
@@ -53,7 +39,10 @@ public class SecurityConfig {
         http
                 .securityMatcher(request -> {
                     int port = request.getLocalPort();
-                    return port >= 9000 && port <= 9999;
+                    if (mocktailProperties.mode() == DeploymentMode.STANDALONE) {
+                        return port == mocktailProperties.getStandalone().getUserPort();
+                    }
+                    return port >= appProperties.getRangeStart() && port <= appProperties.getRangeEnd();
                 })
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .csrf(AbstractHttpConfigurer::disable)
@@ -62,16 +51,18 @@ public class SecurityConfig {
     }
 
     // ---------------------------------------------------------------
-    // Chain 2: admin UI (port 8080) — form login, LDAP auth
+    // Chain 2a: UI — form login, LDAP auth
     // ---------------------------------------------------------------
     @Bean
     @Order(2)
-    public SecurityFilterChain adminChain (HttpSecurity http,
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "ldap", matchIfMissing = true)
+    public SecurityFilterChain ldapUiChain(HttpSecurity http,
                                            AuthenticationManager authenticationManager) throws Exception {
         http
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/webjars/**", "/css/**", "/js/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/admin/**").denyAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -91,18 +82,67 @@ public class SecurityConfig {
     }
 
     // ---------------------------------------------------------------
+    // Chain 2b: UI — form login, database auth
+    // ---------------------------------------------------------------
+    @Bean
+    @Order(2)
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "database")
+    public SecurityFilterChain databaseUiChain(HttpSecurity http,
+                                               AuthenticationManager authenticationManager) throws Exception {
+        http
+                .authenticationManager(authenticationManager)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/login", "/webjars/**", "/css/**", "/js/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/password/change").authenticated()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .successHandler(loginSuccessHandler)
+                        .failureUrl("/login?error")
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .permitAll()
+                );
+        return http.build();
+    }
+
+    // ---------------------------------------------------------------
+    // Chain 2c: UI — standalone, no auth
+    // ---------------------------------------------------------------
+    @Bean
+    @Order(2)
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "standalone")
+    public SecurityFilterChain standaloneUiChain(HttpSecurity http) throws Exception {
+        http
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable);
+        return http.build();
+    }
+
+    // ---------------------------------------------------------------
     // LDAP Context Source
     // ---------------------------------------------------------------
     @Bean
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "ldap", matchIfMissing = true)
     public LdapContextSource ldapContextSource() {
+        MocktailProperties.Ldap ldap = mocktailProperties.getAuth().getLdap();
         LdapContextSource source = new LdapContextSource();
-        source.setUrl(ldapUrl);
-        source.setBase(baseDn);
+        source.setUrl(ldap.getUrl());
+        source.setBase(ldap.getBaseDn());
 
         // Устанавливать manager DN только если он задан
-        if (managerDn != null && !managerDn.isBlank()) {
-            source.setUserDn(managerDn);
-            source.setPassword(managerPassword);
+        if (ldap.getManagerDn() != null && !ldap.getManagerDn().isBlank()) {
+            source.setUserDn(ldap.getManagerDn());
+            source.setPassword(ldap.getManagerPassword());
         }
 
         source.setPooled(false);
@@ -116,10 +156,12 @@ public class SecurityConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "ldap", matchIfMissing = true)
     public LdapAuthenticationProvider ldapAuthenticationProvider(LdapContextSource contextSource) {
+        MocktailProperties.Ldap ldap = mocktailProperties.getAuth().getLdap();
         FilterBasedLdapUserSearch userSearch = new FilterBasedLdapUserSearch(
-                "",
-                "(sAMAccountName={0})",
+                ldap.getUserSearchBase(),
+                ldap.getUserSearchFilter(),
                 contextSource
         );
         userSearch.setSearchSubtree(true);
@@ -138,8 +180,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(LdapAuthenticationProvider ldapAuthenticationProvider) {
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "ldap", matchIfMissing = true)
+    public AuthenticationManager ldapAuthenticationManager(LdapAuthenticationProvider ldapAuthenticationProvider) {
         return new ProviderManager(ldapAuthenticationProvider);
     }
 
+    @Bean
+    @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "database")
+    public AuthenticationManager databaseAuthenticationManager(UserDetailsService userDetailsService,
+                                                               PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return new ProviderManager(provider);
+    }
 }

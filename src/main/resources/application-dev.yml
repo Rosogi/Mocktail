@@ -12,8 +12,8 @@ spring:
     show-sql: true
 
 # In dev mode, point to embedded LDAP
-app:
-  ldap:
-    url: ldap://localhost:8389
-    base-dn: dc=mockserver,dc=com
-    user-dn-pattern: uid={0},ou=people
+mocktail:
+  auth:
+    ldap:
+      url: ldap://localhost:8389
+      base-dn: dc=mockserver,dc=com

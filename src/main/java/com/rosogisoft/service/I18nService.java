@@ -2,6 +2,8 @@ package com.rosogisoft.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rosogisoft.config.DeploymentMode;
+import com.rosogisoft.config.MocktailProperties;
 import com.rosogisoft.domain.SettingKey;
 import com.rosogisoft.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class I18nService {
     private final UserService userService;
     private final UserSettingsService settingsService;
     private final ObjectMapper objectMapper;
+    private final MocktailProperties mocktailProperties;
 
     private Map<String, Map<String, String>> translations = Map.of();
 
@@ -120,6 +123,10 @@ public class I18nService {
     }
 
     private String resolveCurrentLanguage() {
+        if (mocktailProperties.mode() == DeploymentMode.STANDALONE) {
+            return languageForUser(userService.ensureStandaloneUser());
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() ||
                 auth instanceof AnonymousAuthenticationToken ||
@@ -128,7 +135,10 @@ public class I18nService {
             return DEFAULT_LANGUAGE;
         }
 
-        return userService.findByUsername(auth.getName())
+        String provider = mocktailProperties.mode() == DeploymentMode.DATABASE
+                ? UserService.AUTH_DATABASE
+                : UserService.AUTH_LDAP;
+        return userService.findByIdentity(provider, auth.getName())
                 .map(this::languageForUser)
                 .orElse(DEFAULT_LANGUAGE);
     }

@@ -4,6 +4,7 @@
     "mocks": "Моки",
     "collections": "Коллекции",
     "shared": "Shared",
+    "admin": "Администрирование",
     "settings": "Настройки",
     "signedInAs": "Вы вошли как",
     "logout": "Выйти"
@@ -86,6 +87,7 @@
   "login": {
     "title": "Вход",
     "heading": "Вход через LDAP",
+    "headingDatabase": "Вход",
     "invalid": "Неверное имя пользователя или пароль.",
     "loggedOut": "Вы вышли из системы.",
     "username": "Имя пользователя",
@@ -211,6 +213,37 @@
     "statusCode": "Status code",
     "responseBody": "Response body"
   },
+  "admin": {
+    "users": {
+      "title": "Пользователи",
+      "subtitle": "Пользователи с авторизацией через БД",
+      "createTitle": "Создать пользователя",
+      "existingTitle": "Существующие пользователи",
+      "login": "Логин",
+      "displayName": "Отображаемое имя",
+      "role": "Роль",
+      "status": "Статус",
+      "enabled": "Активен",
+      "disabled": "Отключен",
+      "mustChangePassword": "Требуется смена пароля",
+      "resetPassword": "Сбросить",
+      "enable": "Включить",
+      "disable": "Отключить",
+      "empty": "Пользователей пока нет",
+      "generatedPasswordTitle": "Временный пароль для {0}"
+    }
+  },
+  "password": {
+    "title": "Смена пароля",
+    "subtitle": "Задайте новый пароль, чтобы продолжить",
+    "current": "Текущий пароль",
+    "new": "Новый пароль",
+    "confirm": "Подтверждение пароля",
+    "submit": "Сменить пароль",
+    "confirmMismatch": "Подтверждение пароля не совпадает.",
+    "tooShort": "Пароль должен содержать минимум 12 символов.",
+    "currentInvalid": "Текущий пароль неверен."
+  },
   "forms": {
     "file": "Файл"
   },
@@ -238,6 +271,10 @@
     "collectionShared": "Коллекция опубликована в Shared.",
     "collectionUnshared": "Коллекция больше не опубликована в Shared.",
     "collectionCopied": "Коллекция скопирована.",
+    "userCreated": "Пользователь \"{0}\" создан.",
+    "userUpdated": "Пользователь обновлен.",
+    "passwordReset": "Пароль для \"{0}\" сброшен.",
+    "passwordChanged": "Пароль изменен.",
     "mockCreated": "Мок \"{0}\" создан.",
     "mockUpdated": "Мок обновлен.",
     "mockDeleted": "Мок удален.",

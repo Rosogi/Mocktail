@@ -19,10 +19,10 @@ public class RequestEventPublisher {
             DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneOffset.UTC);
 
     /**
-     * Sends a lightweight event to /topic/logs/{username}.
+     * Sends a lightweight event to /topic/logs/user-{userId}.
      * The frontend subscribes to this topic and appends rows in real time.
      */
-    public void publish (String username, RequestLog log) {
+    public void publish (Long userId, RequestLog log) {
         var payload = new LogEvent(
                 log.getId(),
                 FMT.format(log.getTimestamp()),
@@ -35,7 +35,7 @@ public class RequestEventPublisher {
                 log.getContentType(),
                 log.getRemoteAddr()
         );
-        template.convertAndSend("/topic/logs/" + username, payload);
+        template.convertAndSend("/topic/logs/user-" + userId, payload);
     }
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)

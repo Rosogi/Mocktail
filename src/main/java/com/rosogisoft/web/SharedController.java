@@ -1,16 +1,19 @@
 package com.rosogisoft.web;
 
+import com.rosogisoft.config.ApplicationCapabilities;
 import com.rosogisoft.domain.User;
 import com.rosogisoft.repository.MockDefinitionRepository;
 import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.SharedCollectionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -22,9 +25,11 @@ public class SharedController {
     private final SharedCollectionService sharedCollectionService;
     private final MockDefinitionRepository mockRepository;
     private final I18nService i18n;
+    private final ApplicationCapabilities capabilities;
 
     @GetMapping
     public String list(Model model) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         var sharedCollections = sharedCollectionService.findSharedForUser(user);
         var mockCounts = new java.util.HashMap<Long, Long>();
@@ -46,6 +51,7 @@ public class SharedController {
 
     @GetMapping("/{id}")
     public String detail(@PathVariable Long id, Model model, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             var source = sharedCollectionService.findSharedSource(id, user);
@@ -66,6 +72,7 @@ public class SharedController {
 
     @PostMapping("/{id}/subscribe")
     public String subscribe(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.subscribe(id, user);
@@ -79,6 +86,7 @@ public class SharedController {
 
     @PostMapping("/{id}/copy")
     public String copy(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.copySharedCollection(id, user);
@@ -92,6 +100,7 @@ public class SharedController {
 
     @PostMapping("/{id}/update")
     public String updateFromSource(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.updateSubscriptionBySource(id, user);
@@ -105,6 +114,7 @@ public class SharedController {
 
     @PostMapping("/subscriptions/{localId}/update")
     public String updateSubscription(@PathVariable Long localId, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.updateSubscriptionByLocal(localId, user);
@@ -118,6 +128,7 @@ public class SharedController {
 
     @PostMapping("/subscriptions/{localId}/copy")
     public String copySubscription(@PathVariable Long localId, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         try {
             var local = sharedCollectionService.copySubscribedCollection(localId, user);
@@ -131,11 +142,18 @@ public class SharedController {
 
     @PostMapping("/subscriptions/{localId}/unsubscribe")
     public String unsubscribe(@PathVariable Long localId, RedirectAttributes ra) {
+        ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         boolean ok = sharedCollectionService.unsubscribe(localId, user);
         ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
                 ok ? i18n.t("flash.subscriptionRemoved") : i18n.t("flash.subscriptionNotFound"));
         return "redirect:/collections";
+    }
+
+    private void ensureSharedEnabled() {
+        if (!capabilities.isShared()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
     }
 
     private String sharedErrorMessage(RuntimeException e) {

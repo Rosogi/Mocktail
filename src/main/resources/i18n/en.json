@@ -4,6 +4,7 @@
     "mocks": "Mocks",
     "collections": "Collections",
     "shared": "Shared",
+    "admin": "Admin",
     "settings": "Settings",
     "signedInAs": "Signed in as",
     "logout": "Logout"
@@ -86,6 +87,7 @@
   "login": {
     "title": "Login",
     "heading": "Sign in with LDAP",
+    "headingDatabase": "Sign in",
     "invalid": "Invalid username or password.",
     "loggedOut": "You have been logged out.",
     "username": "Username",
@@ -211,6 +213,37 @@
     "statusCode": "Status code",
     "responseBody": "Response body"
   },
+  "admin": {
+    "users": {
+      "title": "Users",
+      "subtitle": "Database authentication users",
+      "createTitle": "Create user",
+      "existingTitle": "Existing users",
+      "login": "Login",
+      "displayName": "Display name",
+      "role": "Role",
+      "status": "Status",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "mustChangePassword": "Must change password",
+      "resetPassword": "Reset",
+      "enable": "Enable",
+      "disable": "Disable",
+      "empty": "No users yet",
+      "generatedPasswordTitle": "Temporary password for {0}"
+    }
+  },
+  "password": {
+    "title": "Change password",
+    "subtitle": "Set a new password before continuing",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm password",
+    "submit": "Change password",
+    "confirmMismatch": "Password confirmation does not match.",
+    "tooShort": "Password must contain at least 12 characters.",
+    "currentInvalid": "Current password is invalid."
+  },
   "forms": {
     "file": "File"
   },
@@ -238,6 +271,10 @@
     "collectionShared": "Collection shared.",
     "collectionUnshared": "Collection is no longer shared.",
     "collectionCopied": "Collection copied.",
+    "userCreated": "User \"{0}\" created.",
+    "userUpdated": "User updated.",
+    "passwordReset": "Password reset for \"{0}\".",
+    "passwordChanged": "Password changed.",
     "mockCreated": "Mock \"{0}\" created.",
     "mockUpdated": "Mock updated.",
     "mockDeleted": "Mock deleted.",

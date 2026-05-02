@@ -4,6 +4,9 @@ import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.RequestLog;
 import com.rosogisoft.domain.SettingKey;
 import com.rosogisoft.domain.User;
+import com.rosogisoft.config.AppProperties;
+import com.rosogisoft.config.DeploymentMode;
+import com.rosogisoft.config.MocktailProperties;
 import com.rosogisoft.service.MockMatcherService;
 import com.rosogisoft.service.MockTemplateEngine;
 import com.rosogisoft.service.RequestLogService;
@@ -37,6 +40,8 @@ public class CatchAllFilter implements Filter {
     private final RequestEventPublisher publisher;
     private final MockTemplateEngine templateEngine;
     private final UserSettingsService settingsService;
+    private final AppProperties appProperties;
+    private final MocktailProperties mocktailProperties;
 
     @Override
     public void doFilter (ServletRequest req,
@@ -48,8 +53,7 @@ public class CatchAllFilter implements Filter {
 
         int port = request.getLocalPort();
 
-        // Only intercept user mock ports (9000-9999)
-        if (port < 9000 || port > 9999) {
+        if (!isMockPort(port)) {
             chain.doFilter(req, res);
             return;
         }
@@ -127,10 +131,17 @@ public class CatchAllFilter implements Filter {
 
         // Persist and broadcast
         RequestLog saved = logService.save(logEntry);
-        publisher.publish(owner.getUsername(), saved);
+        publisher.publish(owner.getId(), saved);
     }
 
     // ---------------------------------------------------------------
+    private boolean isMockPort(int port) {
+        if (mocktailProperties.mode() == DeploymentMode.STANDALONE) {
+            return port == mocktailProperties.getStandalone().getUserPort();
+        }
+        return port >= appProperties.getRangeStart() && port <= appProperties.getRangeEnd();
+    }
+
     private String readBody (HttpServletRequest request) {
         try {
             byte[] bytes = StreamUtils.copyToByteArray(request.getInputStream());

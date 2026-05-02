@@ -37,18 +37,18 @@ services:
       - "8999:8999"
       - "9000-9020:9000-9020"
     environment:
+      MOCKTAIL_MODE: ${MOCKTAIL_MODE:-ldap}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
 
       DB_URL:  jdbc:postgresql://db:5432/mocktail
       DB_USER: mocktail
       DB_PASS: ${DB_PASS:-mocktail}
 
-      LDAP_URL:               ${LDAP_URL:-ldap://localhost:8389}
-      LDAP_BASE_DN:           ${LDAP_BASE_DN:-dc=mockserver,dc=com}
-      LDAP_USER_DN_PATTERN:   ${LDAP_USER_DN_PATTERN:-uid={0},ou=people}
-      LDAP_GROUP_SEARCH_BASE: ${LDAP_GROUP_SEARCH_BASE:-ou=groups}
-      LDAP_MANAGER_DN:        ${LDAP_MANAGER_DN:-}
-      LDAP_MANAGER_PASSWORD:  ${LDAP_MANAGER_PASSWORD:-}
+      MOCKTAIL_LDAP_URL:               ${MOCKTAIL_LDAP_URL:-ldap://localhost:8389}
+      MOCKTAIL_LDAP_BASE_DN:           ${MOCKTAIL_LDAP_BASE_DN:-dc=mockserver,dc=com}
+      MOCKTAIL_LDAP_GROUP_SEARCH_BASE: ${MOCKTAIL_LDAP_GROUP_SEARCH_BASE:-ou=groups}
+      MOCKTAIL_LDAP_MANAGER_DN:        ${MOCKTAIL_LDAP_MANAGER_DN:-}
+      MOCKTAIL_LDAP_MANAGER_PASSWORD:  ${MOCKTAIL_LDAP_MANAGER_PASSWORD:-}
     networks:
       - internal
 
