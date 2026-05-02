@@ -165,6 +165,7 @@
     "nestedJson": "вложенный JSON",
     "queryString": "query string",
     "requestHeader": "request header",
+    "xmlXPath": "XPath по XML/SOAP",
     "extraHeaders": "Extra response headers",
     "extraHeadersHint": "Один header на строку —",
     "importTitle": "Импорт моков",
