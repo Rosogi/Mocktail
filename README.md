@@ -1,512 +1,317 @@
-# 🍸 Mocktail
+# Mocktail
 
-**Self-hosted HTTP mock server with per-user endpoints, LDAP/database/standalone deployment modes, real-time request inspection, and mock collections.**
+Mocktail is a self-hosted HTTP mock server for teams and internal development environments.
 
-Mocktail lets your team intercept and inspect HTTP requests during development and testing — without touching real downstream services. Each developer gets a personal endpoint on a dedicated port, with a live web dashboard, full request history, and flexible mock rules that support JSON/XML/SOAP responses and dynamic templating.
-
----
-
-## Table of contents
-
-- [Features](#features)
-- [How it works](#how-it-works)
-- [Quick start](#quick-start)
-- [Configuration](#configuration)
-- [Usage guide](#usage-guide)
-   - [Dashboard](#dashboard)
-   - [Creating mocks](#creating-mocks)
-   - [Mock matching rules](#mock-matching-rules)
-   - [Template variables](#template-variables)
-   - [Collections](#collections)
-   - [Import and export](#import-and-export)
-- [Production deployment](#production-deployment)
-- [Project structure](#project-structure)
-- [Tech stack](#tech-stack)
-- [Development notes](#development-notes)
-
----
+It lets users create mock endpoints, inspect incoming requests in real time, return static or dynamic responses, and share mock collections with teammates. Mocktail can run with LDAP authentication, database authentication, or as a local standalone app without login.
 
 ## Features
 
-| Feature | Description |
-|---|---|
-| **Per-user ports** | Every user gets a dedicated port (9000–9999). Requests to your port are only matched against your mocks. |
-| **Deployment modes** | Run with LDAP auth, database auth, or standalone without auth. |
-| **Real-time request log** | Incoming requests appear instantly in your browser via WebSocket. Click any row to see full request and response details. |
-| **Flexible mock matching** | Match by HTTP method, Ant-style path pattern, and optional request body substring. |
-| **Template variables** | Use values from the incoming request inside your mock response body — JSON fields, query params, headers, and more. |
-| **Mock collections** | Group related mocks into collections. Enable or disable an entire collection with one click. |
-| **Import / export** | Export your mocks (or a single collection) as a JSON file. Share with teammates and import on their instance. |
-| **JSON / XML / SOAP** | Supports any content type. Built-in formatter and presets for JSON, XML, SOAP, plain text, and HTML. |
-| **Self-hosted** | Runs as a single Spring Boot JAR or via Docker Compose. No external services required. |
+- LDAP, database authentication, and standalone deployment modes.
+- Per-user mock endpoints on dedicated ports.
+- Live dashboard with request logs and request/response details.
+- Mock matching by HTTP method, path pattern, request body substring, active state, and priority.
+- JSON, XML, SOAP, HTML, plain text, and form-url-encoded response presets.
+- Response formatting for JSON, XML, SOAP, HTML, and form-url-encoded bodies.
+- Template variables from request method, path, query params, headers, JSON body fields, and XML/SOAP XPath.
+- Mock collections with enable/disable controls.
+- Shared collections and subscriptions in multi-user modes.
+- Import and export for mocks and collections.
+- Docker Compose support for all deployment modes.
 
----
+## Running Mocktail
 
-## How it works
+Mocktail can be started in three modes. Choose the mode that matches how users should access the application:
 
-```
-Your service  ─────────────────────────────────►  Mocktail :9000
-                                                       │
-                                                  CatchAllFilter
-                                                  matches your mocks
-                                                       │
-                                              ┌────────┴─────────┐
-                                         Mock found         No match
-                                              │                   │
-                                     render response         404 JSON
-                                     (with templates)
-                                              │
-                                    save to request log
-                                    push via WebSocket
-                                              │
-                                    Your browser dashboard
-                                    sees the request live
-```
+| Mode | Best for | Authentication | Users | Admin UI | Shared |
+|---|---|---|---|---|---|
+| **Standalone** | Local single-user usage | None | One local user | No | No |
+| **Database Auth** | Internal installations without LDAP | Login/password stored in Mocktail | Created by administrator | Yes | Yes |
+| **LDAP** | Corporate environments with existing LDAP | LDAP | Created on first login | No | Yes |
 
-In LDAP and database modes, each user gets a dedicated port and Mocktail registers a live Tomcat connector for that port. In standalone mode, Mocktail creates one local user and one mock port. Ports are persisted in PostgreSQL and restored automatically on restart.
+All provided Docker Compose files start PostgreSQL automatically. The UI always runs on port `8999`; mock requests are sent to user ports.
 
-The UI runs on port **8999**. Mock endpoints run on ports **9000–9999** in LDAP/database modes, and on `MOCKTAIL_STANDALONE_USER_PORT` in standalone mode.
+### Standalone Mode
 
----
+Standalone mode is the simplest way to run Mocktail locally.
 
-## Quick start
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Ports 8999 and 9000–9020 available on your machine
-
-### 1. Clone and configure
+Use it when you want a single-user local mock server without authentication.
 
 ```bash
-git clone https://github.com/Rosogi/mocktail.git
-cd mocktail
-```
-
-The default `docker-compose.yml` starts LDAP mode with embedded LDAP test users.
-
-### 2. Start
-
-```bash
-docker compose up --build
-```
-
-First build takes 3–5 minutes (Maven dependency download). Subsequent builds take ~30 seconds thanks to Docker layer caching.
-
-### 3. Open the UI
-
-```
-http://localhost:8999
-```
-
-### Default test users (dev profile)
-
-| Username | Password   |
-|----------|------------|
-| admin    | admin123   |
-| alice    | alice123   |
-| bob      | bob123     |
-| charlie  | charlie123 |
-
-After first login each user is automatically assigned a mock port.
-
----
-
-## Configuration
-
-All configuration is done via environment variables, either in `.env` (Docker Compose) or passed directly to the JAR.
-
-### `.env` reference
-
-```env
-MOCKTAIL_MODE=ldap # ldap | database | standalone
-
-# ── Application profile ───────────────────────────────────────
-# "dev"  – embedded LDAP, verbose SQL logging
-# "prod" – real LDAP, optimised for production
-SPRING_PROFILES_ACTIVE=dev
-
-# ── Database ──────────────────────────────────────────────────
-DB_PASS=mockserver
-
-# ── LDAP (required in LDAP mode with real LDAP) ───────────────
-MOCKTAIL_LDAP_URL=ldap://your-ldap-server:389
-MOCKTAIL_LDAP_BASE_DN=dc=company,dc=com
-MOCKTAIL_LDAP_USER_SEARCH_FILTER=(sAMAccountName={0})
-MOCKTAIL_LDAP_GROUP_SEARCH_BASE=ou=groups
-
-# Manager account — only if anonymous bind is not allowed
-MOCKTAIL_LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
-MOCKTAIL_LDAP_MANAGER_PASSWORD=secret
-
-# ── Database auth bootstrap admin ─────────────────────────────
-MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_LOGIN=admin
-# Optional. If empty, Mocktail generates a 20-character temporary password
-# and prints it once in application logs.
-MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_PASSWORD=
-
-# ── Standalone ────────────────────────────────────────────────
-MOCKTAIL_STANDALONE_USER_PORT=9000
-```
-
-### Deployment modes
-
-```bash
-# LDAP mode with embedded LDAP dev users
-docker compose up --build
-
-# Database auth mode
-docker compose -f docker-compose.database.yml up --build
-
-# Standalone mode, no login and no Shared section
 docker compose -f docker-compose.standalone.yml up --build
 ```
 
-### Port range
+After startup, open the UI and send mock requests to the local mock endpoint:
 
-By default Mocktail assigns ports from **9000 to 9999**, supporting up to 1000 users. The range is configurable in `application.yml`:
-
-```yaml
-mocktail:
-  ports:
-    range-start: 9000
-    range-end:   9999
+```text
+UI:            http://localhost:8999
+Mock endpoint: http://localhost:9000
 ```
 
----
+Standalone mode creates one local user, skips authentication, and hides user-management features. Because there are no other users, the Shared section is not shown. This mode uses a single mock endpoint port configured by `MOCKTAIL_STANDALONE_USER_PORT`.
 
-## Usage guide
+Settings:
 
-### Dashboard
+| Variable | Default | Description |
+|---|---:|---|
+| `DB_PASS` | `mocktail` | PostgreSQL password used by Docker Compose. |
+| `MOCKTAIL_STANDALONE_USER_PORT` | `9000` | Port used by the local standalone mock endpoint. |
 
-After logging in you land on the Dashboard. At the top you will see:
+Example with a custom mock port:
 
-- **Your endpoint** — the full URL your services should send requests to, e.g. `http://mocktail-host:9000`
-- **Requests counter** — total number of logged requests
-- **Mocks counter** — number of mocks you have configured
-- **Clear** — wipe the request log
-- **LIVE indicator** — green when WebSocket is connected, grey when offline
-
-Every incoming request appears as a new row in the table. Click any row to open the **Request detail modal**, which shows:
-
-- Time, method, status, remote IP, content type, query string
-- Matched mock name (or "no match" if no rule was found)
-- Full request headers
-- Request body and response body side by side, with scrolling and resize support
-
-### Creating mocks
-
-Go to **Mocks → New mock** and fill in the form:
-
-| Field | Description |
-|---|---|
-| **Name** | A human-readable label shown in the request log |
-| **Collection** | Optionally assign this mock to a collection |
-| **Method** | HTTP method to match. Use `*` to match any method |
-| **Path pattern** | Ant-style path pattern (see below) |
-| **Request body contains** | Optional substring to match in the raw request body |
-| **Status** | HTTP response status code |
-| **Content-Type** | Response content type |
-| **Priority** | When multiple mocks match, the one with the highest priority wins |
-| **Active** | Toggle to enable or disable this mock without deleting it |
-| **Response body** | The response body, supports template variables |
-| **Extra headers** | Additional response headers, one per line as `Name: Value` |
-
-Use the **Fill preset** button to populate the response body with a template for the selected content type. Use the **Format** button to auto-indent JSON or XML.
-
-### Mock matching rules
-
-When a request arrives on your port, Mocktail searches your active mocks in priority order (highest first). A mock matches when **all** of the following are true:
-
-1. `httpMethod` equals the request method, or is `*`
-2. `pathPattern` matches the request path (Ant-style)
-3. If `requestBodyContains` is set, the request body contains that substring
-
-The first matching mock wins. If no mock matches, Mocktail returns a 404 with a JSON error body.
-
-#### Path pattern examples
-
-| Pattern | Matches |
-|---|---|
-| `/api/users` | Exactly `/api/users` |
-| `/api/users/**` | `/api/users/1`, `/api/users/1/roles`, and deeper |
-| `/api/orders/*` | `/api/orders/123` but not `/api/orders/123/items` |
-| `/**` | Everything |
-
-### Template variables
-
-You can embed values from the incoming request directly in your mock response body using `{{expression}}` syntax.
-
-| Expression | Resolves to |
-|---|---|
-| `{{name}}` | Top-level field `name` from JSON request body |
-| `{{user.address.city}}` | Nested JSON path (dot-separated) |
-| `{{param.id}}` | URL query parameter `?id=...` |
-| `{{header.Authorization}}` | Request header value (case-insensitive) |
-| `{{request.method}}` | HTTP method (`GET`, `POST`, …) |
-| `{{request.path}}` | Request path (`/api/users/1`) |
-
-If an expression cannot be resolved (field missing, body not JSON, etc.) the placeholder is left unchanged in the response.
-
-#### Example
-
-Mock response body:
-```json
-{
-  "message": "Hello, {{name}}!",
-  "yourId": "{{param.id}}",
-  "via": "{{request.method}} {{request.path}}",
-  "token": "{{header.Authorization}}"
-}
-```
-
-Incoming request:
 ```bash
-curl -X POST "http://localhost:9000/api/greet?id=42" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer abc123" \
-  -d '{"name": "Alice"}'
+MOCKTAIL_STANDALONE_USER_PORT=9100 docker compose -f docker-compose.standalone.yml up --build
 ```
 
-Response:
+### Database Auth Mode
+
+Database auth mode is intended for internal installations where LDAP is not available.
+
+Users sign in with accounts managed inside Mocktail. A platform administrator creates users, resets passwords, enables or disables users, and manages roles.
+
+```bash
+docker compose -f docker-compose.database.yml up --build
+```
+
+After startup, open the UI:
+
+```text
+http://localhost:8999
+```
+
+Database auth mode enables the Admin UI and Shared collections. A platform administrator creates users and manages their roles, but cannot manually enter user passwords. Mocktail generates temporary passwords for new users and password resets, and users must change those temporary passwords on first login.
+
+Settings:
+
+| Variable | Default | Description |
+|---|---:|---|
+| `DB_PASS` | `mocktail` | PostgreSQL password used by Docker Compose. |
+| `MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_LOGIN` | `admin` | Login for the first administrator. |
+| `MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_PASSWORD` | empty | Optional bootstrap admin password. If empty, Mocktail generates one. |
+| `MOCKTAIL_PORT_RANGE_START` | `9000` | First assignable user mock port. |
+| `MOCKTAIL_PORT_RANGE_END` | `9999` | Last assignable user mock port. |
+
+If `MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_PASSWORD` is empty, Mocktail prints the generated bootstrap admin password once in the application logs.
+
+```bash
+docker compose -f docker-compose.database.yml logs -f app
+```
+
+The provided Compose file exposes ports `9000-9020`. If you change the application port range, also update the `ports` section in `docker-compose.database.yml`.
+
+### LDAP Mode
+
+LDAP mode is intended for corporate environments where users already authenticate through LDAP.
+
+```bash
+docker compose up --build
+```
+
+After startup, open the UI:
+
+```text
+http://localhost:8999
+```
+
+LDAP mode delegates authentication to LDAP and does not store user passwords in Mocktail. Users are created in Mocktail on first successful login and receive an assigned mock endpoint port. The Admin UI is disabled because user management belongs to LDAP, while Shared collections remain available.
+
+By default, `docker-compose.yml` uses the `dev` profile and embedded LDAP test users.
+
+Test users:
+
+| Username | Password |
+|---|---|
+| `admin` | `admin123` |
+| `alice` | `alice123` |
+| `bob` | `bob123` |
+| `charlie` | `charlie123` |
+
+Settings:
+
+| Variable | Default | Description |
+|---|---:|---|
+| `DB_PASS` | `mocktail` | PostgreSQL password used by Docker Compose. |
+| `SPRING_PROFILES_ACTIVE` | `dev` | Use `dev` for embedded LDAP, or another profile for real LDAP configuration. |
+| `MOCKTAIL_LDAP_URL` | `ldap://localhost:8389` in dev | LDAP server URL. |
+| `MOCKTAIL_LDAP_BASE_DN` | `dc=mockserver,dc=com` | LDAP base DN. |
+| `MOCKTAIL_LDAP_USER_SEARCH_BASE` | empty | Optional user search base below the base DN. |
+| `MOCKTAIL_LDAP_USER_SEARCH_FILTER` | `(sAMAccountName={0})` | LDAP user search filter. |
+| `MOCKTAIL_LDAP_GROUP_SEARCH_BASE` | `ou=groups` | LDAP group search base. |
+| `MOCKTAIL_LDAP_MANAGER_DN` | empty | Optional manager DN for LDAP bind. |
+| `MOCKTAIL_LDAP_MANAGER_PASSWORD` | empty | Optional manager password for LDAP bind. |
+| `MOCKTAIL_PORT_RANGE_START` | `9000` | First assignable user mock port. |
+| `MOCKTAIL_PORT_RANGE_END` | `9999` | Last assignable user mock port. |
+
+The provided Compose file exposes ports `9000-9020`. If you change the application port range, also update the `ports` section in `docker-compose.yml`.
+
+## JSON Mock Example
+
+This example mocks a risk scoring service used during checkout. The application sends transaction data to an external service, and Mocktail returns a deterministic scoring response while still echoing useful request values.
+
+Create a mock in the UI:
+
+| Field | Value |
+|---|---|
+| Method | `POST` |
+| Path pattern | `/risk/score` |
+| Response status | `200` |
+| Response Content-Type | `application/json` |
+| Priority | `100` |
+| Active | enabled |
+
+Response body:
+
 ```json
 {
-  "message": "Hello, Alice!",
-  "yourId": "42",
-  "via": "POST /api/greet",
-  "token": "Bearer abc123"
+  "transactionId": "{{transaction.id}}",
+  "decision": "APPROVE",
+  "score": 18,
+  "amount": "{{transaction.amount}}",
+  "currency": "{{transaction.currency}}",
+  "customerSegment": "{{customer.segment}}",
+  "policy": "{{param.policy}}",
+  "correlationId": "{{header.X-Correlation-Id}}",
+  "handledBy": "{{request.method}} {{request.path}}"
 }
 ```
 
-### Collections
+Send a request to your mock endpoint. In standalone mode the default endpoint is `localhost:9000`. In LDAP or database mode, use the port shown in the sidebar.
 
-Collections let you group related mocks and control them together.
-
-Go to **Collections** in the sidebar to:
-
-- **Create** a new collection with a name and optional description
-- **View** a collection — see all its mocks, add or remove mocks
-- **Enable all** — activate every mock in the collection at once
-- **Disable all** — deactivate every mock without deleting them
-- **Export** — download the collection as a JSON file
-- **Delete** — remove the collection (mocks are kept, just uncollected)
-
-To assign a mock to a collection, either select it in the **New mock / Edit mock** form, or open the collection's detail page and use the **Add mock** panel.
-
-### Import and export
-
-#### Exporting
-
-- **All mocks**: Mocks page → **Export all** button — downloads a JSON file with all your mocks and collections
-- **Single collection**: Collections page → collection card → **Export** button
-
-#### Importing
-
-Mocks page → **Import** button → select a `.json` file exported from Mocktail.
-
-On import:
-- Collections from the file are created if they don't already exist (matched by name)
-- Mocks are always added as new — existing mocks are never modified
-- Mocks without a collection are imported as uncollected
-
-#### Export file format
-
-```json
-{
-  "version": 1,
-  "exportedAt": "2024-04-10T12:00:00Z",
-  "exportedBy": "alice",
-  "collections": [
-    {
-      "name": "Payment service",
-      "description": "Mocks for the payment API",
-      "mocks": [
-        {
-          "name": "Create payment 200",
-          "httpMethod": "POST",
-          "pathPattern": "/api/payments",
-          "responseStatus": 200,
-          "responseBody": "{\"id\": \"{{param.ref}}\", \"status\": \"ok\"}",
-          "responseContentType": "application/json",
-          "priority": 0,
-          "active": true
+```bash
+curl -i -X POST 'http://localhost:9000/risk/score?policy=checkout-v2' \
+  -H 'Content-Type: application/json' \
+  -H 'X-Correlation-Id: corr-7f31' \
+  -d '{
+        "transaction": {
+          "id": "txn_10001",
+          "amount": 129.9,
+          "currency": "USD"
+        },
+        "customer": {
+          "id": "cus_7788",
+          "segment": "gold"
+        },
+        "device": {
+          "ip": "203.0.113.42"
         }
-      ]
-    }
-  ],
-  "mocks": []
+      }'
+```
+
+Expected response:
+
+```json
+{
+  "transactionId": "txn_10001",
+  "decision": "APPROVE",
+  "score": 18,
+  "amount": "129.9",
+  "currency": "USD",
+  "customerSegment": "gold",
+  "policy": "checkout-v2",
+  "correlationId": "corr-7f31",
+  "handledBy": "POST /risk/score"
 }
 ```
 
----
+## FAQ
 
-## Production deployment
+### Where is the Mocktail UI?
 
-### Switch to real LDAP
+Open:
 
-Set the following in your `.env`:
-
-```env
-SPRING_PROFILES_ACTIVE=prod
-MOCKTAIL_MODE=ldap
-MOCKTAIL_LDAP_URL=ldap://ldap.company.com:389
-MOCKTAIL_LDAP_BASE_DN=dc=company,dc=com
-MOCKTAIL_LDAP_USER_SEARCH_FILTER=(sAMAccountName={0})
-MOCKTAIL_LDAP_GROUP_SEARCH_BASE=ou=groups
-MOCKTAIL_LDAP_MANAGER_DN=cn=readonly,dc=company,dc=com
-MOCKTAIL_LDAP_MANAGER_PASSWORD=your-password
+```text
+http://localhost:8999
 ```
 
-### Expose more ports
+### Which port should my application call?
 
-If you expect more than 21 users, expand the port range in `docker-compose.yml`:
+Use the mock endpoint port shown in the sidebar.
 
-```yaml
-ports:
-  - "8999:8999"
-  - "9000-9099:9000-9099"   # up to 100 users
+In standalone mode the default mock endpoint is:
+
+```text
+http://localhost:9000
 ```
 
-And update `application.yml`:
+### Where do I find the generated database admin password?
 
-```yaml
-mocktail:
-  ports:
-    range-end: 9099
-```
-
-### Run without Docker
+In database auth mode, if no bootstrap password is provided, Mocktail prints the generated admin password once in the application logs:
 
 ```bash
-# Build
-mvn package -DskipTests
-
-# Run
-java -jar target/mock-server-1.0.0.jar \
-  --spring.profiles.active=prod \
-  --mocktail.deployment.mode=ldap \
-  --DB_URL=jdbc:postgresql://localhost:5432/mocktail \
-  --DB_USER=mocktail \
-  --DB_PASS=strongpassword \
-  --mocktail.auth.ldap.url=ldap://ldap.company.com:389 \
-  --mocktail.auth.ldap.base-dn=dc=company,dc=com
+docker compose -f docker-compose.database.yml logs -f app
 ```
 
----
+### Why is `/admin` unavailable?
 
-## Project structure
+The Admin UI is available only in database auth mode.
 
-```
-src/main/java/com/mockserver/
-├── MockServerApplication.java
-│
-├── config/
-│   ├── AppProperties.java          # Port range config
-│   ├── BeanConfig.java             # AntPathMatcher bean
-│   ├── SecurityConfig.java         # LDAP auth + two filter chains
-│   └── WebSocketConfig.java        # STOMP broker setup
-│
-├── converter/
-│   └── MapToJsonConverter.java     # JPA: Map<String,String> ↔ TEXT
-│
-├── domain/
-│   ├── MockCollection.java         # Collection entity
-│   ├── MockDefinition.java         # Mock rule entity
-│   ├── RequestLog.java             # Incoming request log entity
-│   └── User.java                   # User entity (username + assigned port)
-│
-├── repository/
-│   ├── MockCollectionRepository.java
-│   ├── MockDefinitionRepository.java
-│   ├── RequestLogRepository.java
-│   └── UserRepository.java
-│
-├── service/
-│   ├── MockCollectionService.java  # Collection CRUD + enable/disable all
-│   ├── MockImportExportService.java# JSON serialization for export/import
-│   ├── MockMatcherService.java     # Ant-path matching logic
-│   ├── MockService.java            # Mock CRUD
-│   ├── MockTemplateEngine.java     # {{variable}} substitution
-│   ├── PortManagerService.java     # Dynamic Tomcat connector registration
-│   ├── RequestLogService.java      # Log persistence and retrieval
-│   └── UserService.java            # User provisioning on first login
-│
-├── web/
-│   ├── CatchAllFilter.java         # Intercepts all requests on ports 9000–9999
-│   ├── CurrentUserHelper.java      # Resolves User from Spring Security context
-│   ├── DashboardController.java
-│   ├── LoginController.java
-│   ├── LoginSuccessHandler.java    # Provisions user + port on first login
-│   ├── MockCollectionController.java
-│   ├── MockController.java
-│   └── dto/
-│       ├── MockDefinitionForm.java
-│       └── MockExportDto.java
-│
-└── ws/
-    └── RequestEventPublisher.java  # Pushes new log entries over STOMP
+LDAP mode uses external user management, so `/admin` is disabled. Standalone mode has no user administration.
 
-src/main/resources/
-├── application.yml                 # Base configuration
-├── application-dev.yml             # Dev profile (embedded LDAP)
-├── db/migration/
-│   ├── V1__init.sql                # users, mock_definitions, request_logs
-│   └── V2__collections.sql        # mock_collections + collection_id FK
-├── ldap/
-│   └── test-users.ldif             # Embedded LDAP test data
-├── static/
-│   ├── css/
-│   │   ├── badges.css              # HTTP method and status badges
-│   │   └── main.css                # Layout, sidebar, modals, forms
-│   └── js/
-│       ├── dashboard.js            # WebSocket, live log, request detail modal
-│       └── mocks.js                # Format button, fill preset, char counter
-└── templates/
-    ├── login.html
-    ├── dashboard.html
-    ├── collections/
-    │   ├── list.html
-    │   └── detail.html
-    ├── mocks/
-    │   ├── list.html
-    │   └── form.html
-    └── fragments/
-        ├── head.html               # <head> with CSS links
-        ├── sidebar.html            # Navigation sidebar
-        └── flash.html              # Success/error alert messages
-```
+### Why is the Shared section unavailable?
 
----
+Shared collections are disabled in standalone mode because there are no other users.
 
-## Tech stack
+Shared collections are available in LDAP and database auth modes.
 
-| Layer | Technology |
-|---|---|
-| Framework | Spring Boot 3.2 |
-| Language | Java 21 |
-| Security | Spring Security + Spring LDAP |
-| Persistence | Spring Data JPA + Hibernate 6 + PostgreSQL 16 |
-| Migrations | Flyway |
-| Real-time | WebSocket (STOMP + SockJS) |
-| Templates | Thymeleaf 3.1 |
-| Build | Maven 3.9 |
-| Frontend | Bootstrap 5.3 + Bootstrap Icons |
-| Container | Docker + Docker Compose |
+### Why does my old admin or old users still exist after restarting Docker?
 
----
+PostgreSQL data is stored in Docker volumes. Restarting containers does not remove the database.
 
-## Development notes
-
-### Running locally without Docker
+To reset a local database, stop the Compose stack and remove its volume:
 
 ```bash
-# Start PostgreSQL
-docker run -d --name mocktail-pg \
-  -e POSTGRES_DB=mocktail \
-  -e POSTGRES_USER=mocktail \
-  -e POSTGRES_PASSWORD=mocktail \
-  -p 5432:5432 postgres:16
+docker compose -f docker-compose.database.yml down -v
+```
 
-# Run with dev profile (embedded LDAP on port 8389)
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+Use the matching Compose file for the mode you are running.
+
+### What happens if no mock matches a request?
+
+Mocktail returns the configured default response for that user.
+
+You can edit it in:
+
+```text
+Settings -> Default response
+```
+
+### Why does my mock not match?
+
+Check:
+
+- The mock is active.
+- The HTTP method matches, or the mock method is `*`.
+- The path pattern matches the request path.
+- The request body contains condition is empty or matches the raw request body.
+- Another matching mock with a higher priority is not winning first.
+
+### Why can I open the UI but requests to the mock endpoint fail?
+
+Make sure the user mock port is exposed by Docker Compose.
+
+The provided LDAP and database Compose files expose:
+
+```text
+9000-9020
+```
+
+If a user is assigned a port outside that exposed range, either expose a wider range in Compose or configure the application port range to fit the exposed ports.
+
+### How do I view application logs?
+
+Standalone:
+
+```bash
+docker compose -f docker-compose.standalone.yml logs -f app
+```
+
+Database auth:
+
+```bash
+docker compose -f docker-compose.database.yml logs -f app
+```
+
+LDAP:
+
+```bash
+docker compose logs -f app
 ```
