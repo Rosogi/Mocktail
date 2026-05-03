@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${@i18n.t('settings.title')})}"></head>
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+<nav th:replace="~{fragments/sidebar :: sidebar('settings', ${user})}"></nav>
+<main class="main">
+
+    <div th:replace="~{fragments/flash :: flash}"></div>
+
+    <div class="page-header">
+        <div>
+            <h4 th:text="${@i18n.t('settings.title')}">Settings</h4>
+            <small class="text-muted" th:text="${@i18n.t('settings.subtitle')}">Personal preferences for your mock endpoint</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-translate me-2 text-muted"></i>
+            <span th:text="${@i18n.t('settings.languageTitle')}">Interface language</span>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4" th:text="${@i18n.t('settings.languageHelp')}">
+                Choose the language used by the application UI.
+            </p>
+            <form th:action="@{/settings/language}" method="post">
+                <div class="row g-3 align-items-end">
+                    <div class="col-sm-5">
+                        <label class="form-label fw-semibold" th:text="${@i18n.t('settings.language')}">Language</label>
+                        <select class="form-select" name="language">
+                            <option th:each="language : ${languages}"
+                                    th:value="${language.code}"
+                                    th:selected="${settings['LANGUAGE'] == language.code}"
+                                    th:text="${language.label}">English</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            <span th:text="${@i18n.t('actions.save')}">Save</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-circle-half me-2 text-muted"></i>
+            <span th:text="${@i18n.t('settings.themeTitle')}">Interface theme</span>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4" th:text="${@i18n.t('settings.themeHelp')}">
+                Choose a light or dark appearance for the application UI.
+            </p>
+            <form th:action="@{/settings/theme}" method="post">
+                <label class="form-label fw-semibold d-block" th:text="${@i18n.t('settings.theme')}">Theme</label>
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                    <div class="btn-group theme-choice" role="group" th:attr="aria-label=${@i18n.t('settings.theme')}">
+                        <input type="radio" class="btn-check" name="theme" id="themeLight" value="light"
+                               th:checked="${@theme.currentTheme() == 'light'}" autocomplete="off"/>
+                        <label class="btn btn-outline-secondary" for="themeLight">
+                            <i class="bi bi-sun me-1"></i>
+                            <span th:text="${@i18n.t('settings.themeLight')}">Light</span>
+                        </label>
+
+                        <input type="radio" class="btn-check" name="theme" id="themeDark" value="dark"
+                               th:checked="${@theme.currentTheme() == 'dark'}" autocomplete="off"/>
+                        <label class="btn btn-outline-secondary" for="themeDark">
+                            <i class="bi bi-moon-stars me-1"></i>
+                            <span th:text="${@i18n.t('settings.themeDark')}">Dark</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-floppy me-1"></i>
+                        <span th:text="${@i18n.t('actions.save')}">Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-x-circle me-2 text-muted"></i>
+            <span th:text="${@i18n.t('settings.defaultResponseTitle')}">Default response (no mock matched)</span>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4">
+                <span th:text="${@i18n.t('settings.defaultResponseHelp')}">Returned when no active mock matches the request. Template variables are supported:</span>
+                <code>{{request.path}}</code>, <code>{{request.method}}</code>,
+                <code>{{param.x}}</code>, <code>{{header.x}}</code>,
+                <code>{{xpath:string(//*[local-name()='CustomerId'])}}</code>
+            </p>
+            <form th:action="@{/settings/default-response}" method="post"
+                  data-body-tools
+                  th:data-confirm-replace-preset="${@i18n.t('confirm.replacePreset')}"
+                  th:data-format-nothing="${@i18n.t('mocks.formatNothing')}"
+                  th:data-format-success="${@i18n.t('mocks.formatSuccess')}"
+                  th:data-format-invalid="${@i18n.t('mocks.formatInvalid')}"
+                  th:data-char-count="${@i18n.t('mocks.charCount')}">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-3">
+                        <label class="form-label fw-semibold" th:text="${@i18n.t('settings.statusCode')}">Status code</label>
+                        <input type="number" class="form-control"
+                               name="defaultResponseStatus"
+                               th:value="${settings['DEFAULT_RESPONSE_STATUS']}"
+                               min="100" max="599"/>
+                    </div>
+                    <div class="col-sm-5">
+                        <label class="form-label fw-semibold">Content-Type</label>
+                        <select class="form-select" name="defaultResponseCt" data-body-tool="content-type">
+                            <option value="application/json"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'application/json'}">
+                                application/json</option>
+                            <option value="application/xml"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'application/xml'}">
+                                application/xml</option>
+                            <option value="application/soap+xml"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'application/soap+xml'}">
+                                application/soap+xml (SOAP)</option>
+                            <option value="text/xml"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'text/xml'}">
+                                text/xml (SOAP)</option>
+                            <option value="text/plain"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'text/plain'}">
+                                text/plain</option>
+                            <option value="text/html"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'text/html'}">
+                                text/html</option>
+                            <option value="application/x-www-form-urlencoded"
+                                    th:selected="${settings['DEFAULT_RESPONSE_CT'] == 'application/x-www-form-urlencoded'}">
+                                application/x-www-form-urlencoded</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label fw-semibold mb-0" th:text="${@i18n.t('settings.responseBody')}">Response body</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span data-body-tool="counter" class="text-muted" style="font-size:.75rem"></span>
+                            <span data-body-tool="feedback" class="small"></span>
+                            <button type="button" data-body-tool="format" class="btn btn-sm btn-outline-info py-0">
+                                <i class="bi bi-braces me-1"></i><span th:text="${@i18n.t('actions.format')}">Format</span>
+                            </button>
+                            <button type="button" data-body-tool="fill-preset" class="btn btn-sm btn-outline-secondary py-0">
+                                <span th:text="${@i18n.t('mocks.fillPreset')}">Fill preset</span>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea class="form-control code" name="defaultResponseBody" rows="6"
+                              data-body-tool="body"
+                              th:text="${settings['DEFAULT_RESPONSE_BODY']}"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-floppy me-1"></i>
+                    <span th:text="${@i18n.t('actions.save')}">Save</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</main>
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/body-tools.js}"></script>
+</body>
+</html>

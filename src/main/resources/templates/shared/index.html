@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${@i18n.t('shared.title')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('shared', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${@i18n.t('shared.title')}">Shared</h4>
+      <small class="text-muted" th:text="${@i18n.t('shared.subtitle')}">Collections shared by other users</small>
+    </div>
+  </div>
+
+  <div class="filters-bar mb-3" data-filter-scope="collections">
+    <div class="filter-search">
+      <i class="bi bi-search"></i>
+      <input type="search" class="form-control form-control-sm"
+             data-filter="search" th:placeholder="${@i18n.t('filters.searchSharedCollections')}"/>
+    </div>
+    <select class="form-select form-select-sm" data-filter="type" th:aria-label="${@i18n.t('filters.sharedState')}">
+      <option value="" th:text="${@i18n.t('filters.allShared')}">All shared</option>
+      <option value="shared" th:text="${@i18n.t('filters.available')}">Available</option>
+      <option value="subscribed" th:text="${@i18n.t('filters.subscribed')}">Subscribed</option>
+      <option value="updates" th:text="${@i18n.t('filters.updatesAvailable')}">Updates available</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="state" th:aria-label="${@i18n.t('filters.collectionState')}">
+      <option value="" th:text="${@i18n.t('filters.anyState')}">Any state</option>
+      <option value="with-mocks" th:text="${@i18n.t('filters.hasMocks')}">Has mocks</option>
+      <option value="empty" th:text="${@i18n.t('filters.empty')}">Empty</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="sort" th:aria-label="${@i18n.t('filters.sortCollections')}">
+      <option value="name" th:text="${@i18n.t('filters.name')}">Name</option>
+      <option value="mocks-desc" th:text="${@i18n.t('filters.mocksCount')}">Mocks count</option>
+      <option value="revision-desc" th:text="${@i18n.t('filters.revision')}">Revision</option>
+    </select>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-filter-reset>
+      <span th:text="${@i18n.t('actions.reset')}">Reset</span>
+    </button>
+  </div>
+
+  <div th:if="${sharedCollections.empty}" class="text-center text-muted py-5">
+    <i class="bi bi-share d-block mb-2" style="font-size:2.2rem"></i>
+    <span th:text="${@i18n.t('shared.empty')}">No shared collections yet</span>
+  </div>
+
+  <div id="collectionsEmptyFiltered" class="text-center text-muted py-5 d-none">
+    <i class="bi bi-funnel d-block mb-2" style="font-size:2.2rem"></i>
+    <span th:text="${@i18n.t('shared.noMatches')}">No shared collections match filters</span>
+  </div>
+
+  <div class="row g-3" id="collectionsGrid">
+    <div class="col-md-6 col-xl-4 collection-card-wrap"
+         th:each="col : ${sharedCollections}"
+         th:with="sub=${subscriptions[col.id]}, hasUpdate=${updateAvailable[col.id]}, mocksCount=${mockCounts[col.id]}"
+         th:data-name="${#strings.toLowerCase(col.name)}"
+         th:data-description="${col.description != null ? #strings.toLowerCase(col.description) : ''}"
+         th:data-author="${#strings.toLowerCase(col.owner.username)}"
+         th:data-type="${sub != null ? 'subscribed' : 'shared'}"
+         th:data-state="${mocksCount > 0 ? 'with-mocks' : 'empty'}"
+         th:data-update="${hasUpdate == true}"
+         th:data-mocks="${mocksCount}"
+         th:data-revision="${col.revision}">
+      <div class="card border-0 shadow-sm h-100 collection-card">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div class="min-width-0">
+              <h6 class="card-title mb-1 fw-semibold text-truncate" th:text="${col.name}">Collection</h6>
+              <div class="d-flex align-items-center gap-1 flex-wrap">
+                <span class="badge bg-secondary" th:text="${@i18n.t('collections.mocksCount', mocksCount)}">0 mocks</span>
+                <span class="badge bg-light text-dark border">
+                  <i class="bi bi-person me-1"></i><span th:text="${col.owner.username}">author</span>
+                </span>
+                <span class="badge bg-light text-dark border">
+                  <span th:text="${@i18n.t('shared.rev')}">rev</span> <span th:text="${col.revision}">1</span>
+                </span>
+                <span th:if="${sub != null}" class="badge bg-info text-dark" th:text="${@i18n.t('badges.subscribed')}">Subscribed</span>
+                <span th:if="${hasUpdate == true}" class="badge bg-warning text-dark" th:text="${@i18n.t('badges.update')}">Update</span>
+              </div>
+            </div>
+            <div class="dropdown flex-shrink-0" th:if="${sub != null and hasUpdate == true}">
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                      type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                      th:title="${@i18n.t('tooltips.moreActions')}">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <form th:action="@{/shared/{id}/update(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-arrow-clockwise me-2"></i><span th:text="${@i18n.t('actions.update')}">Update</span>
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="card-text text-muted small collection-description"
+             th:text="${not #strings.isEmpty(col.description) ? col.description : @i18n.t('collections.noDescription')}"></p>
+
+          <div class="collection-actions mt-auto">
+            <a th:href="@{/shared/{id}(id=${col.id})}"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i> <span th:text="${@i18n.t('actions.view')}">View</span>
+            </a>
+            <form th:if="${sub == null}"
+                  th:action="@{/shared/{id}/subscribe(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-bookmark-plus"></i> <span th:text="${@i18n.t('actions.subscribe')}">Subscribe</span>
+              </button>
+            </form>
+            <a th:if="${sub != null}"
+               th:href="@{/collections/{id}(id=${sub.localCollection.id})}"
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-folder2-open"></i> <span th:text="${@i18n.t('actions.open')}">Open</span>
+            </a>
+            <form th:action="@{/shared/{id}/copy(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-copy"></i> <span th:text="${@i18n.t('actions.copy')}">Copy</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/list-filters.js}"></script>
+</body>
+</html>

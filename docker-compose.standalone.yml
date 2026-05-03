@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mocktail-db-standalone
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       mocktail
+      POSTGRES_USER:     mocktail
+      POSTGRES_PASSWORD: ${DB_PASS:-mocktail}
+    volumes:
+      - pg_data_standalone:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mocktail -d mocktail"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mocktail-app-standalone
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8999:8999"
+      - "${MOCKTAIL_STANDALONE_USER_PORT:-9000}:${MOCKTAIL_STANDALONE_USER_PORT:-9000}"
+    environment:
+      MOCKTAIL_MODE: standalone
+      DB_URL:  jdbc:postgresql://db:5432/mocktail
+      DB_USER: mocktail
+      DB_PASS: ${DB_PASS:-mocktail}
+      MOCKTAIL_STANDALONE_USER_PORT: ${MOCKTAIL_STANDALONE_USER_PORT:-9000}
+    networks:
+      - internal
+
+volumes:
+  pg_data_standalone:
+
+networks:
+  internal:
+    driver: bridge

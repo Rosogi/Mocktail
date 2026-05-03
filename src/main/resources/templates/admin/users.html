@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${@i18n.t('admin.users.title')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+<nav th:replace="~{fragments/sidebar :: sidebar('admin', ${user})}"></nav>
+
+<main class="main">
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div th:if="${generatedPassword}" class="alert alert-warning">
+    <div class="fw-semibold" th:text="${@i18n.t('admin.users.generatedPasswordTitle', generatedPasswordLogin)}">
+      Temporary password
+    </div>
+    <code class="d-block mt-1 fs-6" th:text="${generatedPassword}">password</code>
+  </div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${@i18n.t('admin.users.title')}">Users</h4>
+      <small class="text-muted" th:text="${@i18n.t('admin.users.subtitle')}">Database authentication users</small>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold" th:text="${@i18n.t('admin.users.createTitle')}">Create user</div>
+        <div class="card-body">
+          <form th:action="@{/admin/users}" method="post">
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('admin.users.login')}">Login</label>
+              <input name="login" class="form-control" required/>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('admin.users.displayName')}">Display name</label>
+              <input name="displayName" class="form-control"/>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('admin.users.role')}">Role</label>
+              <select name="roleCode" class="form-select">
+                <option th:each="role : ${roles}"
+                        th:value="${role.code}"
+                        th:text="${role.displayName}"
+                        th:selected="${role.code == 'USER'}">User</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm w-100" type="submit">
+              <i class="bi bi-person-plus me-1"></i><span th:text="${@i18n.t('actions.create')}">Create</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold" th:text="${@i18n.t('admin.users.existingTitle')}">Existing users</div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+              <th th:text="${@i18n.t('admin.users.login')}">Login</th>
+              <th th:text="${@i18n.t('admin.users.displayName')}">Display name</th>
+              <th th:text="${@i18n.t('admin.users.role')}">Role</th>
+              <th th:text="${@i18n.t('admin.users.status')}">Status</th>
+              <th style="width:220px"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="account : ${accounts}">
+              <td class="font-monospace" th:text="${account.login}">login</td>
+              <td th:text="${account.user.displayName}">User</td>
+              <td>
+                <form th:action="@{/admin/users/{id}/role(id=${account.user.id})}" method="post"
+                      class="d-flex gap-1">
+                  <select name="roleCode" class="form-select form-select-sm">
+                    <option th:each="role : ${roles}"
+                            th:value="${role.code}"
+                            th:text="${role.displayName}"
+                            th:selected="${role.code == account.user.role.code}">Role</option>
+                  </select>
+                  <button class="btn btn-sm btn-outline-secondary" type="submit" th:title="${@i18n.t('actions.save')}">
+                    <i class="bi bi-check"></i>
+                  </button>
+                </form>
+              </td>
+              <td>
+                <span th:if="${account.user.enabled}" class="badge bg-success" th:text="${@i18n.t('admin.users.enabled')}">Enabled</span>
+                <span th:if="${!account.user.enabled}" class="badge bg-secondary" th:text="${@i18n.t('admin.users.disabled')}">Disabled</span>
+                <span th:if="${account.mustChangePassword}" class="badge bg-warning text-dark" th:text="${@i18n.t('admin.users.mustChangePassword')}">Must change password</span>
+              </td>
+              <td>
+                <div class="d-flex gap-1 justify-content-end">
+                  <form th:action="@{/admin/users/{id}/reset-password(id=${account.user.id})}" method="post">
+                    <button class="btn btn-sm btn-outline-warning" type="submit">
+                      <i class="bi bi-key me-1"></i><span th:text="${@i18n.t('admin.users.resetPassword')}">Reset</span>
+                    </button>
+                  </form>
+                  <form th:if="${account.user.enabled}"
+                        th:action="@{/admin/users/{id}/enabled(id=${account.user.id})}" method="post">
+                    <input type="hidden" name="enabled" value="false"/>
+                    <button class="btn btn-sm btn-outline-secondary" type="submit" th:text="${@i18n.t('admin.users.disable')}">Disable</button>
+                  </form>
+                  <form th:if="${!account.user.enabled}"
+                        th:action="@{/admin/users/{id}/enabled(id=${account.user.id})}" method="post">
+                    <input type="hidden" name="enabled" value="true"/>
+                    <button class="btn btn-sm btn-outline-success" type="submit" th:text="${@i18n.t('admin.users.enable')}">Enable</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <tr th:if="${accounts.empty}">
+              <td colspan="5" class="text-center text-muted py-4" th:text="${@i18n.t('admin.users.empty')}">No users</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+services:
+
+  # ────────────────────────────────────────────────────────────
+  #  PostgreSQL
+  # ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: mocktail-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       mocktail
+      POSTGRES_USER:     mocktail
+      POSTGRES_PASSWORD: ${DB_PASS:-mocktail}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mocktail -d mocktail"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  # ────────────────────────────────────────────────────────────
+  #  Mocktail application
+  # ────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mocktail-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8999:8999"
+      - "9000-9020:9000-9020"
+    environment:
+      MOCKTAIL_MODE: ${MOCKTAIL_MODE:-ldap}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+
+      DB_URL:  jdbc:postgresql://db:5432/mocktail
+      DB_USER: mocktail
+      DB_PASS: ${DB_PASS:-mocktail}
+
+      MOCKTAIL_LDAP_URL:               ${MOCKTAIL_LDAP_URL:-ldap://localhost:8389}
+      MOCKTAIL_LDAP_BASE_DN:           ${MOCKTAIL_LDAP_BASE_DN:-dc=mockserver,dc=com}
+      MOCKTAIL_LDAP_GROUP_SEARCH_BASE: ${MOCKTAIL_LDAP_GROUP_SEARCH_BASE:-ou=groups}
+      MOCKTAIL_LDAP_MANAGER_DN:        ${MOCKTAIL_LDAP_MANAGER_DN:-}
+      MOCKTAIL_LDAP_MANAGER_PASSWORD:  ${MOCKTAIL_LDAP_MANAGER_PASSWORD:-}
+    networks:
+      - internal
+
+volumes:
+  pg_data:
+
+networks:
+  internal:
+    driver: bridge

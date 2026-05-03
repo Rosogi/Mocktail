@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${@i18n.t('collections.title')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('collections', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${@i18n.t('collections.title')}">Collections</h4>
+      <small class="text-muted" th:text="${@i18n.t('collections.subtitle')}">Group mocks and enable/disable them together</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newCollectionModal">
+        <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('actions.newCollection')}">New collection</span>
+      </button>
+      <button class="btn btn-sm btn-outline-secondary"
+              data-bs-toggle="modal" data-bs-target="#importCollectionModal">
+        <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('actions.import')}">Import</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-bar mb-3" data-filter-scope="collections">
+    <div class="filter-search">
+      <i class="bi bi-search"></i>
+      <input type="search" class="form-control form-control-sm"
+             data-filter="search" th:placeholder="${@i18n.t('filters.searchCollections')}"/>
+    </div>
+    <select class="form-select form-select-sm" data-filter="type" th:aria-label="${@i18n.t('filters.collectionType')}">
+      <option value="" th:text="${@i18n.t('filters.allTypes')}">All types</option>
+      <option value="own" th:text="${@i18n.t('filters.own')}">Own</option>
+      <option th:if="${@capabilities.shared}" value="shared" th:text="${@i18n.t('filters.sharedByMe')}">Shared by me</option>
+      <option th:if="${@capabilities.shared}" value="subscribed" th:text="${@i18n.t('filters.subscribed')}">Subscribed</option>
+      <option th:if="${@capabilities.shared}" value="updates" th:text="${@i18n.t('filters.updatesAvailable')}">Updates available</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="state" th:aria-label="${@i18n.t('filters.collectionState')}">
+      <option value="" th:text="${@i18n.t('filters.anyState')}">Any state</option>
+      <option value="with-mocks" th:text="${@i18n.t('filters.hasMocks')}">Has mocks</option>
+      <option value="empty" th:text="${@i18n.t('filters.empty')}">Empty</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter="sort" th:aria-label="${@i18n.t('filters.sortCollections')}">
+      <option value="name" th:text="${@i18n.t('filters.name')}">Name</option>
+      <option value="mocks-desc" th:text="${@i18n.t('filters.mocksCount')}">Mocks count</option>
+      <option value="revision-desc" th:text="${@i18n.t('filters.revision')}">Revision</option>
+    </select>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-filter-reset>
+      <span th:text="${@i18n.t('actions.reset')}">Reset</span>
+    </button>
+  </div>
+
+  <div th:if="${collections.empty}" class="text-center text-muted py-5">
+    <i class="bi bi-collection d-block mb-2" style="font-size:2.2rem"></i>
+    <span th:text="${@i18n.t('collections.empty')}">No collections yet — create one to group your mocks</span>
+  </div>
+
+  <div id="collectionsEmptyFiltered" class="text-center text-muted py-5 d-none">
+    <i class="bi bi-funnel d-block mb-2" style="font-size:2.2rem"></i>
+    <span th:text="${@i18n.t('collections.noMatches')}">No collections match filters</span>
+  </div>
+
+  <div class="row g-3" id="collectionsGrid">
+    <div class="col-md-6 col-xl-4 collection-card-wrap"
+         th:each="col : ${collections}"
+         th:with="sub=${subscriptions[col.id]}, hasUpdate=${updateAvailable[col.id]}, sourceOk=${sourceAvailable[col.id]}, mocksCount=${mockCounts[col.id]}"
+         th:data-name="${#strings.toLowerCase(col.name)}"
+         th:data-description="${col.description != null ? #strings.toLowerCase(col.description) : ''}"
+         th:data-author="${sub != null and sub.sourceCollection != null ? #strings.toLowerCase(sub.sourceCollection.owner.username) : #strings.toLowerCase(user.username)}"
+         th:data-type="${@capabilities.shared ? (col.readOnly ? 'subscribed' : (col.shared ? 'shared' : 'own')) : 'own'}"
+         th:data-state="${mocksCount > 0 ? 'with-mocks' : 'empty'}"
+         th:data-update="${hasUpdate == true}"
+         th:data-mocks="${mocksCount}"
+         th:data-revision="${col.revision}">
+      <div class="card border-0 shadow-sm h-100 collection-card">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div class="min-width-0">
+              <h6 class="card-title mb-1 fw-semibold text-truncate" th:text="${col.name}">Collection</h6>
+              <div class="d-flex align-items-center gap-1 flex-wrap">
+                <span class="badge bg-secondary" th:text="${@i18n.t('collections.mocksCount', mocksCount)}">0 mocks</span>
+                <span th:if="${@capabilities.shared and col.shared}" class="badge bg-primary" th:text="${@i18n.t('badges.shared')}">Shared</span>
+                <span th:if="${@capabilities.shared and col.readOnly}" class="badge bg-info text-dark">
+                  <i class="bi bi-lock me-1"></i><span th:text="${@i18n.t('badges.readOnly')}">Read-only</span>
+                </span>
+                <span th:if="${@capabilities.shared and hasUpdate == true}" class="badge bg-warning text-dark" th:text="${@i18n.t('badges.update')}">Update</span>
+                <span th:if="${@capabilities.shared and col.readOnly and sourceOk == false}" class="badge bg-secondary" th:text="${@i18n.t('badges.frozen')}">Frozen</span>
+              </div>
+            </div>
+            <div class="dropdown flex-shrink-0">
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                      type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                      th:title="${@i18n.t('tooltips.moreActions')}">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a th:href="@{/collections/{id}/export(id=${col.id})}" class="dropdown-item">
+                    <i class="bi bi-download me-2"></i><span th:text="${@i18n.t('actions.export')}">Export</span>
+                  </a>
+                </li>
+                <li th:if="${@capabilities.shared and not col.readOnly and not col.shared}">
+                  <form th:action="@{/collections/{id}/share(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-share me-2"></i><span th:text="${@i18n.t('actions.share')}">Share</span>
+                    </button>
+                  </form>
+                </li>
+                <li th:if="${@capabilities.shared and not col.readOnly and col.shared}">
+                  <form th:action="@{/collections/{id}/unshare(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-slash-circle me-2"></i><span th:text="${@i18n.t('actions.unshare')}">Unshare</span>
+                    </button>
+                  </form>
+                </li>
+                <li th:if="${@capabilities.shared and col.readOnly and hasUpdate == true}">
+                  <form th:action="@{/shared/subscriptions/{id}/update(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-arrow-clockwise me-2"></i><span th:text="${@i18n.t('actions.update')}">Update</span>
+                    </button>
+                  </form>
+                </li>
+                <li th:if="${@capabilities.shared and col.readOnly}">
+                  <form th:action="@{/shared/subscriptions/{id}/copy(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-copy me-2"></i><span th:text="${@i18n.t('actions.copyEditable')}">Copy editable</span>
+                    </button>
+                  </form>
+                </li>
+                <li th:if="${not col.readOnly}">
+                  <button class="dropdown-item" type="button"
+                          data-bs-toggle="modal"
+                          th:data-bs-target="'#editModal-' + ${col.id}">
+                    <i class="bi bi-pencil me-2"></i><span th:text="${@i18n.t('actions.edit')}">Edit</span>
+                  </button>
+                </li>
+                <li><hr class="dropdown-divider"/></li>
+                <li th:if="${@capabilities.shared and col.readOnly}">
+                  <form th:action="@{/shared/subscriptions/{id}/unsubscribe(id=${col.id})}" method="post">
+                    <button type="submit" class="dropdown-item text-danger">
+                      <i class="bi bi-bookmark-dash me-2"></i><span th:text="${@i18n.t('actions.unsubscribe')}">Unsubscribe</span>
+                    </button>
+                  </form>
+                </li>
+                <li th:if="${not col.readOnly}">
+                  <form th:action="@{/collections/{id}/delete(id=${col.id})}" method="post"
+                        th:attr="data-name=${col.name}"
+                        th:data-confirm-message="${@i18n.t('confirm.delete', col.name)}"
+                        onsubmit="return confirmDelete(this)">
+                    <button type="submit" class="dropdown-item text-danger">
+                      <i class="bi bi-trash me-2"></i><span th:text="${@i18n.t('actions.delete')}">Delete</span>
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="card-text text-muted small collection-description"
+             th:text="${col.description != null ? col.description : @i18n.t('collections.noDescription')}"></p>
+
+          <div th:if="${@capabilities.shared and col.readOnly and sub != null and sub.sourceCollection != null}"
+               class="small text-muted text-truncate mb-3">
+            <i class="bi bi-person me-1"></i>
+            <span th:text="${sub.sourceCollection.owner.username}">author</span>
+            <span class="mx-1">·</span>
+            <span th:text="${@i18n.t('shared.rev')}">rev</span><span> </span><span th:text="${sub.sourceRevision}">1</span>
+            <span th:if="${sub.sourceCollection != null}">
+              / <span th:text="${sub.sourceCollection.revision}">1</span>
+            </span>
+          </div>
+
+          <div class="collection-actions mt-auto">
+            <a th:href="@{/collections/{id}(id=${col.id})}"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i> <span th:text="${@i18n.t('actions.view')}">View</span>
+            </a>
+            <form th:action="@{/collections/{id}/enable-all(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-play-fill"></i> <span th:text="${@i18n.t('actions.enableAll')}">Enable all</span>
+              </button>
+            </form>
+            <form th:action="@{/collections/{id}/disable-all(id=${col.id})}" method="post">
+              <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pause-fill"></i> <span th:text="${@i18n.t('actions.disableAll')}">Disable all</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" th:if="${not col.readOnly}"
+           th:id="'editModal-' + ${col.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" th:text="${@i18n.t('collections.editTitle')}">Edit collection</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/collections/{id}/edit(id=${col.id})}" method="post">
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" th:text="${@i18n.t('collections.name')}">Name</label>
+                  <input type="text" name="name" class="form-control"
+                         th:value="${col.name}" required/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold" th:text="${@i18n.t('collections.description')}">Description</label>
+                  <textarea name="description" class="form-control" rows="2"
+                            th:text="${col.description}"></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                        th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-sm" th:text="${@i18n.t('actions.save')}">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<div class="modal fade" id="newCollectionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" th:text="${@i18n.t('collections.newTitle')}">New collection</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/collections/new}" method="post">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold"><span th:text="${@i18n.t('collections.name')}">Name</span> <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control"
+                   th:placeholder="${@i18n.t('collections.namePlaceholder')}" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" th:text="${@i18n.t('collections.description')}">Description</label>
+            <textarea name="description" class="form-control" rows="2"
+                      th:placeholder="${@i18n.t('collections.descriptionPlaceholder')}"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                  th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" th:text="${@i18n.t('actions.create')}">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="importCollectionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-upload me-2"></i><span th:text="${@i18n.t('collections.importTitle')}">Import collection</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/collections/import}" method="post"
+            enctype="multipart/form-data">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            <span th:text="${@i18n.t('collections.importHelp')}">
+              Upload a JSON file exported from Mocktail. The file must contain collections — standalone mocks are not accepted here.
+            </span>
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              <span th:text="${@i18n.t('forms.file')}">File</span> <span class="text-danger">*</span>
+            </label>
+            <input type="file" name="file" class="form-control"
+                   accept=".json" required/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm"
+                  data-bs-dismiss="modal" th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('actions.import')}">Import</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/list-filters.js}"></script>
+</body>
+</html>

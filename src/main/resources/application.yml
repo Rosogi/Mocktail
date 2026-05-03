@@ -1,0 +1,57 @@
+server:
+  port: 8999
+
+spring:
+  application:
+    name: mock-server
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mocktail}
+    username: ${DB_USER:mocktail}
+    password: ${DB_PASS:mocktail}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+  mvc:
+    throw-exception-if-no-handler-found: false
+
+mocktail:
+  deployment:
+    mode: ${MOCKTAIL_MODE:ldap}
+  ports:
+    range-start: ${MOCKTAIL_PORT_RANGE_START:9000}
+    range-end: ${MOCKTAIL_PORT_RANGE_END:9999}
+  standalone:
+    user-port: ${MOCKTAIL_STANDALONE_USER_PORT:9000}
+  auth:
+    ldap:
+      url: ${MOCKTAIL_LDAP_URL:${LDAP_URL:ldap://localhost:389}}
+      base-dn: ${MOCKTAIL_LDAP_BASE_DN:${LDAP_BASE_DN:dc=mockserver,dc=com}}
+      user-search-base: ${MOCKTAIL_LDAP_USER_SEARCH_BASE:}
+      user-search-filter: ${MOCKTAIL_LDAP_USER_SEARCH_FILTER:(sAMAccountName={0})}
+      group-search-base: ${MOCKTAIL_LDAP_GROUP_SEARCH_BASE:${LDAP_GROUP_SEARCH_BASE:ou=groups}}
+      manager-dn: ${MOCKTAIL_LDAP_MANAGER_DN:${LDAP_MANAGER_DN:}}
+      manager-password: ${MOCKTAIL_LDAP_MANAGER_PASSWORD:${LDAP_MANAGER_PASSWORD:}}
+    database:
+      bootstrap-admin:
+        login: ${MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_LOGIN:${MOCKTAIL_BOOTSTRAP_ADMIN_LOGIN:admin}}
+        password: ${MOCKTAIL_DATABASE_BOOTSTRAP_ADMIN_PASSWORD:${MOCKTAIL_BOOTSTRAP_ADMIN_PASSWORD:}}

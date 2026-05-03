@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${editing ? @i18n.t('mocks.editTitle') : @i18n.t('mocks.newTitle')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('mocks', ${user})}"></nav>
+
+<main class="main" id="mock-form-root" data-body-tools
+      th:data-confirm-replace-preset="${@i18n.t('confirm.replacePreset')}"
+      th:data-format-nothing="${@i18n.t('mocks.formatNothing')}"
+      th:data-format-success="${@i18n.t('mocks.formatSuccess')}"
+      th:data-format-invalid="${@i18n.t('mocks.formatInvalid')}"
+      th:data-char-count="${@i18n.t('mocks.charCount')}">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a th:href="@{/mocks}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <h4 class="mb-0" th:text="${editing ? @i18n.t('mocks.editTitle') : @i18n.t('mocks.newTitle')}">New mock</h4>
+  </div>
+
+  <div class="card border-0 shadow-sm form-card">
+    <div class="card-body p-4">
+      <form th:action="${editing ? '/mocks/' + mockId + '/edit' : '/mocks/new'}"
+            method="post" th:object="${form}">
+
+        <!-- Name + Collection row -->
+        <div class="row g-3 mb-3">
+          <div class="col-sm-8">
+            <label class="form-label fw-semibold"><span th:text="${@i18n.t('mocks.name')}">Name</span> <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" th:field="*{name}"
+                   th:placeholder="${@i18n.t('mocks.namePlaceholder')}" required/>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold" th:text="${@i18n.t('mocks.collection')}">Collection</label>
+            <select class="form-select" th:field="*{collectionId}">
+              <option value="" th:text="|— ${@i18n.t('mocks.none')} —|">— None —</option>
+              <option th:each="col : ${collections}"
+                      th:value="${col.id}"
+                      th:text="${col.name}"></option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-sm-3">
+            <label class="form-label fw-semibold" th:text="${@i18n.t('mocks.method')}">Method</label>
+            <select class="form-select" th:field="*{httpMethod}">
+              <option th:each="m : ${httpMethods}" th:value="${m.key}"
+                      th:text="${m.key == '*' ? '* (' + @i18n.t('filters.anyMethod') + ')' : m.value}"></option>
+            </select>
+          </div>
+          <div class="col-sm-9">
+            <label class="form-label fw-semibold"><span th:text="${@i18n.t('mocks.pathPattern')}">Path pattern</span> <span class="text-danger">*</span></label>
+            <input type="text" class="form-control font-monospace" th:field="*{pathPattern}"
+                   placeholder="/api/users/**" required/>
+            <div class="form-text">
+              <span th:text="${@i18n.t('mocks.pathHint')}">Ant-style:</span>
+              <code>/api/users</code>, <code>/api/users/**</code>, <code>/api/orders/*</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            <span th:text="${@i18n.t('mocks.requestBodyContains')}">Request body contains</span>
+            <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
+          </label>
+          <input type="text" class="form-control font-monospace" th:field="*{requestBodyContains}"
+                 th:placeholder="${@i18n.t('mocks.requestBodyContainsPlaceholder')}"/>
+          <div class="form-text" th:text="${@i18n.t('mocks.requestBodyContainsHint')}">Substring match on raw request body. Useful for SOAP dispatch.</div>
+        </div>
+
+        <hr class="my-3"/>
+        <h6 class="text-muted mb-3" th:text="${@i18n.t('mocks.response')}">Response</h6>
+
+        <div class="row g-3 mb-3">
+          <div class="col-sm-2">
+            <label class="form-label fw-semibold" th:text="${@i18n.t('mocks.status')}">Status</label>
+            <input type="number" class="form-control" th:field="*{responseStatus}" min="100" max="599"/>
+          </div>
+          <div class="col-sm-5">
+            <label class="form-label fw-semibold">Content-Type</label>
+            <select class="form-select" th:field="*{responseContentType}" id="ctSelect"
+                    data-body-tool="content-type">
+              <option th:each="ct : ${contentTypes}" th:value="${ct.key}" th:text="${ct.value}"></option>
+            </select>
+          </div>
+          <div class="col-sm-2">
+            <label class="form-label fw-semibold" th:text="${@i18n.t('mocks.priority')}">Priority</label>
+            <input type="number" class="form-control" th:field="*{priority}" min="0" max="999"/>
+            <div class="form-text" th:text="${@i18n.t('mocks.priorityHint')}">Higher = matched first.</div>
+          </div>
+          <div class="col-sm-3 d-flex align-items-end pb-1">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" th:field="*{active}" id="activeCheck"/>
+              <label class="form-check-label fw-semibold" for="activeCheck" th:text="${@i18n.t('mocks.active')}">Active</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response body -->
+        <div class="mb-1">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <label class="form-label fw-semibold mb-0" th:text="${@i18n.t('mocks.responseBody')}">Response body</label>
+            <div class="d-flex gap-2 align-items-center">
+              <span id="bodyCharCount" data-body-tool="counter" class="text-muted" style="font-size:.75rem"></span>
+              <span id="fmtFeedback" data-body-tool="feedback" class="small"></span>
+              <button type="button" id="formatBodyBtn" data-body-tool="format" class="btn btn-sm btn-outline-info py-0">
+                <i class="bi bi-braces me-1"></i><span th:text="${@i18n.t('actions.format')}">Format</span>
+              </button>
+              <button type="button" id="fillPresetBtn" data-body-tool="fill-preset" class="btn btn-sm btn-outline-secondary py-0">
+                <span th:text="${@i18n.t('mocks.fillPreset')}">Fill preset</span>
+              </button>
+            </div>
+          </div>
+          <textarea class="form-control code" th:field="*{responseBody}"
+                    id="responseBody" rows="10"
+                    data-body-tool="body"
+                    placeholder='{ "id": 1, "name": "Alice" }'></textarea>
+        </div>
+
+        <!-- Template variable hint -->
+        <div class="template-hint mb-3">
+          <i class="bi bi-braces me-1"></i>
+          <strong th:text="${@i18n.t('mocks.templateHintTitle')}">Template variables</strong>
+          — <span th:text="${@i18n.t('mocks.templateHintText')}">values from the incoming request:</span>
+          <br/>
+          <code>{{name}}</code> <span th:text="${@i18n.t('mocks.jsonBodyField')}">JSON body field</span> &nbsp;·&nbsp;
+          <code>{{user.address.city}}</code> <span th:text="${@i18n.t('mocks.nestedJson')}">nested JSON</span> &nbsp;·&nbsp;
+          <code>{{param.id}}</code> <span th:text="${@i18n.t('mocks.queryString')}">query string</span> &nbsp;·&nbsp;
+          <code>{{header.Authorization}}</code> <span th:text="${@i18n.t('mocks.requestHeader')}">request header</span>
+          <br/>
+          <code>{{xpath:string(//*[local-name()='CustomerId'])}}</code> <span th:text="${@i18n.t('mocks.xmlXPath')}">XML/SOAP XPath</span> &nbsp;·&nbsp;
+          <code>{{request.method}}</code> / <code>{{request.path}}</code>
+        </div>
+
+        <!-- Extra headers -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            <span th:text="${@i18n.t('mocks.extraHeaders')}">Extra response headers</span>
+            <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
+          </label>
+          <textarea class="form-control code" th:field="*{responseHeadersRaw}"
+                    rows="3" placeholder="X-Custom-Header: value&#10;Cache-Control: no-cache"></textarea>
+          <div class="form-text"><span th:text="${@i18n.t('mocks.extraHeadersHint')}">One header per line —</span> <code>Name: Value</code></div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-floppy me-1"></i>
+            <span th:text="${editing ? @i18n.t('actions.saveChanges') : @i18n.t('actions.createMock')}">Create</span>
+          </button>
+          <a th:href="@{/mocks}" class="btn btn-outline-secondary" th:text="${@i18n.t('actions.cancel')}">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/body-tools.js}"></script>
+<script th:src="@{/js/mocks.js}"></script>
+
+</body>
+</html>

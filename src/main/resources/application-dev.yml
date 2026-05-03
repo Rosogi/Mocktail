@@ -1,0 +1,19 @@
+spring:
+  # Embedded LDAP (auto-configured by Spring Boot when unboundid-ldapsdk is on classpath)
+  ldap:
+    embedded:
+      base-dn: dc=mockserver,dc=com
+      ldif: classpath:ldap/test-users.ldif
+      port: 8389
+      validation:
+        enabled: false
+
+  jpa:
+    show-sql: true
+
+# In dev mode, point to embedded LDAP
+mocktail:
+  auth:
+    ldap:
+      url: ldap://localhost:8389
+      base-dn: dc=mockserver,dc=com
