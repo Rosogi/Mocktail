@@ -2,6 +2,7 @@ package com.rosogisoft.web;
 
 import com.rosogisoft.domain.SettingKey;
 import com.rosogisoft.service.I18nService;
+import com.rosogisoft.service.ThemeService;
 import com.rosogisoft.service.UserSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -19,6 +20,7 @@ public class SettingsController {
     private final UserSettingsService settingsService;
     private final CurrentUserHelper   currentUserHelper;
     private final I18nService         i18n;
+    private final ThemeService        theme;
 
     @GetMapping
     public String settings(Model model) {
@@ -28,6 +30,7 @@ public class SettingsController {
         model.addAttribute("settings", settings.asStringMap());
         model.addAttribute("keys",     SettingKey.values());
         model.addAttribute("languages", i18n.supportedLanguages());
+        model.addAttribute("themes", theme.supportedThemes());
         return "settings/index";
     }
 
@@ -39,6 +42,16 @@ public class SettingsController {
         settingsService.set(user, SettingKey.LANGUAGE, normalized);
         ra.addFlashAttribute("successMessage",
                 i18n.tForLanguage(normalized, "flash.settingsSaved"));
+        return "redirect:/settings";
+    }
+
+    @PostMapping("/theme")
+    public String saveTheme(@RequestParam String theme,
+                            RedirectAttributes ra) {
+        var user = currentUserHelper.currentUser();
+        String normalized = this.theme.normalizeTheme(theme);
+        settingsService.set(user, SettingKey.THEME, normalized);
+        ra.addFlashAttribute("successMessage", i18n.t("flash.settingsSaved"));
         return "redirect:/settings";
     }
 

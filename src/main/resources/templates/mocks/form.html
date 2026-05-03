@@ -3,7 +3,7 @@
 
 <head th:replace="~{fragments/head :: head(${editing ? @i18n.t('mocks.editTitle') : @i18n.t('mocks.newTitle')})}"></head>
 
-<body>
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
 
 <nav th:replace="~{fragments/sidebar :: sidebar('mocks', ${user})}"></nav>
 

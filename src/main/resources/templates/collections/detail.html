@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head th:replace="~{fragments/head :: head(${collection.name})}"></head>
-<body>
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
 <nav th:replace="~{fragments/sidebar :: sidebar('collections', ${user})}"></nav>
 <main class="main">
 

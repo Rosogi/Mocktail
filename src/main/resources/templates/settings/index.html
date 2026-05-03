@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head(${@i18n.t('settings.title')})}"></head>
-<body>
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
 <nav th:replace="~{fragments/sidebar :: sidebar('settings', ${user})}"></nav>
 <main class="main">
 
@@ -40,6 +40,42 @@
                             <span th:text="${@i18n.t('actions.save')}">Save</span>
                         </button>
                     </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:760px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-circle-half me-2 text-muted"></i>
+            <span th:text="${@i18n.t('settings.themeTitle')}">Interface theme</span>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted small mb-4" th:text="${@i18n.t('settings.themeHelp')}">
+                Choose a light or dark appearance for the application UI.
+            </p>
+            <form th:action="@{/settings/theme}" method="post">
+                <label class="form-label fw-semibold d-block" th:text="${@i18n.t('settings.theme')}">Theme</label>
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                    <div class="btn-group theme-choice" role="group" th:attr="aria-label=${@i18n.t('settings.theme')}">
+                        <input type="radio" class="btn-check" name="theme" id="themeLight" value="light"
+                               th:checked="${@theme.currentTheme() == 'light'}" autocomplete="off"/>
+                        <label class="btn btn-outline-secondary" for="themeLight">
+                            <i class="bi bi-sun me-1"></i>
+                            <span th:text="${@i18n.t('settings.themeLight')}">Light</span>
+                        </label>
+
+                        <input type="radio" class="btn-check" name="theme" id="themeDark" value="dark"
+                               th:checked="${@theme.currentTheme() == 'dark'}" autocomplete="off"/>
+                        <label class="btn btn-outline-secondary" for="themeDark">
+                            <i class="bi bi-moon-stars me-1"></i>
+                            <span th:text="${@i18n.t('settings.themeDark')}">Dark</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-floppy me-1"></i>
+                        <span th:text="${@i18n.t('actions.save')}">Save</span>
+                    </button>
                 </div>
             </form>
         </div>

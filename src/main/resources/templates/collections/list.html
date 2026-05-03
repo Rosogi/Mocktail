@@ -3,7 +3,7 @@
 
 <head th:replace="~{fragments/head :: head(${@i18n.t('collections.title')})}"></head>
 
-<body>
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
 
 <nav th:replace="~{fragments/sidebar :: sidebar('collections', ${user})}"></nav>
 
