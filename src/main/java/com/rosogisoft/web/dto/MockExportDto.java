@@ -59,6 +59,8 @@ public class MockExportDto {
         private String              httpMethod;
         private String              pathPattern;
         private String              requestBodyContains;
+        private String              requestMatchMode;
+        private String              requestMatchGroups;
         private int                 responseStatus;
         private String              responseBody;
         private String              responseContentType;

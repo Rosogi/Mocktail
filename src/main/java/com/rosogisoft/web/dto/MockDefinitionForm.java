@@ -14,6 +14,8 @@ public class MockDefinitionForm {
     private String  httpMethod         = "GET";
     private String  pathPattern        = "/";
     private String  requestBodyContains;
+    private String  requestMatchMode   = "basic";
+    private String  requestMatchGroups;
 
     private int     responseStatus     = 200;
     private String  responseBody       = "";
@@ -51,4 +53,3 @@ public class MockDefinitionForm {
         return result;
     }
 }
-
