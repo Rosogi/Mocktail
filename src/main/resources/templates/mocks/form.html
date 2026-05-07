@@ -63,14 +63,189 @@
           </div>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label fw-semibold">
-            <span th:text="${@i18n.t('mocks.requestBodyContains')}">Request body contains</span>
-            <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
-          </label>
-          <input type="text" class="form-control font-monospace" th:field="*{requestBodyContains}"
-                 th:placeholder="${@i18n.t('mocks.requestBodyContainsPlaceholder')}"/>
-          <div class="form-text" th:text="${@i18n.t('mocks.requestBodyContainsHint')}">Substring match on raw request body. Useful for SOAP dispatch.</div>
+        <div class="mb-3 match-mode-panel" data-match-mode>
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div>
+              <h6 class="mb-0" th:text="${@i18n.t('mocks.matchModeTitle')}">Request matching</h6>
+              <div class="text-muted small" th:text="${@i18n.t('mocks.matchModeSubtitle')}">Choose simple body contains or advanced conditions</div>
+            </div>
+            <div class="btn-group btn-group-sm" role="group" th:aria-label="${@i18n.t('mocks.matchModeTitle')}">
+              <input type="radio" class="btn-check" name="requestMatchMode" id="matchModeBasic"
+                     value="basic" autocomplete="off" th:field="*{requestMatchMode}" data-match-mode-radio/>
+              <label class="btn btn-outline-secondary" for="matchModeBasic" th:text="${@i18n.t('mocks.matchModeBasic')}">Basic</label>
+
+              <input type="radio" class="btn-check" name="requestMatchMode" id="matchModeAdvanced"
+                     value="advanced" autocomplete="off" th:field="*{requestMatchMode}" data-match-mode-radio/>
+              <label class="btn btn-outline-secondary" for="matchModeAdvanced" th:text="${@i18n.t('mocks.matchModeAdvanced')}">Advanced</label>
+            </div>
+          </div>
+
+          <div data-match-basic-panel>
+            <label class="form-label fw-semibold">
+              <span th:text="${@i18n.t('mocks.requestBodyContains')}">Request body contains</span>
+              <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
+            </label>
+            <input type="text" class="form-control font-monospace" th:field="*{requestBodyContains}"
+                   th:placeholder="${@i18n.t('mocks.requestBodyContainsPlaceholder')}"/>
+            <div class="form-text" th:text="${@i18n.t('mocks.requestBodyContainsHint')}">Substring match on raw request body. Useful for SOAP dispatch.</div>
+          </div>
+
+          <div class="mock-match-builder d-none" data-match-advanced-panel data-match-builder
+               th:data-condition-empty="${@i18n.t('mocks.conditionsEmpty')}"
+               th:data-condition-summary-title="${@i18n.t('mocks.conditionsSummaryTitle')}"
+               th:data-field-label-json="${@i18n.t('mocks.conditionsTargetJson')}"
+               th:data-field-label-xml="${@i18n.t('mocks.conditionsTargetXml')}"
+               th:data-field-label-xpath="${@i18n.t('mocks.conditionsTargetXpath')}"
+               th:data-field-label-param="${@i18n.t('mocks.conditionsTargetParam')}"
+               th:data-field-label-header="${@i18n.t('mocks.conditionsTargetHeader')}"
+               th:data-field-label-raw="${@i18n.t('mocks.conditionsTargetRaw')}"
+               th:data-field-placeholder-json="${@i18n.t('mocks.conditionsTargetJsonPlaceholder')}"
+               th:data-field-placeholder-xml="${@i18n.t('mocks.conditionsTargetXmlPlaceholder')}"
+               th:data-field-placeholder-xpath="${@i18n.t('mocks.conditionsTargetXpathPlaceholder')}"
+               th:data-field-placeholder-param="${@i18n.t('mocks.conditionsTargetParamPlaceholder')}"
+               th:data-field-placeholder-header="${@i18n.t('mocks.conditionsTargetHeaderPlaceholder')}"
+               th:data-field-placeholder-raw="${@i18n.t('mocks.conditionsTargetRawPlaceholder')}"
+               th:data-value-placeholder="${@i18n.t('mocks.conditionsValuePlaceholder')}"
+               th:data-group-label="${@i18n.t('mocks.conditionsGroup')}">
+            <textarea class="d-none" th:field="*{requestMatchGroups}" data-match-groups-raw></textarea>
+
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+              <div>
+                <h6 class="mb-0" th:text="${@i18n.t('mocks.conditionsTitle')}">When to use this mock</h6>
+                <div class="text-muted small" th:text="${@i18n.t('mocks.conditionsSubtitle')}">Additional request conditions</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-condition-group-add>
+                <i class="bi bi-plus-lg me-1"></i>
+                <span th:text="${@i18n.t('mocks.conditionsAddGroup')}">Add group</span>
+              </button>
+            </div>
+
+            <div class="condition-groups" data-condition-group-list></div>
+
+            <template data-condition-group-template>
+              <div class="condition-group" data-condition-group>
+                <div class="condition-connector group-connector" data-condition-group-connector>
+                  <span th:text="${@i18n.t('mocks.conditionsConnectorLabel')}">Then</span>
+                  <select class="form-select form-select-sm" data-condition-group-connector-select>
+                    <option value="and" th:text="${@i18n.t('mocks.conditionsConnectorAnd')}">AND</option>
+                    <option value="or" th:text="${@i18n.t('mocks.conditionsConnectorOr')}">OR</option>
+                  </select>
+                </div>
+
+                <div class="condition-group-card">
+                  <div class="condition-group-header">
+                    <div>
+                      <span th:text="${@i18n.t('mocks.conditionsGroup')}">Group</span>
+                      <span data-condition-group-number>1</span>
+                    </div>
+                    <div class="condition-header-actions">
+                      <button type="button" class="btn btn-sm btn-outline-primary" data-condition-add>
+                        <i class="bi bi-plus-lg me-1"></i>
+                        <span th:text="${@i18n.t('mocks.conditionsAdd')}">Add condition</span>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary icon-btn"
+                              data-condition-group-copy
+                              th:title="${@i18n.t('mocks.conditionsCopyGroup')}"
+                              th:aria-label="${@i18n.t('mocks.conditionsCopyGroup')}">
+                        <i class="bi bi-copy"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger icon-btn"
+                              data-condition-group-remove
+                              th:title="${@i18n.t('mocks.conditionsRemoveGroup')}"
+                              th:aria-label="${@i18n.t('mocks.conditionsRemoveGroup')}">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="conditions-list" data-condition-list></div>
+                </div>
+              </div>
+            </template>
+
+            <template data-condition-template>
+              <div class="condition-item" data-condition-item>
+                <div class="condition-connector" data-condition-connector>
+                  <span th:text="${@i18n.t('mocks.conditionsConnectorLabel')}">Then</span>
+                  <select class="form-select form-select-sm" data-condition-connector-select>
+                    <option value="and" th:text="${@i18n.t('mocks.conditionsConnectorAnd')}">AND</option>
+                    <option value="or" th:text="${@i18n.t('mocks.conditionsConnectorOr')}">OR</option>
+                  </select>
+                </div>
+
+                <div class="condition-row" data-condition-row>
+                  <div class="condition-field">
+                    <label class="form-label" th:text="${@i18n.t('mocks.conditionsSource')}">Where</label>
+                    <select class="form-select form-select-sm" data-condition-source>
+                      <option value="json_body" th:text="${@i18n.t('mocks.conditionsJsonBody')}">JSON body</option>
+                      <option value="xml_body" th:text="${@i18n.t('mocks.conditionsXmlBody')}">XML/SOAP body</option>
+                      <option value="query_param" th:text="${@i18n.t('mocks.conditionsQueryParam')}">Query parameter</option>
+                      <option value="header" th:text="${@i18n.t('mocks.conditionsHeader')}">Header</option>
+                      <option value="raw_body" th:text="${@i18n.t('mocks.conditionsRawBody')}">Raw body</option>
+                    </select>
+                  </div>
+
+                  <div class="condition-field condition-xml-mode">
+                    <label class="form-label" th:text="${@i18n.t('mocks.conditionsXmlMode')}">XML mode</label>
+                    <select class="form-select form-select-sm" data-condition-xml-mode>
+                      <option value="tag" th:text="${@i18n.t('mocks.conditionsXmlModeTag')}">XML tag</option>
+                      <option value="xpath" th:text="${@i18n.t('mocks.conditionsXmlModeXpath')}">XPath</option>
+                    </select>
+                  </div>
+
+                  <div class="condition-field condition-target">
+                    <label class="form-label" data-condition-target-label th:text="${@i18n.t('mocks.conditionsTargetJson')}">Field</label>
+                    <input type="text" class="form-control form-control-sm font-monospace"
+                           data-condition-target
+                           th:placeholder="${@i18n.t('mocks.conditionsTargetJsonPlaceholder')}"/>
+                  </div>
+
+                  <div class="condition-field">
+                    <label class="form-label" th:text="${@i18n.t('mocks.conditionsOperator')}">Check</label>
+                    <select class="form-select form-select-sm" data-condition-operator>
+                      <option value="equals" th:text="${@i18n.t('mocks.conditionsOpEquals')}">equals</option>
+                      <option value="contains" th:text="${@i18n.t('mocks.conditionsOpContains')}">contains</option>
+                      <option value="exists" th:text="${@i18n.t('mocks.conditionsOpExists')}">exists</option>
+                      <option value="regex" th:text="${@i18n.t('mocks.conditionsOpRegex')}">matches regex</option>
+                    </select>
+                  </div>
+
+                  <div class="condition-field condition-value">
+                    <label class="form-label" th:text="${@i18n.t('mocks.conditionsValue')}">Value</label>
+                    <input type="text" class="form-control form-control-sm font-monospace"
+                           data-condition-value
+                           th:placeholder="${@i18n.t('mocks.conditionsValuePlaceholder')}"/>
+                  </div>
+
+                  <div class="condition-field condition-whitespace">
+                    <label class="form-label" th:text="${@i18n.t('mocks.conditionsWhitespace')}">Spaces</label>
+                    <select class="form-select form-select-sm" data-condition-whitespace>
+                      <option value="exact" th:text="${@i18n.t('mocks.conditionsWhitespaceExact')}">as is</option>
+                      <option value="collapse" th:text="${@i18n.t('mocks.conditionsWhitespaceCollapse')}">collapse spaces</option>
+                      <option value="ignore" th:text="${@i18n.t('mocks.conditionsWhitespaceIgnore')}">ignore spaces</option>
+                    </select>
+                  </div>
+
+                  <div class="condition-row-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary condition-copy"
+                            data-condition-copy
+                            th:title="${@i18n.t('mocks.conditionsCopy')}"
+                            th:aria-label="${@i18n.t('mocks.conditionsCopy')}">
+                      <i class="bi bi-copy"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger condition-remove"
+                            data-condition-remove
+                            th:title="${@i18n.t('mocks.conditionsRemove')}"
+                            th:aria-label="${@i18n.t('mocks.conditionsRemove')}">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div class="condition-summary" data-condition-summary></div>
+          </div>
         </div>
 
         <hr class="my-3"/>
@@ -139,13 +314,48 @@
 
         <!-- Extra headers -->
         <div class="mb-4">
-          <label class="form-label fw-semibold">
-            <span th:text="${@i18n.t('mocks.extraHeaders')}">Extra response headers</span>
-            <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
-          </label>
-          <textarea class="form-control code" th:field="*{responseHeadersRaw}"
-                    rows="3" placeholder="X-Custom-Header: value&#10;Cache-Control: no-cache"></textarea>
-          <div class="form-text"><span th:text="${@i18n.t('mocks.extraHeadersHint')}">One header per line —</span> <code>Name: Value</code></div>
+          <div class="response-headers-builder" data-response-headers-builder>
+            <textarea class="d-none" th:field="*{responseHeadersRaw}" data-response-headers-raw></textarea>
+
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+              <div>
+                <label class="form-label fw-semibold mb-0">
+                  <span th:text="${@i18n.t('mocks.extraHeaders')}">Extra response headers</span>
+                  <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
+                </label>
+                <div class="text-muted small"><span th:text="${@i18n.t('mocks.extraHeadersHint')}">One header per line —</span> <code>Name: Value</code></div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-response-header-add>
+                <i class="bi bi-plus-lg me-1"></i>
+                <span th:text="${@i18n.t('mocks.responseHeadersAdd')}">Add header</span>
+              </button>
+            </div>
+
+            <div class="response-headers-list" data-response-header-list></div>
+
+            <template data-response-header-template>
+              <div class="response-header-row" data-response-header-row>
+                <div class="condition-field">
+                  <label class="form-label" th:text="${@i18n.t('mocks.responseHeadersName')}">Header</label>
+                  <input type="text" class="form-control form-control-sm font-monospace"
+                         data-response-header-name
+                         placeholder="X-Custom-Header"/>
+                </div>
+                <div class="condition-field">
+                  <label class="form-label" th:text="${@i18n.t('mocks.responseHeadersValue')}">Value</label>
+                  <input type="text" class="form-control form-control-sm font-monospace"
+                         data-response-header-value
+                         placeholder="value"/>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger response-header-remove"
+                        data-response-header-remove
+                        th:title="${@i18n.t('mocks.responseHeadersRemove')}"
+                        th:aria-label="${@i18n.t('mocks.responseHeadersRemove')}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <div class="d-flex gap-2">

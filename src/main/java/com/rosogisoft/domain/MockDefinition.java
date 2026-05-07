@@ -47,6 +47,12 @@ public class MockDefinition {
     @Column(name = "request_body_contains")
     private String requestBodyContains;
 
+    @Column(name = "request_match_mode", nullable = false)
+    private String requestMatchMode = "basic";
+
+    @Column(name = "request_match_groups", columnDefinition = "TEXT")
+    private String requestMatchGroups;
+
     @Column(name = "response_status", nullable = false)
     private int responseStatus = 200;
 

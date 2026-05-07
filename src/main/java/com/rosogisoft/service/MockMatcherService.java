@@ -16,6 +16,7 @@ import java.util.Optional;
 public class MockMatcherService {
 
     private final MockDefinitionRepository mockRepository;
+    private final RequestConditionMatcher requestConditionMatcher;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     /**
@@ -24,13 +25,16 @@ public class MockMatcherService {
      * Matching order (all active mocks for this owner, sorted by priority DESC):
      * 1. httpMethod == request method OR httpMethod == "*"
      * 2. AntPathMatcher.match(pathPattern, requestPath)
-     * 3. If requestBodyContains is set → request body must contain the substring
+     * 3. Basic mode: if requestBodyContains is set → request body must contain the substring
+     * 4. Advanced mode: all configured request condition groups must match their boolean expression
      * <p>
      * The first mock that passes all checks is returned (highest priority wins).
      */
     public Optional<MockDefinition> findMatch (Long ownerId,
                                                String method,
                                                String path,
+                                               String queryString,
+                                               java.util.Map<String, String> headers,
                                                String body) {
         List<MockDefinition> candidates = mockRepository.findActiveByOwnerId(ownerId);
 
@@ -41,7 +45,7 @@ public class MockMatcherService {
             if (!pathMatches(mock.getPathPattern(), path)) {
                 continue;
             }
-            if (!bodyMatches(mock.getRequestBodyContains(), body)) {
+            if (!requestConditionMatcher.matches(mock, queryString, headers, body)) {
                 continue;
             }
             log.debug("Нашли Mock с id={} '{}' для {} {}", mock.getId(), mock.getName(), method, path);
@@ -67,10 +71,4 @@ public class MockMatcherService {
         }
     }
 
-    private boolean bodyMatches (String contains, String body) {
-        if (contains == null || contains.isBlank()) {
-            return true; // no body constraint
-        }
-        return body != null && body.contains(contains);
-    }
 }
