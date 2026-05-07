@@ -88,6 +88,8 @@ public class MockService {
         mock.setHttpMethod(form.getHttpMethod().toUpperCase());
         mock.setPathPattern(form.getPathPattern());
         mock.setRequestBodyContains(form.getRequestBodyContains());
+        mock.setRequestMatchMode(normalizeMatchMode(form.getRequestMatchMode()));
+        mock.setRequestMatchGroups(blankToNull(form.getRequestMatchGroups()));
         mock.setResponseStatus(form.getResponseStatus());
         mock.setResponseBody(form.getResponseBody());
         mock.setResponseContentType(form.getResponseContentType());
@@ -107,6 +109,14 @@ public class MockService {
         } else {
             mock.setCollection(null);
         }
+    }
+
+    private String normalizeMatchMode(String mode) {
+        return "advanced".equalsIgnoreCase(mode) ? "advanced" : "basic";
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private void ensureEditable(MockDefinition mock) {
