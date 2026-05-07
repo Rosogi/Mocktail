@@ -454,7 +454,7 @@ code {
 .mock-col-status { width: 76px; }
 .mock-col-priority { width: 76px; }
 .mock-col-active { width: 76px; }
-.mock-col-actions { width: 136px; }
+.mock-col-actions { width: 176px; }
 
 .mock-path {
   font-size: 0.82rem;

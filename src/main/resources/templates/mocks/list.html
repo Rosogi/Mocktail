@@ -182,12 +182,23 @@
                 <i class="bi bi-download"></i>
               </a>
               <form th:if="${mock.collection == null or not mock.collection.readOnly}"
+                    th:action="@{/mocks/{id}/copy(id=${mock.id})}" method="post"
+                    class="d-inline">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-secondary py-0 px-2"
+                        th:title="${@i18n.t('tooltips.copyMock')}">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </form>
+              <form th:if="${mock.collection == null or not mock.collection.readOnly}"
                     th:action="@{/mocks/{id}/delete(id=${mock.id})}" method="post"
                     class="d-inline"
                     th:attr="data-name=${mock.name}"
                     th:data-confirm-message="${@i18n.t('confirm.delete', mock.name)}"
                     onsubmit="return confirmDelete(this)">
-                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" th:title="${@i18n.t('actions.delete')}">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-danger py-0 px-2"
+                        th:title="${@i18n.t('actions.delete')}">
                   <i class="bi bi-trash"></i>
                 </button>
               </form>

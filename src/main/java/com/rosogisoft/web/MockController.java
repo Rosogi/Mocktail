@@ -115,6 +115,24 @@ public class MockController {
         return "redirect:/mocks";
     }
 
+    // ── Copy ─────────────────────────────────────────────────────────
+    @PostMapping("/{id}/copy")
+    public String copy (@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        User user = currentUserHelper.currentUser();
+        try {
+            mockService.copy(id, user).ifPresentOrElse(
+                    copied -> redirectAttributes.addFlashAttribute(
+                            "successMessage",
+                            i18n.t("flash.mockCopied", copied.getName())),
+                    () -> redirectAttributes.addFlashAttribute(
+                            "errorMessage",
+                            i18n.t("flash.mockNotFound")));
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
+        }
+        return "redirect:/mocks";
+    }
+
     // ── Toggle active ────────────────────────────────────────────────
     @PostMapping("/{id}/toggle")
     public String toggle (@PathVariable Long id, RedirectAttributes redirectAttributes) {

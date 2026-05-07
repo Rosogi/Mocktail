@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,6 +54,37 @@ public class MockService {
                             !previousCollectionId.equals(saved.getCollection().getId()))) {
                 touchCollectionById(previousCollectionId);
             }
+            return saved;
+        });
+    }
+
+    @Transactional
+    public Optional<MockDefinition> copy(Long id, User owner) {
+        return mockRepository.findByIdAndOwnerId(id, owner.getId()).map(source -> {
+            ensureEditable(source);
+
+            MockDefinition copy = new MockDefinition();
+            copy.setOwner(owner);
+            copy.setCollection(source.getCollection());
+            copy.setName(source.getName() + " (copy)");
+            copy.setHttpMethod(source.getHttpMethod());
+            copy.setPathPattern(source.getPathPattern());
+            copy.setRequestBodyContains(source.getRequestBodyContains());
+            copy.setRequestMatchMode(source.getRequestMatchMode() != null
+                    ? source.getRequestMatchMode()
+                    : "basic");
+            copy.setRequestMatchGroups(source.getRequestMatchGroups());
+            copy.setResponseStatus(source.getResponseStatus());
+            copy.setResponseBody(source.getResponseBody());
+            copy.setResponseContentType(source.getResponseContentType());
+            copy.setResponseHeaders(source.getResponseHeaders() != null
+                    ? new HashMap<>(source.getResponseHeaders())
+                    : new HashMap<>());
+            copy.setPriority(source.getPriority());
+            copy.setActive(source.isActive());
+
+            MockDefinition saved = mockRepository.save(copy);
+            touchCollection(saved.getCollection());
             return saved;
         });
     }

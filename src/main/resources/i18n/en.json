@@ -317,6 +317,7 @@
   "tooltips": {
     "moreActions": "More actions",
     "edit": "Edit",
+    "copyMock": "Copy mock",
     "exportMock": "Export mock",
     "removeFromCollection": "Remove from collection",
     "expandCollapse": "Expand / collapse",
@@ -339,6 +340,7 @@
     "passwordReset": "Password reset for \"{0}\".",
     "passwordChanged": "Password changed.",
     "mockCreated": "Mock \"{0}\" created.",
+    "mockCopied": "Mock \"{0}\" copied.",
     "mockUpdated": "Mock updated.",
     "mockDeleted": "Mock deleted.",
     "mockNotFound": "Mock not found.",

@@ -317,6 +317,7 @@
   "tooltips": {
     "moreActions": "Другие действия",
     "edit": "Редактировать",
+    "copyMock": "Копировать мок",
     "exportMock": "Экспорт мока",
     "removeFromCollection": "Удалить из коллекции",
     "expandCollapse": "Развернуть / свернуть",
@@ -339,6 +340,7 @@
     "passwordReset": "Пароль для \"{0}\" сброшен.",
     "passwordChanged": "Пароль изменен.",
     "mockCreated": "Мок \"{0}\" создан.",
+    "mockCopied": "Мок \"{0}\" скопирован.",
     "mockUpdated": "Мок обновлен.",
     "mockDeleted": "Мок удален.",
     "mockNotFound": "Мок не найден.",
