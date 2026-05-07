@@ -110,8 +110,6 @@ public class MockImportExportService {
                 .httpMethod(m.getHttpMethod())
                 .pathPattern(m.getPathPattern())
                 .requestBodyContains(m.getRequestBodyContains())
-                .requestMatchMode(m.getRequestMatchMode())
-                .requestMatchGroups(m.getRequestMatchGroups())
                 .responseStatus(m.getResponseStatus())
                 .responseBody(m.getResponseBody())
                 .responseContentType(m.getResponseContentType())
@@ -195,8 +193,6 @@ public class MockImportExportService {
         m.setHttpMethod(dto.getHttpMethod());
         m.setPathPattern(dto.getPathPattern());
         m.setRequestBodyContains(dto.getRequestBodyContains());
-        m.setRequestMatchMode(dto.getRequestMatchMode() != null ? dto.getRequestMatchMode() : "basic");
-        m.setRequestMatchGroups(dto.getRequestMatchGroups());
         m.setResponseStatus(dto.getResponseStatus());
         m.setResponseBody(dto.getResponseBody());
         m.setResponseContentType(dto.getResponseContentType());

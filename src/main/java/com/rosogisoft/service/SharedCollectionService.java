@@ -222,8 +222,6 @@ public class SharedCollectionService {
             copy.setHttpMethod(sourceMock.getHttpMethod());
             copy.setPathPattern(sourceMock.getPathPattern());
             copy.setRequestBodyContains(sourceMock.getRequestBodyContains());
-            copy.setRequestMatchMode(sourceMock.getRequestMatchMode());
-            copy.setRequestMatchGroups(sourceMock.getRequestMatchGroups());
             copy.setResponseStatus(sourceMock.getResponseStatus());
             copy.setResponseBody(sourceMock.getResponseBody());
             copy.setResponseContentType(sourceMock.getResponseContentType());

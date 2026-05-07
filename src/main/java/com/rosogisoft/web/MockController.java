@@ -206,8 +206,6 @@ public class MockController {
         form.setHttpMethod(mock.getHttpMethod());
         form.setPathPattern(mock.getPathPattern());
         form.setRequestBodyContains(mock.getRequestBodyContains());
-        form.setRequestMatchMode(mock.getRequestMatchMode() != null ? mock.getRequestMatchMode() : "basic");
-        form.setRequestMatchGroups(mock.getRequestMatchGroups());
         form.setResponseStatus(mock.getResponseStatus());
         form.setResponseBody(mock.getResponseBody());
         form.setResponseContentType(mock.getResponseContentType());
