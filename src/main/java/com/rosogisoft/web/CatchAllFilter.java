@@ -79,7 +79,7 @@ public class CatchAllFilter implements Filter {
 
         // Match against owner's active mocks
         Optional<MockDefinition> mockOpt =
-                mockMatcher.findMatch(owner.getId(), method, path, queryString, headers, body);
+                mockMatcher.findMatch(owner.getId(), method, path, body);
 
         RequestLog logEntry = new RequestLog();
         logEntry.setUserPort(port);
