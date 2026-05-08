@@ -212,6 +212,62 @@ Expected response:
 }
 ```
 
+## MCP access for LLM clients
+
+Mocktail can expose a user-scoped MCP endpoint for LLM clients such as Claude, Codex, Cursor, VS Code, and other tools that support the Model Context Protocol.
+
+MCP is disabled by default. Enable it explicitly:
+
+```bash
+MOCKTAIL_MCP_ENABLED=true docker compose -f docker-compose.standalone.yml up --build
+```
+
+The same variable works for LDAP and database-auth deployments:
+
+```bash
+MOCKTAIL_MCP_ENABLED=true docker compose up --build
+MOCKTAIL_MCP_ENABLED=true docker compose -f docker-compose.database.yml up --build
+```
+
+When MCP is enabled, open **Settings** and use the **LLM access** section to generate a personal token. The token belongs to the currently signed-in user, is shown only once, and must be configured in the LLM client as a Bearer token.
+
+The MCP endpoint is:
+
+```text
+http://localhost:8999/mcp
+```
+
+Token regeneration immediately invalidates the previous token. Existing Claude, Codex, and other MCP sessions must be updated with the new token.
+
+First-stage permissions:
+
+| Area | Access |
+|---|---|
+| Request logs | `None`, `Read`, or `Read + delete` |
+| Mocks | `None` or `Read` |
+
+Request log deletion and clearing require both `Read + delete` permission and an explicit `confirm=true` argument in the MCP tool call.
+
+Available first-stage tools depend on the token permissions:
+
+| Tool | Required permission | Description |
+|---|---|---|
+| `mocktail_recent_request_logs` | Request logs: `Read` | List recent request logs for the token owner. |
+| `mocktail_get_request_log` | Request logs: `Read` | Read one request log. Sensitive headers are redacted. |
+| `mocktail_delete_request_log` | Request logs: `Read + delete` | Delete one request log. Requires `confirm=true`. |
+| `mocktail_clear_request_logs` | Request logs: `Read + delete` | Clear all request logs for the token owner. Requires `confirm=true`. |
+| `mocktail_list_mocks` | Mocks: `Read` | List mock definitions owned by the token owner. |
+| `mocktail_get_mock` | Mocks: `Read` | Read one mock definition owned by the token owner. |
+
+Example Claude Code setup:
+
+```bash
+claude mcp add --transport http mocktail http://localhost:8999/mcp \
+  --header "Authorization: Bearer YOUR_MOCKTAIL_TOKEN"
+```
+
+For clients that do not support custom HTTP headers directly, use a local MCP wrapper or the client's supported secret/header configuration.
+
 ## FAQ
 
 ### Where is the Mocktail UI?

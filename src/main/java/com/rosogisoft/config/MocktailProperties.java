@@ -10,6 +10,7 @@ public class MocktailProperties {
     private Deployment deployment = new Deployment();
     private Auth auth = new Auth();
     private Standalone standalone = new Standalone();
+    private Mcp mcp = new Mcp();
 
     public Deployment getDeployment() {
         return deployment;
@@ -33,6 +34,14 @@ public class MocktailProperties {
 
     public void setStandalone(Standalone standalone) {
         this.standalone = standalone;
+    }
+
+    public Mcp getMcp() {
+        return mcp;
+    }
+
+    public void setMcp(Mcp mcp) {
+        this.mcp = mcp;
     }
 
     public DeploymentMode mode() {
@@ -180,6 +189,18 @@ public class MocktailProperties {
 
         public void setUserPort(int userPort) {
             this.userPort = userPort;
+        }
+    }
+
+    public static class Mcp {
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

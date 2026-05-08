@@ -31,6 +31,7 @@ services:
       - "9000-9020:9000-9020"
     environment:
       MOCKTAIL_MODE: database
+      MOCKTAIL_MCP_ENABLED: ${MOCKTAIL_MCP_ENABLED:-false}
       DB_URL:  jdbc:postgresql://db:5432/mocktail
       DB_USER: mocktail
       DB_PASS: ${DB_PASS:-mocktail}

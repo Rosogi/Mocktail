@@ -42,6 +42,8 @@ mocktail:
     range-end: ${MOCKTAIL_PORT_RANGE_END:9999}
   standalone:
     user-port: ${MOCKTAIL_STANDALONE_USER_PORT:9000}
+  mcp:
+    enabled: ${MOCKTAIL_MCP_ENABLED:false}
   auth:
     ldap:
       url: ${MOCKTAIL_LDAP_URL:${LDAP_URL:ldap://localhost:389}}

@@ -1,6 +1,7 @@
 package com.rosogisoft.config;
 
 import com.rosogisoft.web.LoginSuccessHandler;
+import com.rosogisoft.security.McpTokenAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -13,13 +14,15 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.BindAuthenticator;
+import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -51,10 +54,29 @@ public class SecurityConfig {
     }
 
     // ---------------------------------------------------------------
-    // Chain 2a: UI — form login, LDAP auth
+    // Chain 2: MCP endpoint — bearer token, no sessions, no CSRF
     // ---------------------------------------------------------------
     @Bean
     @Order(2)
+    public SecurityFilterChain mcpChain(HttpSecurity http,
+                                        McpTokenAuthenticationFilter mcpTokenAuthenticationFilter) throws Exception {
+        http
+                .securityMatcher("/mcp/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .addFilterBefore(mcpTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    // ---------------------------------------------------------------
+    // Chain 3a: UI — form login, LDAP auth
+    // ---------------------------------------------------------------
+    @Bean
+    @Order(3)
     @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "ldap", matchIfMissing = true)
     public SecurityFilterChain ldapUiChain(HttpSecurity http,
                                            AuthenticationManager authenticationManager) throws Exception {
@@ -82,10 +104,10 @@ public class SecurityConfig {
     }
 
     // ---------------------------------------------------------------
-    // Chain 2b: UI — form login, database auth
+    // Chain 3b: UI — form login, database auth
     // ---------------------------------------------------------------
     @Bean
-    @Order(2)
+    @Order(3)
     @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "database")
     public SecurityFilterChain databaseUiChain(HttpSecurity http,
                                                AuthenticationManager authenticationManager) throws Exception {
@@ -114,10 +136,10 @@ public class SecurityConfig {
     }
 
     // ---------------------------------------------------------------
-    // Chain 2c: UI — standalone, no auth
+    // Chain 3c: UI — standalone, no auth
     // ---------------------------------------------------------------
     @Bean
-    @Order(2)
+    @Order(3)
     @ConditionalOnProperty(prefix = "mocktail.deployment", name = "mode", havingValue = "standalone")
     public SecurityFilterChain standaloneUiChain(HttpSecurity http) throws Exception {
         http
