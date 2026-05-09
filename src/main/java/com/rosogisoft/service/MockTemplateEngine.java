@@ -49,6 +49,15 @@ public class MockTemplateEngine {
     private static final String SOAP11_NS = "http://schemas.xmlsoap.org/soap/envelope/";
     private static final String SOAP12_NS = "http://www.w3.org/2003/05/soap-envelope";
 
+    private final EnvironmentTemplateService environmentTemplateService;
+    private final TemplateExpressionParser expressionParser;
+
+    public MockTemplateEngine(EnvironmentTemplateService environmentTemplateService,
+                              TemplateExpressionParser expressionParser) {
+        this.environmentTemplateService = environmentTemplateService;
+        this.expressionParser = expressionParser;
+    }
+
     /**
      * @param template    Raw mock responseBody (may contain {{...}} placeholders)
      * @param method      HTTP method of the incoming request
@@ -64,6 +73,16 @@ public class MockTemplateEngine {
                          String queryParams,
                          Map<String, String> headers,
                          String requestBody) {
+        return render(template, method, path, queryParams, headers, requestBody, EnvironmentContext.empty());
+    }
+
+    public String render(String template,
+                         String method,
+                         String path,
+                         String queryParams,
+                         Map<String, String> headers,
+                         String requestBody,
+                         EnvironmentContext environmentContext) {
 
         if (template == null || !template.contains("{{")) {
             return template;
@@ -81,7 +100,8 @@ public class MockTemplateEngine {
 
         while (matcher.find()) {
             String expr = matcher.group(1).trim();
-            String replacement = resolve(expr, method, path, params, safeHeaders, bodyJson, bodyXml, xmlNamespaces);
+            String replacement = resolveExpression(expr, method, path, params, safeHeaders, bodyJson, bodyXml,
+                    xmlNamespaces, environmentContext);
             matcher.appendReplacement(result,
                     replacement != null
                             ? Matcher.quoteReplacement(replacement)
@@ -91,18 +111,40 @@ public class MockTemplateEngine {
         return result.toString();
     }
 
-    private String resolve(String expr,
-                           String method,
-                           String path,
-                           Map<String, String> params,
-                           Map<String, String> headers,
-                           JsonNode bodyJson,
-                           Document bodyXml,
-                           Map<String, String> xmlNamespaces) {
+    private String resolveExpression(String expr,
+                                     String method,
+                                     String path,
+                                     Map<String, String> params,
+                                     Map<String, String> headers,
+                                     JsonNode bodyJson,
+                                     Document bodyXml,
+                                     Map<String, String> xmlNamespaces,
+                                     EnvironmentContext environmentContext) {
+        TemplateExpressionParser.TemplateExpression expression = expressionParser.parse(expr);
+        String resolved = resolveLookup(expression.lookup(), method, path, params, headers, bodyJson, bodyXml,
+                xmlNamespaces, environmentContext);
+        return resolved != null
+                ? resolved
+                : expression.fallback().map(TemplateExpressionParser.TemplateLiteral::value).orElse(null);
+    }
+
+    private String resolveLookup(String expr,
+                                 String method,
+                                 String path,
+                                 Map<String, String> params,
+                                 Map<String, String> headers,
+                                 JsonNode bodyJson,
+                                 Document bodyXml,
+                                 Map<String, String> xmlNamespaces,
+                                 EnvironmentContext environmentContext) {
         if (expr.equalsIgnoreCase("request.method")) return method;
         if (expr.equalsIgnoreCase("request.path")) return path;
 
         String normalizedExpr = expr.toLowerCase(Locale.ROOT);
+
+        if (normalizedExpr.startsWith("env.") || normalizedExpr.startsWith("global.")) {
+            return environmentTemplateService.resolveExpression(expr, environmentContext, false);
+        }
 
         if (normalizedExpr.startsWith("param.")) {
             String key = expr.substring(6);
@@ -217,7 +259,7 @@ public class MockTemplateEngine {
         boolean hasJsonBodyPath = false;
         Matcher matcher = PLACEHOLDER.matcher(template);
         while (matcher.find()) {
-            String expr = matcher.group(1).trim();
+            String expr = expressionParser.parse(matcher.group(1).trim()).lookup();
             String normalizedExpr = expr.toLowerCase(Locale.ROOT);
             if (normalizedExpr.startsWith(XPATH_PREFIX)) {
                 hasXPath = true;
@@ -232,7 +274,9 @@ public class MockTemplateEngine {
         return normalizedExpr.equals("request.method") ||
                 normalizedExpr.equals("request.path") ||
                 normalizedExpr.startsWith("param.") ||
-                normalizedExpr.startsWith("header.");
+                normalizedExpr.startsWith("header.") ||
+                normalizedExpr.startsWith("env.") ||
+                normalizedExpr.startsWith("global.");
     }
 
     private Map<String, String> collectNamespaces(Document document) {

@@ -3,9 +3,11 @@ package com.rosogisoft.web;
 import com.rosogisoft.domain.MockDefinition;
 import com.rosogisoft.domain.User;
 import com.rosogisoft.service.I18nService;
+import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.MockCollectionService;
 import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockService;
+import com.rosogisoft.service.MockTemplateReferenceService;
 import com.rosogisoft.web.dto.ImportMode;
 import com.rosogisoft.web.dto.MockDefinitionForm;
 import lombok.RequiredArgsConstructor;
@@ -32,14 +34,18 @@ public class MockController {
     private final CurrentUserHelper currentUserHelper;
     private final MockImportExportService importExportService;
     private final MockCollectionService collectionService;
+    private final EnvironmentService environmentService;
+    private final MockTemplateReferenceService templateReferenceService;
     private final I18nService i18n;
 
     // ── List ─────────────────────────────────────────────────────────
     @GetMapping
     public String list (Model model) {
         User user = currentUserHelper.currentUser();
+        var mocks = mockService.findAllForUser(user);
         model.addAttribute("user", user);
-        model.addAttribute("mocks", mockService.findAllForUser(user));
+        model.addAttribute("mocks", mocks);
+        model.addAttribute("mockTemplateWarnings", templateReferenceService.analyzeAll(mocks, user));
         model.addAttribute("collections", collectionService.findAllForUser(user));
         return "mocks/list";
     }
@@ -54,6 +60,7 @@ public class MockController {
         model.addAttribute("contentTypes", CONTENT_TYPES);
         model.addAttribute("collections",  collectionService.findEditableForUser(user));
         model.addAttribute("editing", false);
+        addTemplateModel(model, user, new MockDefinitionForm());
         return "mocks/form";
     }
 
@@ -88,7 +95,9 @@ public class MockController {
             model.addAttribute("mockId", id);
             model.addAttribute("httpMethods", HTTP_METHODS);
             model.addAttribute("contentTypes", CONTENT_TYPES);
+            model.addAttribute("collections",  collectionService.findEditableForUser(user));
             model.addAttribute("editing", true);
+            addTemplateModel(model, user, toForm(mock));
             return "mocks/form";
         }).orElseGet(() -> {
             redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.mockNotFound"));
@@ -218,6 +227,11 @@ public class MockController {
         return i18n.t("flash.importFailed", message);
     }
 
+    private void addTemplateModel(Model model, User user, MockDefinitionForm form) {
+        model.addAttribute("templateSuggestions", environmentService.templateSuggestions(user));
+        model.addAttribute("templateWarnings", templateReferenceService.analyze(form, user));
+    }
+
     private MockDefinitionForm toForm (MockDefinition mock) {
         MockDefinitionForm form = new MockDefinitionForm();
         form.setName(mock.getName());
@@ -231,6 +245,7 @@ public class MockController {
         form.setResponseContentType(mock.getResponseContentType());
         form.setPriority(mock.getPriority());
         form.setActive(mock.isActive());
+        form.setCollectionId(mock.getCollection() != null ? mock.getCollection().getId() : null);
         // Serialize headers map back to raw text
         if (mock.getResponseHeaders() != null) {
             String raw = mock.getResponseHeaders().entrySet().stream()

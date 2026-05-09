@@ -40,12 +40,30 @@ public class RequestConditionMatcher {
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    private final MockTemplateEngine templateEngine;
+
+    public RequestConditionMatcher(MockTemplateEngine templateEngine) {
+        this.templateEngine = templateEngine;
+    }
+
     public boolean matches(MockDefinition mock,
                            String queryString,
                            Map<String, String> headers,
                            String body) {
+        return matches(mock, null, null, queryString, headers, body, EnvironmentContext.empty());
+    }
+
+    public boolean matches(MockDefinition mock,
+                           String method,
+                           String path,
+                           String queryString,
+                           Map<String, String> headers,
+                           String body,
+                           EnvironmentContext environmentContext) {
         if (!MODE_ADVANCED.equalsIgnoreCase(mock.getRequestMatchMode())) {
-            return bodyContainsMatches(mock.getRequestBodyContains(), body);
+            String contains = templateEngine.render(mock.getRequestBodyContains(), method, path,
+                    queryString, headers, body, environmentContext);
+            return bodyContainsMatches(contains, body);
         }
 
         List<ConditionGroup> groups = parseGroups(mock.getRequestMatchGroups());
@@ -56,10 +74,10 @@ public class RequestConditionMatcher {
             return true;
         }
 
-        RequestContext context = new RequestContext(queryString, headers, body);
+        RequestContext context = new RequestContext(method, path, queryString, headers, body);
         Boolean result = null;
         for (ConditionGroup group : groups) {
-            boolean groupResult = evaluateGroup(group, context);
+            boolean groupResult = evaluateGroup(group, context, environmentContext);
             result = combine(result, groupResult, group.connector());
         }
         return Boolean.TRUE.equals(result);
@@ -84,7 +102,9 @@ public class RequestConditionMatcher {
         }
     }
 
-    private boolean evaluateGroup(ConditionGroup group, RequestContext context) {
+    private boolean evaluateGroup(ConditionGroup group,
+                                  RequestContext context,
+                                  EnvironmentContext environmentContext) {
         if (group.conditions() == null || group.conditions().isEmpty()) {
             return false;
         }
@@ -94,7 +114,7 @@ public class RequestConditionMatcher {
             if (!isComplete(condition)) {
                 continue;
             }
-            boolean conditionResult = evaluateCondition(condition, context);
+            boolean conditionResult = evaluateCondition(condition, context, environmentContext);
             result = combine(result, conditionResult, condition.connector());
         }
         return Boolean.TRUE.equals(result);
@@ -119,7 +139,10 @@ public class RequestConditionMatcher {
         return "exists".equals(operator) || !isBlank(condition.value());
     }
 
-    private boolean evaluateCondition(Condition condition, RequestContext context) {
+    private boolean evaluateCondition(Condition condition,
+                                      RequestContext context,
+                                      EnvironmentContext environmentContext) {
+        condition = resolveTemplates(condition, context, environmentContext);
         ResolvedValue actual = resolve(condition, context);
         String operator = lower(condition.operator());
         if ("exists".equals(operator)) {
@@ -141,6 +164,21 @@ public class RequestConditionMatcher {
             case "regex" -> regexMatches(actualValue, expectedValue);
             default -> actualValue.equals(expectedValue);
         };
+    }
+
+    private Condition resolveTemplates(Condition condition,
+                                       RequestContext context,
+                                       EnvironmentContext environmentContext) {
+        return new Condition(
+                condition.connector(),
+                condition.source(),
+                condition.xmlMode(),
+                templateEngine.render(condition.target(), context.method(), context.path(),
+                        context.queryString(), context.headers(), context.body(), environmentContext),
+                condition.operator(),
+                templateEngine.render(condition.value(), context.method(), context.path(),
+                        context.queryString(), context.headers(), context.body(), environmentContext),
+                condition.whitespace());
     }
 
     private ResolvedValue resolve(Condition condition, RequestContext context) {
@@ -417,6 +455,8 @@ public class RequestConditionMatcher {
     }
 
     private class RequestContext {
+        private final String method;
+        private final String path;
         private final String queryString;
         private final Map<String, String> headers;
         private final String body;
@@ -425,10 +465,28 @@ public class RequestConditionMatcher {
         private Document xmlBody;
         private Map<String, String> xmlNamespaces;
 
-        private RequestContext(String queryString, Map<String, String> headers, String body) {
+        private RequestContext(String method,
+                               String path,
+                               String queryString,
+                               Map<String, String> headers,
+                               String body) {
+            this.method = method;
+            this.path = path;
             this.queryString = queryString;
             this.headers = headers != null ? headers : Map.of();
             this.body = body;
+        }
+
+        private String method() {
+            return method;
+        }
+
+        private String path() {
+            return path;
+        }
+
+        private String queryString() {
+            return queryString;
         }
 
         private Map<String, String> queryParams() {

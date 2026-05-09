@@ -151,7 +151,19 @@
                     </div>
                     <textarea class="form-control code" name="defaultResponseBody" rows="6"
                               data-body-tool="body"
+                              data-template-autocomplete
+                              th:data-template-location="${@i18n.t('settings.defaultResponseTitle')}"
                               th:text="${settings['DEFAULT_RESPONSE_BODY']}"></textarea>
+                </div>
+                <div class="template-warning mb-3 d-none" data-template-warning-panel>
+                    <div class="fw-semibold mb-1">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <span th:text="${@i18n.t('mocks.templateWarningsTitle')}">Missing environment values</span>
+                    </div>
+                    <div class="small mb-2" th:text="${@i18n.t('mocks.templateWarningsText')}">
+                        Some env/global references are not available in the active runtime environment.
+                    </div>
+                    <ul class="mb-0 small" data-template-warning-list></ul>
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-floppy me-1"></i>
@@ -163,6 +175,10 @@
 
 </main>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:inline="javascript">
+    window.MocktailTemplateSuggestions = /*[[${templateSuggestions}]]*/ [];
+</script>
 <script th:src="@{/js/body-tools.js}"></script>
+<script th:src="@{/js/mocks.js}"></script>
 </body>
 </html>

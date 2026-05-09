@@ -55,7 +55,9 @@
           <div class="col-sm-9">
             <label class="form-label fw-semibold"><span th:text="${@i18n.t('mocks.pathPattern')}">Path pattern</span> <span class="text-danger">*</span></label>
             <input type="text" class="form-control font-monospace" th:field="*{pathPattern}"
-                   placeholder="/api/users/**" required/>
+                   placeholder="/api/users/**" required
+                   th:data-template-location="${@i18n.t('mocks.pathPattern')}"
+                   data-template-autocomplete/>
             <div class="form-text">
               <span th:text="${@i18n.t('mocks.pathHint')}">Ant-style:</span>
               <code>/api/users</code>, <code>/api/users/**</code>, <code>/api/orders/*</code>
@@ -86,7 +88,9 @@
               <span class="text-muted fw-normal">(<span th:text="${@i18n.t('mocks.optional')}">optional</span>)</span>
             </label>
             <input type="text" class="form-control font-monospace" th:field="*{requestBodyContains}"
-                   th:placeholder="${@i18n.t('mocks.requestBodyContainsPlaceholder')}"/>
+                   th:placeholder="${@i18n.t('mocks.requestBodyContainsPlaceholder')}"
+                   th:data-template-location="${@i18n.t('mocks.requestBodyContains')}"
+                   data-template-autocomplete/>
             <div class="form-text" th:text="${@i18n.t('mocks.requestBodyContainsHint')}">Substring match on raw request body. Useful for SOAP dispatch.</div>
           </div>
 
@@ -197,6 +201,8 @@
                     <label class="form-label" data-condition-target-label th:text="${@i18n.t('mocks.conditionsTargetJson')}">Field</label>
                     <input type="text" class="form-control form-control-sm font-monospace"
                            data-condition-target
+                           data-template-autocomplete
+                           th:data-template-location="${@i18n.t('mocks.conditionsTitle')}"
                            th:placeholder="${@i18n.t('mocks.conditionsTargetJsonPlaceholder')}"/>
                   </div>
 
@@ -214,6 +220,8 @@
                     <label class="form-label" th:text="${@i18n.t('mocks.conditionsValue')}">Value</label>
                     <input type="text" class="form-control form-control-sm font-monospace"
                            data-condition-value
+                           data-template-autocomplete
+                           th:data-template-location="${@i18n.t('mocks.conditionsTitle')}"
                            th:placeholder="${@i18n.t('mocks.conditionsValuePlaceholder')}"/>
                   </div>
 
@@ -294,7 +302,29 @@
           <textarea class="form-control code" th:field="*{responseBody}"
                     id="responseBody" rows="10"
                     data-body-tool="body"
+                    data-template-autocomplete
+                    th:data-template-location="${@i18n.t('mocks.responseBody')}"
                     placeholder='{ "id": 1, "name": "Alice" }'></textarea>
+        </div>
+
+        <div class="template-warning mb-3"
+             data-template-warning-panel
+             th:classappend="${templateWarnings != null and templateWarnings.hasWarnings()} ? '' : ' d-none'">
+          <div class="fw-semibold mb-1">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <span th:text="${@i18n.t('mocks.templateWarningsTitle')}">Missing environment values</span>
+          </div>
+          <div class="small mb-2" th:text="${@i18n.t('mocks.templateWarningsText')}">
+            Some env/global references are not available in the active runtime environment.
+          </div>
+          <ul class="mb-0 small" data-template-warning-list>
+            <li th:if="${templateWarnings != null}"
+                th:each="warning : ${templateWarnings.missingReferences}">
+              <code th:text="${warning.expression()}">env.baseUrl</code>
+              <span class="text-muted"> — </span>
+              <span th:text="${warning.location}">Response body</span>
+            </li>
+          </ul>
         </div>
 
         <!-- Template variable hint -->
@@ -339,12 +369,16 @@
                   <label class="form-label" th:text="${@i18n.t('mocks.responseHeadersName')}">Header</label>
                   <input type="text" class="form-control form-control-sm font-monospace"
                          data-response-header-name
+                         data-template-autocomplete
+                         th:data-template-location="${@i18n.t('mocks.extraHeaders')}"
                          placeholder="X-Custom-Header"/>
                 </div>
                 <div class="condition-field">
                   <label class="form-label" th:text="${@i18n.t('mocks.responseHeadersValue')}">Value</label>
                   <input type="text" class="form-control form-control-sm font-monospace"
                          data-response-header-value
+                         data-template-autocomplete
+                         th:data-template-location="${@i18n.t('mocks.extraHeaders')}"
                          placeholder="value"/>
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-danger response-header-remove"
@@ -373,6 +407,9 @@
 </main>
 
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:inline="javascript">
+  window.MocktailTemplateSuggestions = /*[[${templateSuggestions}]]*/ [];
+</script>
 <script th:src="@{/js/body-tools.js}"></script>
 <script th:src="@{/js/mocks.js}"></script>
 

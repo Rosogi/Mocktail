@@ -7,6 +7,7 @@ import com.rosogisoft.domain.User;
 import com.rosogisoft.config.AppProperties;
 import com.rosogisoft.config.DeploymentMode;
 import com.rosogisoft.config.MocktailProperties;
+import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.MockMatcherService;
 import com.rosogisoft.service.MockTemplateEngine;
 import com.rosogisoft.service.RequestLogService;
@@ -40,6 +41,7 @@ public class CatchAllFilter implements Filter {
     private final RequestEventPublisher publisher;
     private final MockTemplateEngine templateEngine;
     private final UserSettingsService settingsService;
+    private final EnvironmentService environmentService;
     private final AppProperties appProperties;
     private final MocktailProperties mocktailProperties;
 
@@ -76,10 +78,12 @@ public class CatchAllFilter implements Filter {
         }
 
         User owner = ownerOpt.get();
+        var environmentContext = environmentService.contextForRequest(owner, queryString, headers);
 
         // Match against owner's active mocks
         Optional<MockDefinition> mockOpt =
-                mockMatcher.findMatch(owner.getId(), method, path, queryString, headers, body);
+                mockMatcher.findMatch(owner.getId(), method, path, queryString, headers, body,
+                        environmentContext);
 
         RequestLog logEntry = new RequestLog();
         logEntry.setUserPort(port);
@@ -97,15 +101,23 @@ public class CatchAllFilter implements Filter {
 
             // Set response headers from mock
             if (mock.getResponseHeaders() != null) {
-                mock.getResponseHeaders().forEach(response::setHeader);
+                mock.getResponseHeaders().forEach((name, value) -> {
+                    String resolvedName = templateEngine.render(name, method, path, queryString, headers, body,
+                            environmentContext);
+                    String resolvedValue = templateEngine.render(value, method, path, queryString, headers, body,
+                            environmentContext);
+                    response.setHeader(resolvedName, resolvedValue);
+                });
             }
 
             response.setStatus(mock.getResponseStatus());
-            response.setContentType(mock.getResponseContentType());
+            response.setContentType(templateEngine.render(
+                    mock.getResponseContentType(), method, path, queryString, headers, body,
+                    environmentContext));
 
             String responseBody = templateEngine.render(
                     mock.getResponseBody() != null ? mock.getResponseBody() : "",
-                    method, path, queryString, headers, body
+                    method, path, queryString, headers, body, environmentContext
             );
             response.getWriter().write(responseBody);
 
@@ -117,12 +129,14 @@ public class CatchAllFilter implements Filter {
             var settings = settingsService.getSettings(owner);
             String responseBody = templateEngine.render(
                     settings.get(SettingKey.DEFAULT_RESPONSE_BODY),
-                    method, path, queryString, headers, body
+                    method, path, queryString, headers, body, environmentContext
             );
             int status = settings.getInt(SettingKey.DEFAULT_RESPONSE_STATUS);
 
             response.setStatus(status);
-            response.setContentType(settings.get(SettingKey.DEFAULT_RESPONSE_CT));
+            response.setContentType(templateEngine.render(
+                    settings.get(SettingKey.DEFAULT_RESPONSE_CT),
+                    method, path, queryString, headers, body, environmentContext));
             response.getWriter().write(responseBody);
 
             logEntry.setResponseStatus(status);

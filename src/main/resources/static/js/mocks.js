@@ -21,6 +21,295 @@ function confirmDelete(form) {
         .replace(/'/g, '&#39;');
   }
 
+  function notifyTemplateFieldsChanged() {
+    document.dispatchEvent(new CustomEvent('mocktail-template-fields-changed'));
+  }
+
+  function fallbackSeparator(expression) {
+    let quote = '';
+    let escaped = false;
+    for (let index = 0; index < expression.length - 1; index += 1) {
+      const current = expression[index];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (current === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (quote) {
+        if (current === quote) quote = '';
+        continue;
+      }
+      if (current === '\'' || current === '"') {
+        quote = current;
+        continue;
+      }
+      if (current === '?' && expression[index + 1] === '?') {
+        return index;
+      }
+    }
+    return -1;
+  }
+
+  function parseTemplateExpression(expression) {
+    const value = String(expression || '').trim();
+    const separator = fallbackSeparator(value);
+    if (separator < 0) {
+      return { lookup: value, hasFallback: false };
+    }
+    return {
+      lookup: value.slice(0, separator).trim(),
+      hasFallback: true
+    };
+  }
+
+  function templatePlaceholders(value) {
+    const result = [];
+    const pattern = /\{\{([^}]+)}}/g;
+    let match;
+    while ((match = pattern.exec(value || '')) !== null) {
+      result.push(parseTemplateExpression(match[1]));
+    }
+    return result;
+  }
+
+  function dynamicTemplateSuggestions() {
+    return Array.isArray(window.MocktailTemplateSuggestions)
+        ? window.MocktailTemplateSuggestions.filter(item => item && item.expression)
+        : [];
+  }
+
+  function initTemplateAutocomplete() {
+    const staticSuggestions = [
+      { expression: '{{request.method}}', preview: 'GET' },
+      { expression: '{{request.path}}', preview: '/api/example' },
+      { expression: '{{param.id}}', preview: 'query value' },
+      { expression: '{{header.Authorization}}', preview: 'header value' },
+      { expression: "{{xpath:string(//*[local-name()='CustomerId'])}}", preview: 'XML value' }
+    ];
+    const dynamicSuggestions = dynamicTemplateSuggestions();
+    const suggestions = [...dynamicSuggestions, ...staticSuggestions]
+        .filter(item => item && item.expression)
+        .map(item => ({
+          expression: item.expression,
+          preview: item.preview || '',
+          hidden: item.hidden === true
+        }));
+
+    if (!suggestions.length) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'template-autocomplete d-none';
+    document.body.appendChild(menu);
+
+    let activeControl = null;
+    let activeItems = [];
+    let selectedIndex = 0;
+
+    function currentToken(control) {
+      const cursor = control.selectionStart;
+      if (cursor == null) return null;
+      const beforeCursor = control.value.slice(0, cursor);
+      const open = beforeCursor.lastIndexOf('{{');
+      const close = beforeCursor.lastIndexOf('}}');
+      if (open < 0 || close > open) return null;
+      const expression = control.value.slice(open + 2, cursor);
+      if (expression.includes('??')) return null;
+      return {
+        start: open,
+        end: cursor,
+        prefix: expression.trim().toLowerCase()
+      };
+    }
+
+    function matches(item, prefix) {
+      if (!prefix) return true;
+      const normalized = item.expression
+          .replace(/^\{\{\s*/, '')
+          .replace(/\s*}}$/, '')
+          .toLowerCase();
+      return normalized.includes(prefix);
+    }
+
+    function renderMenu() {
+      if (!activeItems.length || !activeControl) {
+        menu.classList.add('d-none');
+        return;
+      }
+      menu.innerHTML = activeItems.map((item, index) => `
+        <button type="button" class="template-autocomplete-item ${index === selectedIndex ? 'active' : ''}" data-index="${index}">
+          <span class="template-autocomplete-expression">${escapeHtml(item.expression)}</span>
+          <span class="template-autocomplete-preview">${escapeHtml(item.hidden ? '********' : item.preview)}</span>
+        </button>
+      `).join('');
+
+      const rect = activeControl.getBoundingClientRect();
+      menu.style.left = `${rect.left + window.scrollX}px`;
+      menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+      menu.style.width = `${Math.min(Math.max(rect.width, 320), 560)}px`;
+      menu.classList.remove('d-none');
+      menu.querySelector('.template-autocomplete-item.active')
+          ?.scrollIntoView({ block: 'nearest' });
+    }
+
+    function update(control) {
+      const token = currentToken(control);
+      if (!token) {
+        menu.classList.add('d-none');
+        return;
+      }
+      activeControl = control;
+      activeItems = suggestions.filter(item => matches(item, token.prefix));
+      selectedIndex = Math.min(selectedIndex, Math.max(activeItems.length - 1, 0));
+      renderMenu();
+    }
+
+    function acceptSelected() {
+      if (!activeControl || !activeItems.length) return false;
+      const token = currentToken(activeControl);
+      if (!token) return false;
+      const item = activeItems[selectedIndex];
+      const before = activeControl.value.slice(0, token.start);
+      const after = activeControl.value.slice(token.end);
+      activeControl.value = before + item.expression + after;
+      const cursor = before.length + item.expression.length;
+      activeControl.setSelectionRange(cursor, cursor);
+      activeControl.dispatchEvent(new Event('input', { bubbles: true }));
+      menu.classList.add('d-none');
+      return true;
+    }
+
+    function bind(control) {
+      if (control.dataset.templateAutocompleteBound === 'true') return;
+      control.dataset.templateAutocompleteBound = 'true';
+
+      control.addEventListener('input', () => update(control));
+      control.addEventListener('click', () => update(control));
+      control.addEventListener('keydown', event => {
+        const visible = !menu.classList.contains('d-none') && activeControl === control;
+        if (visible && event.key === 'ArrowDown') {
+          event.preventDefault();
+          selectedIndex = (selectedIndex + 1) % activeItems.length;
+          renderMenu();
+        } else if (visible && event.key === 'ArrowUp') {
+          event.preventDefault();
+          selectedIndex = (selectedIndex - 1 + activeItems.length) % activeItems.length;
+          renderMenu();
+        } else if (visible && (event.key === 'Tab' || event.key === 'Enter')) {
+          event.preventDefault();
+          acceptSelected();
+        } else if (visible && event.key === 'Escape') {
+          event.preventDefault();
+          menu.classList.add('d-none');
+        } else if (!visible && event.key === 'Tab' && control.tagName === 'TEXTAREA') {
+          event.preventDefault();
+          const start = control.selectionStart;
+          const end = control.selectionEnd;
+          control.value = control.value.slice(0, start) + '  ' + control.value.slice(end);
+          control.setSelectionRange(start + 2, start + 2);
+          control.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+
+    menu.addEventListener('mousedown', event => {
+      const button = event.target.closest('[data-index]');
+      if (!button) return;
+      event.preventDefault();
+      selectedIndex = Number(button.dataset.index);
+      acceptSelected();
+    });
+
+    document.addEventListener('focusin', event => {
+      if (event.target.matches?.('[data-template-autocomplete]')) {
+        bind(event.target);
+        update(event.target);
+      }
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.template-autocomplete') &&
+          !event.target.matches?.('[data-template-autocomplete]')) {
+        menu.classList.add('d-none');
+      }
+    });
+
+    document.querySelectorAll('[data-template-autocomplete]').forEach(bind);
+  }
+
+  function initTemplateWarnings() {
+    const panel = document.querySelector('[data-template-warning-panel]');
+    const list = document.querySelector('[data-template-warning-list]');
+    if (!panel || !list) return;
+
+    const known = {
+      env: new Set(),
+      global: new Set()
+    };
+    dynamicTemplateSuggestions().forEach(item => {
+      if ((item.scope === 'env' || item.scope === 'global') && item.key) {
+        known[item.scope].add(item.key);
+      }
+    });
+
+    function locationFor(control) {
+      return control.dataset.templateLocation ||
+          control.closest('.mb-3, .mb-1, .condition-field')?.querySelector('.form-label')?.textContent?.trim() ||
+          'Template field';
+    }
+
+    function missingFromControl(control) {
+      return templatePlaceholders(control.value)
+          .filter(expression => !expression.hasFallback)
+          .map(expression => expression.lookup)
+          .map(lookup => {
+            const normalized = lookup.toLowerCase();
+            if (normalized.startsWith('env.')) {
+              return { scope: 'env', key: lookup.slice(4), location: locationFor(control) };
+            }
+            if (normalized.startsWith('global.')) {
+              return { scope: 'global', key: lookup.slice(7), location: locationFor(control) };
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .filter(reference => !known[reference.scope].has(reference.key));
+    }
+
+    function refresh() {
+      const unique = new Map();
+      document.querySelectorAll('[data-template-autocomplete]').forEach(control => {
+        missingFromControl(control).forEach(reference => {
+          unique.set(`${reference.scope}.${reference.key}@${reference.location}`, reference);
+        });
+      });
+
+      const missing = Array.from(unique.values());
+      panel.classList.toggle('d-none', missing.length === 0);
+      list.innerHTML = missing.map(reference => `
+        <li>
+          <code>${escapeHtml(reference.scope)}.${escapeHtml(reference.key)}</code>
+          <span class="text-muted"> — </span>
+          <span>${escapeHtml(reference.location)}</span>
+        </li>
+      `).join('');
+    }
+
+    document.addEventListener('input', event => {
+      if (event.target.matches?.('[data-template-autocomplete]')) {
+        refresh();
+      }
+    });
+    document.addEventListener('change', event => {
+      if (event.target.matches?.('[data-template-autocomplete]')) {
+        refresh();
+      }
+    });
+    document.addEventListener('mocktail-template-fields-changed', refresh);
+    refresh();
+  }
+
   function initMatchModeToggle(container) {
     const radios = Array.from(container.querySelectorAll('[data-match-mode-radio]'));
     const basicPanel = container.querySelector('[data-match-basic-panel]');
@@ -204,6 +493,7 @@ function confirmDelete(form) {
 
     if (completeGroups.length === 0) {
       summary.innerHTML = `<span class="text-muted">${escapeHtml(data.conditionEmpty || 'No additional conditions')}</span>`;
+      notifyTemplateFieldsChanged();
       return;
     }
 
@@ -214,6 +504,7 @@ function confirmDelete(form) {
       <div class="condition-summary-title">${escapeHtml(data.conditionSummaryTitle || 'Mock will match when:')}</div>
       <ul>${items}</ul>
     `;
+    notifyTemplateFieldsChanged();
   }
 
   function addCondition(group, builder, initialValues, beforeNode) {
@@ -326,16 +617,21 @@ function confirmDelete(form) {
     row.querySelector('[data-response-header-value]').value = initialValues?.value || '';
 
     row.querySelectorAll('input').forEach(input => {
-      input.addEventListener('input', () => updateRawHeaders(builder));
+      input.addEventListener('input', () => {
+        updateRawHeaders(builder);
+        notifyTemplateFieldsChanged();
+      });
     });
 
     row.querySelector('[data-response-header-remove]').addEventListener('click', () => {
       row.remove();
       updateRawHeaders(builder);
+      notifyTemplateFieldsChanged();
     });
 
     list.appendChild(row);
     updateRawHeaders(builder);
+    notifyTemplateFieldsChanged();
   }
 
   function initResponseHeadersBuilder(builder) {
@@ -380,5 +676,7 @@ function confirmDelete(form) {
     document.querySelectorAll('[data-match-mode]').forEach(initMatchModeToggle);
     document.querySelectorAll('[data-match-builder]').forEach(initMatchBuilder);
     document.querySelectorAll('[data-response-headers-builder]').forEach(initResponseHeadersBuilder);
+    initTemplateAutocomplete();
+    initTemplateWarnings();
   });
 })();
