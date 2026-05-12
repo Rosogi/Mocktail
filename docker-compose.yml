@@ -38,6 +38,7 @@ services:
       - "9000-9020:9000-9020"
     environment:
       MOCKTAIL_MODE: ${MOCKTAIL_MODE:-ldap}
+      MOCKTAIL_MCP_ENABLED: ${MOCKTAIL_MCP_ENABLED:-false}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
 
       DB_URL:  jdbc:postgresql://db:5432/mocktail

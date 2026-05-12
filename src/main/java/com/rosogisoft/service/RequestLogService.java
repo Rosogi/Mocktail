@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +26,10 @@ public class RequestLogService {
 
     public List<RequestLog> findRecentForUser (User user) {
         return logRepository.findRecentByOwnerId(user.getId(), PageRequest.of(0, DEFAULT_LIMIT));
+    }
+
+    public Optional<RequestLog> findByIdForUser(Long id, User user) {
+        return logRepository.findByIdAndOwnerId(id, user.getId());
     }
 
     public long countForUser (User user) {

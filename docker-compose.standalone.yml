@@ -31,6 +31,7 @@ services:
       - "${MOCKTAIL_STANDALONE_USER_PORT:-9000}:${MOCKTAIL_STANDALONE_USER_PORT:-9000}"
     environment:
       MOCKTAIL_MODE: standalone
+      MOCKTAIL_MCP_ENABLED: ${MOCKTAIL_MCP_ENABLED:-false}
       DB_URL:  jdbc:postgresql://db:5432/mocktail
       DB_USER: mocktail
       DB_PASS: ${DB_PASS:-mocktail}

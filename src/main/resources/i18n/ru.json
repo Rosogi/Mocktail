@@ -332,7 +332,22 @@
     "defaultResponseTitle": "Default response (no mock matched)",
     "defaultResponseHelp": "Возвращается, когда ни один активный мок не подошел к запросу. Template variables поддерживаются:",
     "statusCode": "Status code",
-    "responseBody": "Response body"
+    "responseBody": "Response body",
+    "llmAccessTitle": "Доступ LLM",
+    "llmToken": "Токен",
+    "llmTokenNotGenerated": "Токен не создан",
+    "llmTokenGenerate": "Создать токен",
+    "llmTokenRegenerate": "Перегенерировать токен",
+    "llmTokenRegenerateConfirm": "Перегенерировать LLM-токен? Существующие сеансы Claude, Codex и других MCP-клиентов перестанут работать, пока вы их не обновите.",
+    "llmTokenShownOnce": "Сохраните этот токен сейчас. Он больше не будет показан.",
+    "llmTokenLastUsed": "Последнее использование: {0}",
+    "llmRequestLogsAccess": "Логи запросов",
+    "llmMocksAccess": "Моки",
+    "llmAccess": {
+      "NONE": "Нет",
+      "READ": "Чтение",
+      "READ_WRITE": "Чтение + удаление"
+    }
   },
   "admin": {
     "users": {
@@ -420,6 +435,10 @@
     "subscriptionInvalid": "Локальная копия подписки некорректна.",
     "editableCopyCreated": "Редактируемая копия создана.",
     "readOnlyCollection": "Подписанные коллекции доступны только для чтения.",
+    "llmTokenGenerated": "LLM-токен создан.",
+    "llmTokenRegenerated": "LLM-токен перегенерирован. Предыдущие MCP-сеансы нужно обновить.",
+    "llmPermissionsSaved": "Права LLM сохранены.",
+    "llmPermissionsFailed": "Права LLM не сохранены: {0}",
     "environmentGlobalsSaved": "Глобальные ENV-переменные сохранены.",
     "environmentSaved": "ENV-пакет сохранен.",
     "environmentCreated": "ENV \"{0}\" создан.",

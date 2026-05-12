@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RequestLogRepository extends JpaRepository<RequestLog, Long> {
@@ -38,6 +39,14 @@ public interface RequestLogRepository extends JpaRepository<RequestLog, Long> {
             """, nativeQuery = true)
     List<RequestLog> findRecentByPort (@Param("port") int port,
                                        @Param("limit") int limit);
+
+    @Query("""
+            SELECT l FROM RequestLog l
+            LEFT JOIN FETCH l.matchedMock
+            WHERE l.id = :id AND l.owner.id = :ownerId
+            """)
+    Optional<RequestLog> findByIdAndOwnerId(@Param("id") Long id,
+                                            @Param("ownerId") Long ownerId);
 
     @Modifying
     @Query(value = "DELETE FROM request_logs WHERE owner_id = :ownerId", nativeQuery = true)

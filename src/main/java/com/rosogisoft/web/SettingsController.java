@@ -1,8 +1,11 @@
 package com.rosogisoft.web;
 
+import com.rosogisoft.config.ApplicationCapabilities;
+import com.rosogisoft.domain.LlmAccessLevel;
 import com.rosogisoft.domain.SettingKey;
 import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.I18nService;
+import com.rosogisoft.service.LlmAccessTokenService;
 import com.rosogisoft.service.ThemeService;
 import com.rosogisoft.service.UserSettingsService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,8 @@ public class SettingsController {
     private final CurrentUserHelper   currentUserHelper;
     private final I18nService         i18n;
     private final ThemeService        theme;
+    private final LlmAccessTokenService llmAccessTokenService;
+    private final ApplicationCapabilities capabilities;
     private final EnvironmentService  environmentService;
 
     @GetMapping
@@ -34,6 +39,15 @@ public class SettingsController {
         model.addAttribute("languages", i18n.supportedLanguages());
         model.addAttribute("themes", theme.supportedThemes());
         model.addAttribute("templateSuggestions", environmentService.templateSuggestions(user));
+      
+        if (capabilities.isMcp()) {
+            model.addAttribute("llmToken", llmAccessTokenService.findForUser(user).orElse(null));
+            model.addAttribute("requestLogAccessLevels", LlmAccessLevel.values());
+            model.addAttribute("mockAccessLevels", new LlmAccessLevel[]{
+                    LlmAccessLevel.NONE,
+                    LlmAccessLevel.READ
+            });
+        }
         return "settings/index";
     }
 

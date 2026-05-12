@@ -21,6 +21,10 @@ public class ApplicationCapabilities {
         return properties.mode() != DeploymentMode.STANDALONE;
     }
 
+    public boolean isMcp() {
+        return properties.getMcp().isEnabled();
+    }
+
     public DeploymentMode getMode() {
         return properties.mode();
     }

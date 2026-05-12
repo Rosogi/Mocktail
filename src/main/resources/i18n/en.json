@@ -332,7 +332,22 @@
     "defaultResponseTitle": "Default response (no mock matched)",
     "defaultResponseHelp": "Returned when no active mock matches the request. Template variables are supported:",
     "statusCode": "Status code",
-    "responseBody": "Response body"
+    "responseBody": "Response body",
+    "llmAccessTitle": "LLM access",
+    "llmToken": "Token",
+    "llmTokenNotGenerated": "No token generated",
+    "llmTokenGenerate": "Generate token",
+    "llmTokenRegenerate": "Regenerate token",
+    "llmTokenRegenerateConfirm": "Regenerate the LLM token? Existing Claude, Codex, and other MCP sessions will stop working until they are updated.",
+    "llmTokenShownOnce": "Save this token now. It will not be shown again.",
+    "llmTokenLastUsed": "Last used: {0}",
+    "llmRequestLogsAccess": "Request logs",
+    "llmMocksAccess": "Mocks",
+    "llmAccess": {
+      "NONE": "None",
+      "READ": "Read",
+      "READ_WRITE": "Read + delete"
+    }
   },
   "admin": {
     "users": {
@@ -420,6 +435,10 @@
     "subscriptionInvalid": "Subscription local copy is invalid.",
     "editableCopyCreated": "Editable copy created.",
     "readOnlyCollection": "Subscribed collections are read-only.",
+    "llmTokenGenerated": "LLM token generated.",
+    "llmTokenRegenerated": "LLM token regenerated. Previous MCP sessions must be updated.",
+    "llmPermissionsSaved": "LLM permissions saved.",
+    "llmPermissionsFailed": "LLM permissions were not saved: {0}",
     "environmentGlobalsSaved": "Global environment variables saved.",
     "environmentSaved": "Environment package saved.",
     "environmentCreated": "Environment \"{0}\" created.",
