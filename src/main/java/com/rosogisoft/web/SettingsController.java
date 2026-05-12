@@ -3,6 +3,7 @@ package com.rosogisoft.web;
 import com.rosogisoft.config.ApplicationCapabilities;
 import com.rosogisoft.domain.LlmAccessLevel;
 import com.rosogisoft.domain.SettingKey;
+import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.LlmAccessTokenService;
 import com.rosogisoft.service.ThemeService;
@@ -26,6 +27,7 @@ public class SettingsController {
     private final ThemeService        theme;
     private final LlmAccessTokenService llmAccessTokenService;
     private final ApplicationCapabilities capabilities;
+    private final EnvironmentService  environmentService;
 
     @GetMapping
     public String settings(Model model) {
@@ -36,6 +38,8 @@ public class SettingsController {
         model.addAttribute("keys",     SettingKey.values());
         model.addAttribute("languages", i18n.supportedLanguages());
         model.addAttribute("themes", theme.supportedThemes());
+        model.addAttribute("templateSuggestions", environmentService.templateSuggestions(user));
+      
         if (capabilities.isMcp()) {
             model.addAttribute("llmToken", llmAccessTokenService.findForUser(user).orElse(null));
             model.addAttribute("requestLogAccessLevels", LlmAccessLevel.values());

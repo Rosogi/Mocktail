@@ -135,7 +135,15 @@
               th:data-type="${mock.collection == null ? 'uncollected' : (@capabilities.shared ? (mock.collection.readOnly ? 'subscribed' : (mock.collection.shared ? 'shared' : 'own')) : 'own')}"
               th:data-priority="${mock.priority}"
               th:data-status-group="${mock.responseStatus < 300 ? '2xx' : (mock.responseStatus < 400 ? '3xx' : (mock.responseStatus < 500 ? '4xx' : '5xx'))}">
-            <td class="mock-name text-truncate" th:title="${mock.name}" th:text="${mock.name}"></td>
+            <td class="mock-name" th:with="warning=${mockTemplateWarnings[mock.id]}">
+              <div class="d-flex align-items-center gap-1 min-width-0">
+                <span class="text-truncate" th:title="${mock.name}" th:text="${mock.name}"></span>
+                <i th:if="${warning != null and warning.hasWarnings()}"
+                   class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"
+                   th:title="${warning.tooltip()}"
+                   th:aria-label="${@i18n.t('mocks.templateWarningsTitle')}"></i>
+              </div>
+            </td>
             <td>
               <span class="method-badge"
                     th:classappend="'method-' + (${mock.httpMethod == '*'} ? 'ANY' : ${mock.httpMethod})"

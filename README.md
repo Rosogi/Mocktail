@@ -9,13 +9,15 @@ It lets users create mock endpoints, inspect incoming requests in real time, ret
 - LDAP, database authentication, and standalone deployment modes.
 - Per-user mock endpoints on dedicated ports.
 - Live dashboard with request logs and request/response details.
-- Mock matching by HTTP method, path pattern, request body substring, active state, and priority.
+- Mock matching by HTTP method, path pattern, request body substring, advanced request conditions, active state, and priority.
 - JSON, XML, SOAP, HTML, plain text, and form-url-encoded response presets.
 - Response formatting for JSON, XML, SOAP, HTML, and form-url-encoded bodies.
-- Template variables from request method, path, query params, headers, JSON body fields, and XML/SOAP XPath.
+- Global and packaged environment variables for reusable ports, URLs, headers, and credentials.
+- Template variables from active environment packages, globals, request method, path, query params, headers, JSON body fields, and XML/SOAP XPath.
+- Template fallback values, autocomplete, and missing environment warnings in mock and default-response editors.
 - Mock collections with enable/disable controls.
 - Shared collections and subscriptions in multi-user modes.
-- Import and export for mocks and collections.
+- Import and export for mocks, collections, globals, and environment packages.
 - Docker Compose support for all deployment modes.
 
 ## Running Mocktail
@@ -143,6 +145,83 @@ Settings:
 
 The provided Compose file exposes ports `9000-9020`. If you change the application port range, also update the `ports` section in `docker-compose.yml`.
 
+## Environments and Template Variables
+
+Mocktail has a separate **Environments** section for reusable runtime values. Use it for values such as host names, ports, base URLs, auth headers, tenant IDs, and credentials.
+
+### Environment Variables
+
+There are two kinds of environment values:
+
+| Type | Description |
+|---|---|
+| Globals | Values available in every runtime environment. |
+| Environment packages | Named sets of values, for example `Local development`, `Staging`, or `Partner sandbox`. |
+
+Mocks and collections are not bound to a specific package. Instead, Mocktail resolves templates against the currently selected runtime environment when a request is handled. When an environment package is active, globals are still available through `{{global.key}}`; `{{env.key}}` also falls back to a global value with the same key if the active package does not define it.
+
+The active package can also be overridden per request:
+
+```text
+X-Mocktail-Environment: Local development
+```
+
+```text
+http://localhost:9000/api/users?__mocktail_env=Local%20development
+```
+
+The override value can be an environment package name or id. Use `globals` or `none` to force globals-only resolution for a request.
+
+Environment values can be imported and exported separately from mocks and collections. Globals have their own import/export actions. Environment packages can be imported as a copy, merged into an existing package, replaced, duplicated, or exported. Hidden value state is stored with the variable, so hidden values remain hidden after reopening the page and appear as `********` in autocomplete previews.
+
+### Template Syntax
+
+Templates use double braces:
+
+| Expression | Value source |
+|---|---|
+| `{{env.baseUrl}}` | Active environment package, then globals fallback. |
+| `{{global.companyId}}` | Globals only. |
+| `{{request.method}}` | Incoming HTTP method. |
+| `{{request.path}}` | Incoming request path. |
+| `{{param.policy}}` | Query parameter. |
+| `{{header.X-Correlation-Id}}` | Request header. |
+| `{{transaction.id}}` | JSON request body field. Nested fields are supported. |
+| `{{xpath:string(//*[local-name()='CustomerId'])}}` | XML/SOAP XPath expression. |
+
+Environment values can be composed from other environment values:
+
+```text
+address = http://localhost
+port = :9000
+url = {{address}}{{port}}
+```
+
+Use `??` to provide a fallback value when a template value is missing:
+
+```text
+{{env.port ?? 8080}}
+{{env.enabled ?? true}}
+{{env.deletedAt ?? null}}
+{{global.companyId ?? 'default-company'}}
+{{address.city??'Unknown'}}
+```
+
+The `??` separator works with or without spaces around it. Fallbacks support strings, numbers, booleans, and `null`. Fallback parsing happens only inside `{{...}}`, so normal response text such as `What???` is left unchanged.
+
+### Where Templates Work
+
+Templates can be used in:
+
+- Mock path pattern.
+- Basic request body contains matching.
+- Advanced request matching condition target and value.
+- Response body.
+- Extra response header names and values.
+- Default response body in Settings.
+
+Template-enabled editors show autocomplete suggestions. The left side shows the expression, and the right side shows the resolved preview value. Missing `env` and `global` references without a fallback are shown as warnings in the mock list, in the mock editor, and under the Default response body editor.
+
 ## JSON Mock Example
 
 This example mocks a risk scoring service used during checkout. The application sends transaction data to an external service, and Mocktail returns a deterministic scoring response while still echoing useful request values.
@@ -170,6 +249,8 @@ Response body:
   "customerSegment": "{{customer.segment}}",
   "policy": "{{param.policy}}",
   "correlationId": "{{header.X-Correlation-Id}}",
+  "serviceBaseUrl": "{{env.riskServiceBaseUrl ?? 'http://localhost:9000'}}",
+  "companyId": "{{global.companyId ?? 'demo-company'}}",
   "handledBy": "{{request.method}} {{request.path}}"
 }
 ```
@@ -208,6 +289,8 @@ Expected response:
   "customerSegment": "gold",
   "policy": "checkout-v2",
   "correlationId": "corr-7f31",
+  "serviceBaseUrl": "http://localhost:9000",
+  "companyId": "demo-company",
   "handledBy": "POST /risk/score"
 }
 ```
@@ -330,6 +413,8 @@ You can edit it in:
 Settings -> Default response
 ```
 
+The default response body supports the same template syntax, autocomplete suggestions, and missing environment warnings as mock response bodies.
+
 ### Why does my mock not match?
 
 Check:
@@ -338,7 +423,13 @@ Check:
 - The HTTP method matches, or the mock method is `*`.
 - The path pattern matches the request path.
 - The request body contains condition is empty or matches the raw request body.
+- Advanced request matching conditions match the incoming request.
+- Any `env` or `global` values used in the path or matching rules exist in the active runtime environment, or have fallback values.
 - Another matching mock with a higher priority is not winning first.
+
+### How do I know if a mock references missing environment values?
+
+Mocktail shows a warning icon in the mock list when a mock uses missing `env` or `global` values. The mock editor also shows the missing references with the field where they were found. Request-derived values such as `{{request.method}}`, `{{param.id}}`, `{{header.Authorization}}`, JSON fields, and XPath expressions are not treated as missing environment values.
 
 ### Why can I open the UI but requests to the mock endpoint fail?
 

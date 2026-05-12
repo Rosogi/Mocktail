@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${@i18n.t('environments.title')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('environments', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${@i18n.t('environments.title')}">Environments</h4>
+      <small class="text-muted" th:text="${@i18n.t('environments.subtitle')}">Runtime values for mocks and collections</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-outline-secondary"
+              type="button"
+              data-bs-toggle="modal" data-bs-target="#importEnvironmentModal">
+        <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('environments.importPackage')}">Import package</span>
+      </button>
+      <button class="btn btn-primary btn-sm"
+              type="button"
+              data-bs-toggle="modal" data-bs-target="#newEnvironmentModal">
+        <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('actions.newEnvironment')}">New environment</span>
+      </button>
+    </div>
+  </div>
+
+  <form class="env-runtime-panel mb-3" th:action="@{/environments/active}" method="post">
+    <div class="env-runtime-icon">
+      <i class="bi bi-sliders"></i>
+    </div>
+    <div class="min-width-0">
+      <div class="fw-semibold" th:text="${@i18n.t('environments.activeRuntime')}">Runtime environment</div>
+      <div class="text-muted small" th:text="${@i18n.t('environments.activeRuntimeHelp')}">
+        When an environment package is selected, globals are still available.
+      </div>
+    </div>
+    <select class="form-select form-select-sm env-runtime-select ms-auto"
+            name="environmentId"
+            onchange="this.form.submit()"
+            aria-label="Runtime environment">
+      <option value="" th:selected="${activeEnvironmentId == null}"
+              th:text="${@i18n.t('environments.globalsOnly')}">Globals only</option>
+      <option th:each="environment : ${environments}"
+              th:value="${environment.id}"
+              th:selected="${activeEnvironmentId != null and activeEnvironmentId == environment.id}"
+              th:text="${environment.name}">Local development</option>
+    </select>
+  </form>
+
+  <div class="template-hint mb-3">
+    <i class="bi bi-braces me-1"></i>
+    <strong th:text="${@i18n.t('environments.syntaxTitle')}">Variable syntax</strong>
+    —
+    <span th:text="${@i18n.t('environments.syntaxText')}">Use values anywhere mocks already support templates.</span>
+    <br/>
+    <code>{{env.address}}</code>,
+    <code>{{env.port}}</code>,
+    <code>{{env.url}}</code> =
+    <code>{{env.address}}{{env.port}}</code>,
+    <code>{{global.companyId}}</code>
+  </div>
+
+  <form th:action="@{/environments/globals}" method="post" class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
+      <div>
+        <span class="fw-semibold" th:text="${@i18n.t('environments.globalsTitle')}">Globals</span>
+        <div class="text-muted small" th:text="${@i18n.t('environments.globalsHelp')}">
+          Fallback values available to every package.
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-env-add-row>
+          <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('environments.addGlobal')}">Add global</span>
+        </button>
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="bi bi-floppy me-1"></i><span th:text="${@i18n.t('actions.save')}">Save</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-toggle="modal" data-bs-target="#importGlobalsModal">
+          <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('environments.importGlobalsButton')}">Import globals</span>
+        </button>
+        <a th:href="@{/environments/globals/export}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-download me-1"></i><span th:text="${@i18n.t('environments.exportGlobals')}">Export globals</span>
+        </a>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 env-variable-table" data-env-variable-table>
+          <thead class="table-light">
+          <tr>
+            <th th:text="${@i18n.t('environments.key')}">Key</th>
+            <th th:text="${@i18n.t('environments.value')}">Value</th>
+            <th th:text="${@i18n.t('environments.resolvedPreview')}">Resolved preview</th>
+            <th th:text="${@i18n.t('environments.description')}">Description</th>
+            <th style="width:86px"></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="variable : ${globals}"
+              data-env-value-row
+              th:data-env-hidden="${variable.hidden}">
+            <td>
+              <input class="form-control form-control-sm font-monospace"
+                     type="text"
+                     name="keys"
+                     data-env-key
+                     th:value="${variable.key}"/>
+            </td>
+            <td>
+              <input class="form-control form-control-sm font-monospace env-value-input"
+                     type="text"
+                     name="values"
+                     data-env-raw-value
+                     th:value="${variable.value}"/>
+            </td>
+            <td>
+              <input class="form-control form-control-sm font-monospace env-value-input env-resolved-input"
+                     type="text"
+                     data-env-resolved-value
+                     readonly
+                     th:value="${variable.resolvedValue}"/>
+            </td>
+            <td>
+              <input class="form-control form-control-sm"
+                     type="text"
+                     name="descriptions"
+                     th:value="${variable.description}"/>
+            </td>
+            <td class="text-end">
+              <input type="hidden" name="hidden"
+                     data-env-hidden-input
+                     th:value="${variable.hidden}"/>
+              <button type="button"
+                      class="btn btn-sm btn-outline-secondary icon-btn"
+                      data-env-hide-toggle
+                      th:data-show-label="${@i18n.t('actions.showValue')}"
+                      th:data-hide-label="${@i18n.t('actions.hideValue')}"
+                      th:title="${@i18n.t('actions.hideValue')}"
+                      th:aria-label="${@i18n.t('actions.hideValue')}">
+                <i class="bi bi-eye-slash"></i>
+              </button>
+              <button type="button"
+                      class="btn btn-sm btn-outline-danger icon-btn"
+                      data-env-remove-row
+                      th:title="${@i18n.t('actions.delete')}"
+                      th:aria-label="${@i18n.t('actions.delete')}">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </form>
+
+  <div class="d-flex align-items-center justify-content-between gap-2 mb-2 flex-wrap">
+    <h5 class="mb-0" th:text="${@i18n.t('environments.packagesTitle')}">Environment packages</h5>
+    <div class="filters-bar env-filters" data-env-filter-scope="packages">
+      <div class="filter-search">
+        <i class="bi bi-search"></i>
+        <input type="search" class="form-control form-control-sm"
+               data-env-filter="search"
+               th:placeholder="${@i18n.t('filters.searchEnvironments')}"/>
+      </div>
+      <select class="form-select form-select-sm" data-env-filter="state">
+        <option value="" th:text="${@i18n.t('filters.anyState')}">Any state</option>
+        <option value="active" th:text="${@i18n.t('environments.active')}">Active</option>
+        <option value="idle" th:text="${@i18n.t('environments.idle')}">Idle</option>
+      </select>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-env-filter-reset>
+        <span th:text="${@i18n.t('actions.reset')}">Reset</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="environmentsEmptyFiltered" class="text-center text-muted py-5 d-none">
+    <i class="bi bi-funnel d-block mb-2" style="font-size:2.2rem"></i>
+    <span th:text="${@i18n.t('environments.noMatches')}">No environment packages match filters</span>
+  </div>
+
+  <div class="row g-3" id="environmentPackagesGrid">
+    <div class="col-md-6 col-xl-4 env-package-card-wrap"
+         th:each="environment : ${environments}"
+         th:data-name="${#strings.toLowerCase(environment.name)}"
+         th:data-description="${#strings.toLowerCase(environment.description)}"
+         th:data-state="${environment.active ? 'active' : 'idle'}">
+      <div class="card border-0 shadow-sm h-100 env-package-card">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+            <div class="min-width-0">
+              <h6 class="mb-1 fw-semibold text-truncate" th:text="${environment.name}">Local development</h6>
+              <div class="d-flex align-items-center gap-1 flex-wrap">
+                <span class="badge bg-primary" th:if="${environment.active}" th:text="${@i18n.t('environments.active')}">Active</span>
+                <span class="badge bg-light text-dark border">
+                  <span th:text="${@i18n.t('environments.variablesCount', environment.variableCount())}">4 variables</span>
+                </span>
+              </div>
+            </div>
+            <div class="dropdown flex-shrink-0">
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                      type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                      th:title="${@i18n.t('tooltips.moreActions')}">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <button class="dropdown-item" type="button"
+                          data-env-duplicate
+                          th:data-env-id="${environment.id}"
+                          th:data-env-name="${environment.name}"
+                          data-bs-toggle="modal" data-bs-target="#duplicateEnvironmentModal">
+                    <i class="bi bi-copy me-2"></i><span th:text="${@i18n.t('actions.duplicate')}">Duplicate</span>
+                  </button>
+                </li>
+                <li>
+                  <a class="dropdown-item" th:href="@{/environments/{id}/export(id=${environment.id})}">
+                    <i class="bi bi-download me-2"></i><span th:text="${@i18n.t('environments.exportPackage')}">Export package</span>
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"/></li>
+                <li>
+                  <form th:action="@{/environments/{id}/delete(id=${environment.id})}" method="post">
+                    <button class="dropdown-item text-danger" type="submit">
+                      <i class="bi bi-trash me-2"></i><span th:text="${@i18n.t('actions.delete')}">Delete</span>
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="text-muted small env-package-description" th:text="${environment.description}">
+            Laptop services and mock callbacks used during local feature work.
+          </p>
+
+          <div class="small text-muted mb-3">
+            <i class="bi bi-clock me-1"></i>
+            <span th:text="${@i18n.t('environments.updated')}">Updated</span>
+            <span th:text="${environment.updatedAt}">Today, 10:42</span>
+          </div>
+
+          <div class="d-flex gap-2 mt-auto">
+            <a class="btn btn-sm btn-outline-secondary flex-fill"
+               th:href="@{/environments/{id}(id=${environment.id})}">
+              <i class="bi bi-eye me-1"></i><span th:text="${@i18n.t('actions.open')}">Open</span>
+            </a>
+            <button class="btn btn-sm btn-outline-secondary"
+                    type="button"
+                    th:title="${@i18n.t('actions.duplicate')}"
+                    th:aria-label="${@i18n.t('actions.duplicate')}"
+                    data-env-duplicate
+                    th:data-env-id="${environment.id}"
+                    th:data-env-name="${environment.name}"
+                    data-bs-toggle="modal" data-bs-target="#duplicateEnvironmentModal">
+              <i class="bi bi-copy"></i>
+            </button>
+            <a class="btn btn-sm btn-outline-secondary"
+               th:href="@{/environments/{id}/export(id=${environment.id})}"
+               th:title="${@i18n.t('environments.exportPackage')}"
+               th:aria-label="${@i18n.t('environments.exportPackage')}">
+              <i class="bi bi-download"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<template data-env-row-template>
+  <tr data-env-value-row data-env-hidden="false">
+    <td>
+      <input class="form-control form-control-sm font-monospace"
+             type="text"
+             name="keys"
+             data-env-key
+             placeholder="key"/>
+    </td>
+    <td>
+      <input class="form-control form-control-sm font-monospace env-value-input"
+             type="text"
+             name="values"
+             data-env-raw-value
+             placeholder="{{address}}{{port}}"/>
+    </td>
+    <td>
+      <input class="form-control form-control-sm font-monospace env-value-input env-resolved-input"
+             type="text"
+             data-env-resolved-value
+             readonly/>
+    </td>
+    <td>
+      <input class="form-control form-control-sm"
+             type="text"
+             name="descriptions"
+             placeholder="Description"/>
+    </td>
+    <td class="text-end">
+      <input type="hidden" name="hidden" data-env-hidden-input value="false"/>
+      <button type="button" class="btn btn-sm btn-outline-secondary icon-btn"
+              data-env-hide-toggle
+              th:data-show-label="${@i18n.t('actions.showValue')}"
+              th:data-hide-label="${@i18n.t('actions.hideValue')}"
+              th:title="${@i18n.t('actions.hideValue')}"
+              th:aria-label="${@i18n.t('actions.hideValue')}">
+        <i class="bi bi-eye-slash"></i>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-danger icon-btn"
+              data-env-remove-row
+              th:title="${@i18n.t('actions.delete')}"
+              th:aria-label="${@i18n.t('actions.delete')}">
+        <i class="bi bi-trash"></i>
+      </button>
+    </td>
+  </tr>
+</template>
+
+<div class="modal fade" id="newEnvironmentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" th:text="${@i18n.t('environments.newTitle')}">New environment package</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/environments/new}" method="post">
+        <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold"><span th:text="${@i18n.t('environments.name')}">Name</span> <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" placeholder="Integration sandbox" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" th:text="${@i18n.t('environments.description')}">Description</label>
+          <textarea name="description" class="form-control" rows="2"
+                    placeholder="Values for integration testing."></textarea>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="makeActive" value="true" id="activateNewEnvironment"/>
+          <label class="form-check-label" for="activateNewEnvironment" th:text="${@i18n.t('environments.makeActive')}">Make active after creation</label>
+        </div>
+        </div>
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm" th:text="${@i18n.t('actions.create')}">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="duplicateEnvironmentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" th:text="${@i18n.t('environments.duplicateTitle')}">Duplicate package</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/environments/duplicate}" method="post">
+        <div class="modal-body">
+        <p class="text-muted small" th:text="${@i18n.t('environments.duplicateHelp')}">
+          Copy all variables into a new editable package.
+        </p>
+        <input type="hidden" name="sourceId" data-env-duplicate-source-id/>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" th:text="${@i18n.t('environments.sourcePackage')}">Source package</label>
+          <input type="text" class="form-control" data-env-duplicate-source value="Local development" readonly/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" th:text="${@i18n.t('environments.newName')}">New name</label>
+          <input type="text" name="name" class="form-control" data-env-duplicate-name value="Local development copy"/>
+        </div>
+        </div>
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm" th:text="${@i18n.t('actions.duplicate')}">Duplicate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="importGlobalsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-upload me-2"></i><span th:text="${@i18n.t('environments.importGlobalsTitle')}">Import globals</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/environments/globals/import}" method="post" enctype="multipart/form-data">
+        <div class="modal-body">
+        <p class="text-muted small mb-3" th:text="${@i18n.t('environments.importGlobalsHelp')}">
+          Upload a Mocktail globals JSON file.
+        </p>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            <span th:text="${@i18n.t('forms.file')}">File</span> <span class="text-danger">*</span>
+          </label>
+          <input type="file" name="file" class="form-control" accept=".json" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" th:text="${@i18n.t('environments.conflictStrategy')}">If variable exists</label>
+          <select class="form-select" name="strategy">
+            <option value="merge" th:text="${@i18n.t('environments.mergeVariables')}">Merge variables</option>
+            <option value="replace" th:text="${@i18n.t('environments.replaceVariables')}">Replace variables</option>
+          </select>
+        </div>
+        </div>
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('actions.import')}">Import</span>
+        </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="importEnvironmentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-upload me-2"></i><span th:text="${@i18n.t('environments.importTitle')}">Import environment package</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/environments/import}" method="post" enctype="multipart/form-data">
+        <div class="modal-body">
+        <p class="text-muted small mb-3" th:text="${@i18n.t('environments.importHelp')}">
+          Upload a Mocktail environment package JSON file.
+        </p>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            <span th:text="${@i18n.t('forms.file')}">File</span> <span class="text-danger">*</span>
+          </label>
+          <input type="file" name="file" class="form-control" accept=".json" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" th:text="${@i18n.t('environments.conflictStrategy')}">If package exists</label>
+          <select class="form-select" name="strategy">
+            <option value="copy" th:text="${@i18n.t('environments.importAsCopy')}">Import as copy</option>
+            <option value="merge" th:text="${@i18n.t('environments.mergeVariables')}">Merge variables</option>
+            <option value="replace" th:text="${@i18n.t('environments.replacePackage')}">Replace package</option>
+          </select>
+        </div>
+        </div>
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-upload me-1"></i><span th:text="${@i18n.t('actions.import')}">Import</span>
+        </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/environments.js}"></script>
+</body>
+</html>

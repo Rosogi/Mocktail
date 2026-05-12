@@ -17,6 +17,7 @@ public class MockMatcherService {
 
     private final MockDefinitionRepository mockRepository;
     private final RequestConditionMatcher requestConditionMatcher;
+    private final MockTemplateEngine templateEngine;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     /**
@@ -35,17 +36,22 @@ public class MockMatcherService {
                                                String path,
                                                String queryString,
                                                java.util.Map<String, String> headers,
-                                               String body) {
+                                               String body,
+                                               EnvironmentContext environmentContext) {
         List<MockDefinition> candidates = mockRepository.findActiveByOwnerId(ownerId);
 
         for (MockDefinition mock : candidates) {
-            if (!methodMatches(mock.getHttpMethod(), method)) {
+            String mockMethod = templateEngine.render(mock.getHttpMethod(), method, path, queryString, headers, body,
+                    environmentContext);
+            String pathPattern = templateEngine.render(mock.getPathPattern(), method, path, queryString, headers, body,
+                    environmentContext);
+            if (!methodMatches(mockMethod, method)) {
                 continue;
             }
-            if (!pathMatches(mock.getPathPattern(), path)) {
+            if (!pathMatches(pathPattern, path)) {
                 continue;
             }
-            if (!requestConditionMatcher.matches(mock, queryString, headers, body)) {
+            if (!requestConditionMatcher.matches(mock, method, path, queryString, headers, body, environmentContext)) {
                 continue;
             }
             log.debug("Нашли Mock с id={} '{}' для {} {}", mock.getId(), mock.getName(), method, path);
@@ -58,11 +64,17 @@ public class MockMatcherService {
 
     // ---------------------------------------------------------------
     private boolean methodMatches (String mockMethod, String requestMethod) {
+        if (mockMethod == null || mockMethod.isBlank()) {
+            return false;
+        }
         return "*".equals(mockMethod) ||
                 mockMethod.equalsIgnoreCase(requestMethod);
     }
 
     private boolean pathMatches (String pattern, String path) {
+        if (pattern == null || pattern.isBlank()) {
+            return false;
+        }
         try {
             return pathMatcher.match(pattern, path);
         } catch (Exception e) {

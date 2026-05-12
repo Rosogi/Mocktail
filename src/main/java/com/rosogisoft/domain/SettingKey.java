@@ -12,7 +12,8 @@ public enum SettingKey {
     DEFAULT_RESPONSE_CT("application/json", SettingType.STRING),
     LANGUAGE("en", SettingType.STRING),
     LOG_PAGE_SIZE("200", SettingType.INTEGER),
-    THEME("light", SettingType.STRING)
+    THEME("light", SettingType.STRING),
+    ACTIVE_ENVIRONMENT_ID("", SettingType.STRING)
     ;
 
     private final String defaultValue;

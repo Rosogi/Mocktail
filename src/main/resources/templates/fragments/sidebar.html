@@ -28,6 +28,13 @@
         <i class="bi bi-collection"></i><span th:text="${@i18n.t('nav.collections')}">Collections</span>
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link"
+         th:classappend="${activePage == 'environments'} ? 'active'"
+         th:href="@{/environments}">
+        <i class="bi bi-sliders"></i><span th:text="${@i18n.t('nav.environments')}">Environments</span>
+      </a>
+    </li>
     <li class="nav-item" th:if="${@capabilities.shared}">
       <a class="nav-link"
          th:classappend="${activePage == 'shared'} ? 'active'"
