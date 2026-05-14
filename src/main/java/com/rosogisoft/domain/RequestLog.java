@@ -68,6 +68,9 @@ public class RequestLog {
     private String remoteAddr;
 
     @Transient
+    private String remoteDisplayName;
+
+    @Transient
     public String getRequestHeadersJson() {
         if (requestHeaders == null || requestHeaders.isEmpty()) {
             return "";

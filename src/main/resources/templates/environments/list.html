@@ -170,11 +170,6 @@
                data-env-filter="search"
                th:placeholder="${@i18n.t('filters.searchEnvironments')}"/>
       </div>
-      <select class="form-select form-select-sm" data-env-filter="state">
-        <option value="" th:text="${@i18n.t('filters.anyState')}">Any state</option>
-        <option value="active" th:text="${@i18n.t('environments.active')}">Active</option>
-        <option value="idle" th:text="${@i18n.t('environments.idle')}">Idle</option>
-      </select>
       <button type="button" class="btn btn-sm btn-outline-secondary" data-env-filter-reset>
         <span th:text="${@i18n.t('actions.reset')}">Reset</span>
       </button>
@@ -372,7 +367,7 @@
         <input type="hidden" name="sourceId" data-env-duplicate-source-id/>
         <div class="mb-3">
           <label class="form-label fw-semibold" th:text="${@i18n.t('environments.sourcePackage')}">Source package</label>
-          <input type="text" class="form-control" data-env-duplicate-source value="Local development" readonly/>
+          <div class="env-source-package" data-env-duplicate-source>Local development</div>
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold" th:text="${@i18n.t('environments.newName')}">New name</label>

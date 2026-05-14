@@ -2,6 +2,7 @@ package com.rosogisoft.ws;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.rosogisoft.domain.RequestLog;
+import com.rosogisoft.service.KnownRemoteHostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -14,9 +15,10 @@ import java.time.format.DateTimeFormatter;
 public class RequestEventPublisher {
 
     private final SimpMessagingTemplate template;
+    private final KnownRemoteHostService knownRemoteHostService;
 
     private static final DateTimeFormatter FMT =
-            DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneOffset.UTC);
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneOffset.UTC);
 
     /**
      * Sends a lightweight event to /topic/logs/user-{userId}.
@@ -26,6 +28,7 @@ public class RequestEventPublisher {
         var payload = new LogEvent(
                 log.getId(),
                 FMT.format(log.getTimestamp()),
+                log.getTimestamp().toString(),
                 log.getMethod(),
                 log.getPath(),
                 log.getQueryParams(),
@@ -35,7 +38,8 @@ public class RequestEventPublisher {
                 log.getRequestBody(),
                 log.getResponseBody(),
                 log.getContentType(),
-                log.getRemoteAddr()
+                log.getRemoteAddr(),
+                knownRemoteHostService.displayNameForAddress(userId, log.getRemoteAddr()).orElse(null)
         );
         template.convertAndSend("/topic/logs/user-" + userId, payload);
     }
@@ -44,6 +48,7 @@ public class RequestEventPublisher {
     public record LogEvent(
             Long id,
             String time,
+            String timestamp,
             String method,
             String path,
             String queryParams,
@@ -53,7 +58,8 @@ public class RequestEventPublisher {
             String requestBody,
             String responseBody,
             String contentType,
-            String remoteAddr
+            String remoteAddr,
+            String remoteDisplayName
     ) {
     }
 }

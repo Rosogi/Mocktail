@@ -128,41 +128,203 @@
             <form th:if="${llmToken != null}" th:action="@{/settings/llm-access/permissions}" method="post">
                 <input type="hidden" th:if="${_csrf != null}"
                        th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <div class="row g-3 align-items-end">
-                    <div class="col-sm-5">
-                        <label class="form-label fw-semibold" th:text="${@i18n.t('settings.llmRequestLogsAccess')}">
-                            Request logs
-                        </label>
-                        <select class="form-select" name="requestLogsAccess">
-                            <option th:each="level : ${requestLogAccessLevels}"
-                                    th:value="${level.name()}"
-                                    th:selected="${llmToken.requestLogsAccess == level}"
-                                    th:text="${@i18n.t('settings.llmAccess.' + level.name())}">
-                                NONE
-                            </option>
-                        </select>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm align-middle mb-0 llm-permissions-table">
+                        <thead class="table-light">
+                        <tr>
+                            <th th:text="${@i18n.t('settings.llmPermissionArea')}">Area</th>
+                            <th th:text="${@i18n.t('settings.llmPermissionLevel')}">Access</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td class="fw-semibold" th:text="${@i18n.t('settings.llmRequestLogsAccess')}">Request logs</td>
+                            <td>
+                                <select class="form-select form-select-sm" name="requestLogsAccess">
+                                    <option th:each="level : ${requestLogAccessLevels}"
+                                            th:value="${level.name()}"
+                                            th:selected="${llmToken.requestLogsAccess == level}"
+                                            th:text="${@i18n.t('settings.llmAccess.' + level.name())}">
+                                        NONE
+                                    </option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold" th:text="${@i18n.t('settings.llmMocksAccess')}">Mocks</td>
+                            <td>
+                                <select class="form-select form-select-sm" name="mocksAccess">
+                                    <option th:each="level : ${mockAccessLevels}"
+                                            th:value="${level.name()}"
+                                            th:selected="${llmToken.mocksAccess == level}"
+                                            th:text="${@i18n.t('settings.llmAccess.' + level.name())}">
+                                        NONE
+                                    </option>
+                                </select>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-floppy me-1"></i>
+                    <span th:text="${@i18n.t('actions.save')}">Save</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <form th:action="@{/settings/known-hosts}" method="post"
+          class="card border-0 shadow-sm mb-4 known-hosts-card" style="max-width:760px">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div>
+                <span class="fw-semibold" th:text="${@i18n.t('settings.knownHostsTitle')}">Known remote hosts</span>
+                <div class="text-muted small" th:text="${@i18n.t('settings.knownHostsHelp')}">
+                    Name request sources so the dashboard is easier to scan.
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-known-host-add-row>
+                    <i class="bi bi-plus-lg me-1"></i>
+                    <span th:text="${@i18n.t('settings.knownHostsAdd')}">Add host</span>
+                </button>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-floppy me-1"></i>
+                    <span th:text="${@i18n.t('actions.save')}">Save</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        data-bs-toggle="modal" data-bs-target="#importKnownHostsModal">
+                    <i class="bi bi-upload me-1"></i>
+                    <span th:text="${@i18n.t('settings.knownHostsImport')}">Import JSON</span>
+                </button>
+                <a th:href="@{/settings/known-hosts/export}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-download me-1"></i>
+                    <span th:text="${@i18n.t('settings.knownHostsExport')}">Export JSON</span>
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 known-hosts-table" data-known-host-table>
+                    <thead class="table-light">
+                    <tr>
+                        <th th:text="${@i18n.t('settings.knownHostsAddress')}">Address</th>
+                        <th th:text="${@i18n.t('settings.knownHostsDisplayName')}">Display name</th>
+                        <th th:text="${@i18n.t('settings.knownHostsDescription')}">Description</th>
+                        <th style="width:56px"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${knownRemoteHosts.empty}" data-known-host-empty-row>
+                        <td colspan="4" class="text-center text-muted py-4"
+                            th:text="${@i18n.t('settings.knownHostsEmpty')}">
+                            Add known hosts to make remote addresses readable in the dashboard.
+                        </td>
+                    </tr>
+                    <tr th:each="host : ${knownRemoteHosts}" data-known-host-row>
+                        <td>
+                            <input type="text"
+                                   name="addresses"
+                                   class="form-control form-control-sm font-monospace"
+                                   th:value="${host.address}"
+                                   th:placeholder="${@i18n.t('settings.knownHostsAddressPlaceholder')}"/>
+                        </td>
+                        <td>
+                            <input type="text"
+                                   name="displayNames"
+                                   class="form-control form-control-sm"
+                                   th:value="${host.displayName}"
+                                   th:placeholder="${@i18n.t('settings.knownHostsDisplayNamePlaceholder')}"/>
+                        </td>
+                        <td>
+                            <input type="text"
+                                   name="descriptions"
+                                   class="form-control form-control-sm"
+                                   th:value="${host.description}"
+                                   th:placeholder="${@i18n.t('settings.knownHostsDescriptionPlaceholder')}"/>
+                        </td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger icon-btn"
+                                    data-known-host-remove-row
+                                    th:title="${@i18n.t('actions.delete')}"
+                                    th:aria-label="${@i18n.t('actions.delete')}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+
+    <template data-known-host-row-template>
+        <tr data-known-host-row>
+            <td>
+                <input type="text"
+                       name="addresses"
+                       class="form-control form-control-sm font-monospace"
+                       th:placeholder="${@i18n.t('settings.knownHostsAddressPlaceholder')}"/>
+            </td>
+            <td>
+                <input type="text"
+                       name="displayNames"
+                       class="form-control form-control-sm"
+                       th:placeholder="${@i18n.t('settings.knownHostsDisplayNamePlaceholder')}"/>
+            </td>
+            <td>
+                <input type="text"
+                       name="descriptions"
+                       class="form-control form-control-sm"
+                       th:placeholder="${@i18n.t('settings.knownHostsDescriptionPlaceholder')}"/>
+            </td>
+            <td class="text-end">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger icon-btn"
+                        data-known-host-remove-row
+                        th:title="${@i18n.t('actions.delete')}"
+                        th:aria-label="${@i18n.t('actions.delete')}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>
+    </template>
+
+    <div class="modal fade" id="importKnownHostsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" th:text="${@i18n.t('settings.knownHostsImport')}">Import JSON</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            th:aria-label="${@i18n.t('actions.close')}"></button>
+                </div>
+                <form th:action="@{/settings/known-hosts/import}" method="post" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" th:text="${@i18n.t('forms.file')}">File</label>
+                            <input class="form-control" type="file" name="file" accept="application/json,.json" required/>
+                        </div>
+                        <div>
+                            <label class="form-label fw-semibold" th:text="${@i18n.t('settings.knownHostsImportStrategy')}">
+                                Import strategy
+                            </label>
+                            <select class="form-select" name="strategy">
+                                <option value="merge" th:text="${@i18n.t('settings.knownHostsMerge')}">Merge and update matches</option>
+                                <option value="skip_existing" th:text="${@i18n.t('settings.knownHostsSkipExisting')}">Keep existing addresses</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-sm-5">
-                        <label class="form-label fw-semibold" th:text="${@i18n.t('settings.llmMocksAccess')}">
-                            Mocks
-                        </label>
-                        <select class="form-select" name="mocksAccess">
-                            <option th:each="level : ${mockAccessLevels}"
-                                    th:value="${level.name()}"
-                                    th:selected="${llmToken.mocksAccess == level}"
-                                    th:text="${@i18n.t('settings.llmAccess.' + level.name())}">
-                                NONE
-                            </option>
-                        </select>
-                    </div>
-                    <div class="col-sm-auto">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-floppy me-1"></i>
-                            <span th:text="${@i18n.t('actions.save')}">Save</span>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                                th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-upload me-1"></i>
+                            <span th:text="${@i18n.t('actions.import')}">Import</span>
                         </button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -265,5 +427,6 @@
 </script>
 <script th:src="@{/js/body-tools.js}"></script>
 <script th:src="@{/js/mocks.js}"></script>
+<script th:src="@{/js/known-hosts.js}"></script>
 </body>
 </html>

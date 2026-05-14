@@ -5,6 +5,7 @@ import com.rosogisoft.domain.LlmAccessLevel;
 import com.rosogisoft.domain.SettingKey;
 import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.I18nService;
+import com.rosogisoft.service.KnownRemoteHostService;
 import com.rosogisoft.service.LlmAccessTokenService;
 import com.rosogisoft.service.ThemeService;
 import com.rosogisoft.service.UserSettingsService;
@@ -28,6 +29,7 @@ public class SettingsController {
     private final LlmAccessTokenService llmAccessTokenService;
     private final ApplicationCapabilities capabilities;
     private final EnvironmentService  environmentService;
+    private final KnownRemoteHostService knownRemoteHostService;
 
     @GetMapping
     public String settings(Model model) {
@@ -39,6 +41,7 @@ public class SettingsController {
         model.addAttribute("languages", i18n.supportedLanguages());
         model.addAttribute("themes", theme.supportedThemes());
         model.addAttribute("templateSuggestions", environmentService.templateSuggestions(user));
+        model.addAttribute("knownRemoteHosts", knownRemoteHostService.views(user));
       
         if (capabilities.isMcp()) {
             model.addAttribute("llmToken", llmAccessTokenService.findForUser(user).orElse(null));

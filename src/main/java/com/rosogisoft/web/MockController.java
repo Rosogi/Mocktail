@@ -169,6 +169,16 @@ public class MockController {
         return "redirect:/mocks";
     }
 
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportAllMocks() throws IOException {
+        User user = currentUserHelper.currentUser();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"mocks-export.json\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(importExportService.exportAll(user));
+    }
+
     @GetMapping("/{id}/export")
     public ResponseEntity<byte[]> exportSingleMock (@PathVariable Long id) throws IOException {
         User user = currentUserHelper.currentUser();

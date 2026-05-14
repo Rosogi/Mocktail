@@ -11,10 +11,98 @@ const LOG_TOPIC   = dashboardEl.dataset.logTopic;
 const I18N        = dashboardEl.dataset;
 const CSRF_PARAM  = dashboardEl.dataset.csrfParam;
 const CSRF_TOKEN  = dashboardEl.dataset.csrfToken;
+const ACTIVE_FILTERS = {
+  search: (dashboardEl.dataset.filterSearch || '').toLowerCase(),
+  method: dashboardEl.dataset.filterMethod || '',
+  status: dashboardEl.dataset.filterStatus || '',
+  fromTimestamp: parseTimestamp(dashboardEl.dataset.filterFromTimestamp),
+  toTimestamp: parseTimestamp(dashboardEl.dataset.filterToTimestamp),
+};
 
 function uiText(key, fallback) {
   return I18N[key] || fallback;
 }
+
+function parseTimestamp(value) {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function initDashboardPeriodFilter() {
+  const filter = document.querySelector('[data-dashboard-period-filter]');
+  if (!filter) return;
+
+  const valueInput = filter.querySelector('[data-dashboard-period-value]');
+  const label = filter.querySelector('[data-dashboard-period-label]');
+  const toggle = filter.querySelector('[data-bs-toggle="dropdown"]');
+  const dateFrom = filter.querySelector('[data-dashboard-date-from]');
+  const dateTo = filter.querySelector('[data-dashboard-date-to]');
+  const choices = Array.from(filter.querySelectorAll('[data-dashboard-period-choice]'));
+  const labels = new Map(choices.map(choice => [choice.dataset.dashboardPeriodChoice || '', choice.textContent.trim()]));
+  const customLabel = filter.dataset.periodCustomLabel || labels.get('custom') || 'Custom range';
+
+  function setCustomEnabled(enabled) {
+    [dateFrom, dateTo].forEach(input => {
+      if (input) {
+        input.disabled = !enabled;
+      }
+    });
+  }
+
+  function currentLabel() {
+    const value = valueInput?.value || '';
+    if (value !== 'custom') {
+      return labels.get(value) || labels.get('') || '';
+    }
+    const from = dateFrom?.value || '';
+    const to = dateTo?.value || '';
+    return from || to
+        ? `${customLabel}: ${from || '...'} - ${to || '...'}`
+        : customLabel;
+  }
+
+  function updateLabel() {
+    if (label) {
+      label.textContent = currentLabel();
+    }
+  }
+
+  function hideMenu() {
+    if (!toggle || !window.bootstrap?.Dropdown) return;
+    bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+  }
+
+  function choose(value, focusCustom) {
+    if (valueInput) {
+      valueInput.value = value;
+    }
+    const custom = value === 'custom';
+    setCustomEnabled(custom);
+    updateLabel();
+    if (custom && focusCustom) {
+      dateFrom?.focus();
+    } else if (!custom) {
+      hideMenu();
+    }
+  }
+
+  choices.forEach(choice => {
+    choice.addEventListener('click', () => {
+      choose(choice.dataset.dashboardPeriodChoice || '', choice.dataset.dashboardPeriodChoice === 'custom');
+    });
+  });
+
+  [dateFrom, dateTo].forEach(input => {
+    input?.addEventListener('focus', () => choose('custom', false));
+    input?.addEventListener('input', () => choose('custom', false));
+    input?.addEventListener('change', () => choose('custom', false));
+  });
+
+  choose(valueInput?.value || '', false);
+}
+
+initDashboardPeriodFilter();
 
 // ── State ───────────────────────────────────────────────────
 let totalCount = parseInt(document.getElementById('log-count').textContent, 10) || 0;
@@ -63,12 +151,53 @@ function prettyText(str, contentType) {
   return tryPrettyJson(str);
 }
 
+function statusGroup(status) {
+  const value = Number.parseInt(status || '0', 10);
+  if (value >= 200 && value < 300) return '2xx';
+  if (value >= 300 && value < 400) return '3xx';
+  if (value >= 400 && value < 500) return '4xx';
+  if (value >= 500 && value < 600) return '5xx';
+  return '';
+}
+
+function matchesActiveFilters(log) {
+  if (ACTIVE_FILTERS.method && log.method !== ACTIVE_FILTERS.method) {
+    return false;
+  }
+  if (ACTIVE_FILTERS.status && statusGroup(log.status) !== ACTIVE_FILTERS.status) {
+    return false;
+  }
+  const timestamp = parseTimestamp(log.timestamp);
+  if (ACTIVE_FILTERS.fromTimestamp !== null &&
+      (timestamp === null || timestamp < ACTIVE_FILTERS.fromTimestamp)) {
+    return false;
+  }
+  if (ACTIVE_FILTERS.toTimestamp !== null &&
+      (timestamp === null || timestamp >= ACTIVE_FILTERS.toTimestamp)) {
+    return false;
+  }
+  if (ACTIVE_FILTERS.search) {
+    const searchable = [
+      log.path,
+      log.queryParams,
+      log.remoteAddr,
+      log.remoteDisplayName,
+      log.matchedMock,
+    ].filter(Boolean).join(' ').toLowerCase();
+    if (!searchable.includes(ACTIVE_FILTERS.search)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // ── Request detail modal ─────────────────────────────────────
 const detailModal     = new bootstrap.Modal(document.getElementById('requestDetailModal'));
 const modalMethod     = document.getElementById('modal-method');
 const modalPath       = document.getElementById('modal-path');
 const modalTime       = document.getElementById('modal-time');
-const modalRemote     = document.getElementById('modal-remote');
+const modalRemoteName = document.getElementById('modal-remote-name');
+const modalRemoteAddr = document.getElementById('modal-remote-address');
 const modalStatus     = document.getElementById('modal-status');
 const modalMock       = document.getElementById('modal-mock');
 const modalReqHeaders = document.getElementById('modal-req-headers');
@@ -97,7 +226,9 @@ function openDetail(logId) {
       method:      row.dataset.method,
       path:        row.dataset.path,
       time:        row.dataset.time,
+      timestamp:   row.dataset.timestamp,
       remoteAddr:  row.dataset.remote,
+      remoteDisplayName: row.dataset.remoteName,
       status:      row.dataset.status,
       matchedMock: row.dataset.mock,
       queryParams: row.dataset.query,
@@ -119,7 +250,14 @@ function fillModal(d) {
   modalMethod.className        = 'method-badge ' + methodClass(d.method);
   modalPath.textContent        = d.path || '—';
   modalTime.textContent        = d.time || '—';
-  modalRemote.textContent      = d.remoteAddr || '—';
+  if (modalRemoteName) {
+    const remoteName = d.remoteDisplayName || '';
+    modalRemoteName.textContent = remoteName;
+    modalRemoteName.classList.toggle('d-none', !remoteName);
+  }
+  if (modalRemoteAddr) {
+    modalRemoteAddr.textContent = d.remoteAddr || '—';
+  }
   modalStatus.textContent      = d.status || '—';
   modalStatus.className        = 'badge ' + statusClass(parseInt(d.status));
   modalMock.textContent        = d.matchedMock || '— ' + uiText('i18nNoMatch', 'no match') + ' —';
@@ -175,9 +313,13 @@ function clearEmptyState() {
 }
 
 function addLiveRow(log) {
-  clearEmptyState();
+  totalCount++;
+  document.getElementById('log-count').textContent = totalCount;
+  if (!matchesActiveFilters(log)) {
+    return;
+  }
 
-  // Store for modal
+  clearEmptyState();
   logStore[log.id] = log;
 
   const path = log.path + (log.queryParams ? '?' + log.queryParams : '');
@@ -189,7 +331,9 @@ function addLiveRow(log) {
   tr.dataset.method          = log.method;
   tr.dataset.path            = log.path;
   tr.dataset.time            = log.time;
+  tr.dataset.timestamp       = log.timestamp || '';
   tr.dataset.remote          = log.remoteAddr || '';
+  tr.dataset.remoteName      = log.remoteDisplayName || '';
   tr.dataset.status          = log.status || '';
   tr.dataset.mock            = log.matchedMock || '';
   tr.dataset.query           = log.queryParams || '';
@@ -205,7 +349,7 @@ function addLiveRow(log) {
     <td class="log-path" title="${escHtml(path)}">${escHtml(path)}</td>
     <td><span class="badge ${statusClass(log.status)}">${log.status ?? '?'}</span></td>
     <td class="log-mock-name">${escHtml(log.matchedMock) || '<span class="text-muted fst-italic">' + escHtml(uiText('i18nNoMatch', 'no match')) + '</span>'}</td>
-    <td class="log-remote">${escHtml(log.remoteAddr) || ''}</td>
+    <td class="log-remote">${remoteHostHtml(log.remoteDisplayName, log.remoteAddr)}</td>
     <td class="actions-cell">${deleteLogFormHtml(log.id)}</td>`;
 
   tr.addEventListener('click', () => openDetail(log.id));
@@ -213,9 +357,6 @@ function addLiveRow(log) {
   const tbody = document.getElementById('log-table-body');
   tbody.prepend(tr);
 
-  // Update counter
-  totalCount++;
-  document.getElementById('log-count').textContent = totalCount;
 }
 
 function deleteLogFormHtml(logId) {
@@ -233,6 +374,13 @@ function deleteLogFormHtml(logId) {
         <i class="bi bi-trash"></i>
       </button>
     </form>`;
+}
+
+function remoteHostHtml(displayName, address) {
+  const name = displayName
+      ? `<div class="log-remote-name">${escHtml(displayName)}</div>`
+      : '';
+  return `${name}<div class="log-remote-address">${escHtml(address) || ''}</div>`;
 }
 
 // ── WebSocket / STOMP ────────────────────────────────────────

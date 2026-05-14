@@ -14,6 +14,8 @@
   --app-sidebar-heading: #ffffff;
   --app-sidebar-brand-version: #6c757d;
   --app-sidebar-active-bg: rgba(13, 110, 253, 0.13);
+  --app-sidebar-width: 220px;
+  --app-sidebar-collapsed-width: 76px;
   --app-brand-accent: #0d6efd;
   --app-port-bg: rgba(13, 110, 253, 0.13);
   --app-port-text: #6ea8fe;
@@ -64,6 +66,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+body.sidebar-collapsed {
+  --app-sidebar-width: var(--app-sidebar-collapsed-width);
+}
+
 .card {
   background: var(--app-surface);
   color: var(--app-text);
@@ -98,6 +104,21 @@ body {
   --bs-table-hover-bg: rgba(127, 127, 127, 0.075);
 }
 
+.table-light {
+  --bs-table-color: var(--app-text);
+  --bs-table-bg: var(--app-surface-raised);
+  --bs-table-border-color: var(--app-border);
+}
+
+.flash-alert {
+  min-height: 2.75rem;
+}
+
+.flash-alert .btn-close {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 [data-bs-theme="dark"] .badge.bg-light.text-dark.border {
   background: var(--app-surface-raised) !important;
   color: var(--app-text) !important;
@@ -114,7 +135,7 @@ code {
    Sidebar
    ============================================================ */
 .sidebar {
-  width: 220px;
+  width: var(--app-sidebar-width);
   min-height: 100vh;
   background: var(--app-sidebar-bg);
   color: var(--app-sidebar-text);
@@ -125,25 +146,58 @@ code {
   z-index: 100;
   display: flex;
   flex-direction: column;
+  transition: width 0.18s ease;
+}
+
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: space-between;
+  padding: 0 0.75rem 0.6rem 1.25rem;
 }
 
 .sidebar .brand {
   color: var(--app-sidebar-heading);
   font-size: 1.2rem;
-  padding: 0.5rem 1.25rem 1rem;
+  min-width: 0;
+  padding: 0.5rem 0;
   font-weight: 600;
   letter-spacing: 0;
 }
 
-.sidebar .brand span {
+.sidebar .brand .brand-name span {
   color: var(--app-brand-accent);
 }
 
-.sidebar .brand small {
+.sidebar .brand .brand-version {
   color: var(--app-sidebar-brand-version);
   font-size: 0.68rem;
   font-weight: 600;
   margin-left: 0.4rem;
+}
+
+.brand-compact {
+  display: none;
+  color: var(--app-brand-accent);
+}
+
+.sidebar-toggle {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-sidebar-heading);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.sidebar-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.38);
 }
 
 .sidebar .nav-link {
@@ -163,6 +217,43 @@ code {
   margin-right: 0.5rem;
   width: 16px;
   text-align: center;
+}
+
+body.sidebar-collapsed .sidebar-brand-row {
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+body.sidebar-collapsed .brand-name,
+body.sidebar-collapsed .brand-version,
+body.sidebar-collapsed .sidebar-label,
+body.sidebar-collapsed .sidebar-footer-label,
+body.sidebar-collapsed .sidebar-footer .username,
+body.sidebar-collapsed .port-badge {
+  display: none;
+}
+
+body.sidebar-collapsed .brand-compact {
+  display: inline;
+}
+
+body.sidebar-collapsed .sidebar .nav-link {
+  display: flex;
+  justify-content: center;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+body.sidebar-collapsed .sidebar .nav-link i,
+body.sidebar-collapsed .sidebar-footer .btn i {
+  margin-right: 0;
+}
+
+body.sidebar-collapsed .sidebar-footer {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
 }
 
 .sidebar-footer {
@@ -192,9 +283,10 @@ code {
    Main content area
    ============================================================ */
 .main {
-  margin-left: 220px;
+  margin-left: var(--app-sidebar-width);
   padding: 2rem;
   min-height: 100vh;
+  transition: margin-left 0.18s ease;
 }
 
 /* ============================================================
@@ -254,6 +346,70 @@ code {
   flex: 0 0 auto;
 }
 
+.dashboard-filters .form-select {
+  flex-basis: 150px;
+}
+
+.filter-dropdown {
+  flex: 0 0 auto;
+}
+
+.filter-dropdown-toggle {
+  min-width: 190px;
+  max-width: 280px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  background: var(--app-control-bg);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.filter-dropdown-toggle span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-dropdown-menu {
+  min-width: 286px;
+  border-color: var(--app-border);
+}
+
+.filter-dropdown-item {
+  border-radius: 4px;
+}
+
+.priority-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.filter-range-fields {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.filter-range-fields .form-control {
+  min-width: 0;
+}
+
+.priority-filter .filter-range-fields .form-control {
+  width: 108px;
+}
+
+.dashboard-period-filter .filter-dropdown-toggle {
+  min-width: 196px;
+}
+
+.dashboard-custom-range .form-control {
+  width: 128px;
+}
+
 /* ============================================================
    Stat boxes (dashboard)
    ============================================================ */
@@ -297,15 +453,50 @@ code {
   white-space: nowrap;
 }
 
-.log-remote {
+.log-remote-name {
+  color: var(--app-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.log-remote-address,
+.detail-remote-name + code {
+  color: var(--app-muted);
+}
+
+.log-remote-address {
   font-family: monospace;
   font-size: 0.72rem;
-  color: var(--app-muted);
+  line-height: 1.25;
 }
 
 .log-mock-name {
   font-size: 0.78rem;
   color: var(--app-muted);
+}
+
+.llm-permissions-table {
+  min-width: 420px;
+}
+
+.llm-permissions-table .form-select {
+  max-width: 260px;
+}
+
+.known-hosts-table {
+  min-width: 700px;
+}
+
+.known-hosts-card .table td {
+  vertical-align: middle;
+}
+
+.detail-remote-name {
+  color: var(--app-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* Expand button */
@@ -934,6 +1125,16 @@ textarea.code {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.env-source-package {
+  border-left: 3px solid var(--app-brand-accent);
+  border-radius: 6px;
+  background: var(--app-hint-bg);
+  color: var(--app-text);
+  font-weight: 600;
+  padding: 0.55rem 0.75rem;
+  user-select: text;
 }
 
 .env-variable-table {

@@ -158,21 +158,18 @@
     const cards = Array.from(document.querySelectorAll('.env-package-card-wrap'));
     const empty = document.getElementById('environmentsEmptyFiltered');
     const filters = {
-      search: container.querySelector('[data-env-filter="search"]'),
-      state: container.querySelector('[data-env-filter="state"]')
+      search: container.querySelector('[data-env-filter="search"]')
     };
 
     function apply() {
       const search = lower(filters.search?.value);
-      const state = filters.state?.value || '';
       let visible = 0;
 
       cards.forEach(card => {
         const matchesSearch = !search ||
             lower(card.dataset.name).includes(search) ||
             lower(card.dataset.description).includes(search);
-        const matchesState = !state || card.dataset.state === state;
-        const isVisible = matchesSearch && matchesState;
+        const isVisible = matchesSearch;
         card.classList.toggle('d-none', !isVisible);
         if (isVisible) visible++;
       });
@@ -213,7 +210,7 @@
       button.addEventListener('click', () => {
         const source = button.dataset.envName || 'Environment';
         const sourceId = button.dataset.envId || '';
-        sourceInput.value = source;
+        sourceInput.textContent = source;
         if (sourceIdInput) {
           sourceIdInput.value = sourceId;
         }

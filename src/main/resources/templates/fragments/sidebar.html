@@ -4,63 +4,85 @@
 <nav th:fragment="sidebar(activePage, user)"
      class="sidebar">
 
-  <div class="brand">Mock<span>tail</span><small th:text="'v' + ${@appVersion.version}">vdev</small></div>
+  <div class="sidebar-brand-row">
+    <div class="brand">
+      <span class="brand-name">Mock<span>tail</span></span>
+      <span class="brand-compact" aria-hidden="true">M</span>
+      <small class="brand-version" th:text="'v' + ${@appVersion.version}">vdev</small>
+    </div>
+    <button type="button"
+            class="sidebar-toggle"
+            data-sidebar-toggle
+            th:data-expand-label="${@i18n.t('nav.expandSidebar')}"
+            th:data-collapse-label="${@i18n.t('nav.collapseSidebar')}"
+            th:title="${@i18n.t('nav.collapseSidebar')}"
+            th:aria-label="${@i18n.t('nav.collapseSidebar')}">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+  </div>
 
   <ul class="nav flex-column flex-grow-1">
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'dashboard'} ? 'active'"
-         th:href="@{/dashboard}">
-        <i class="bi bi-speedometer2"></i><span th:text="${@i18n.t('nav.dashboard')}">Dashboard</span>
+         th:href="@{/dashboard}"
+         th:title="${@i18n.t('nav.dashboard')}">
+        <i class="bi bi-speedometer2"></i><span class="sidebar-label" th:text="${@i18n.t('nav.dashboard')}">Dashboard</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'mocks'} ? 'active'"
-         th:href="@{/mocks}">
-        <i class="bi bi-layers"></i><span th:text="${@i18n.t('nav.mocks')}">Mocks</span>
+         th:href="@{/mocks}"
+         th:title="${@i18n.t('nav.mocks')}">
+        <i class="bi bi-layers"></i><span class="sidebar-label" th:text="${@i18n.t('nav.mocks')}">Mocks</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'collections'} ? 'active'"
-         th:href="@{/collections}">
-        <i class="bi bi-collection"></i><span th:text="${@i18n.t('nav.collections')}">Collections</span>
+         th:href="@{/collections}"
+         th:title="${@i18n.t('nav.collections')}">
+        <i class="bi bi-collection"></i><span class="sidebar-label" th:text="${@i18n.t('nav.collections')}">Collections</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'environments'} ? 'active'"
-         th:href="@{/environments}">
-        <i class="bi bi-sliders"></i><span th:text="${@i18n.t('nav.environments')}">Environments</span>
+         th:href="@{/environments}"
+         th:title="${@i18n.t('nav.environments')}">
+        <i class="bi bi-sliders"></i><span class="sidebar-label" th:text="${@i18n.t('nav.environments')}">Environments</span>
       </a>
     </li>
     <li class="nav-item" th:if="${@capabilities.shared}">
       <a class="nav-link"
          th:classappend="${activePage == 'shared'} ? 'active'"
-         th:href="@{/shared}">
-        <i class="bi bi-share"></i><span th:text="${@i18n.t('nav.shared')}">Shared</span>
+         th:href="@{/shared}"
+         th:title="${@i18n.t('nav.shared')}">
+        <i class="bi bi-share"></i><span class="sidebar-label" th:text="${@i18n.t('nav.shared')}">Shared</span>
       </a>
     </li>
     <li class="nav-item" th:if="${@capabilities.admin}">
       <a class="nav-link"
          th:classappend="${activePage == 'admin'} ? 'active'"
-         th:href="@{/admin/users}">
-        <i class="bi bi-people"></i><span th:text="${@i18n.t('nav.admin')}">Admin</span>
+         th:href="@{/admin/users}"
+         th:title="${@i18n.t('nav.admin')}">
+        <i class="bi bi-people"></i><span class="sidebar-label" th:text="${@i18n.t('nav.admin')}">Admin</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link"
          th:classappend="${activePage == 'settings'} ? 'active'"
-        th:href="@{/settings}">
+        th:href="@{/settings}"
+        th:title="${@i18n.t('nav.settings')}">
         <i class="bi bi-gear"></i>
-        <span th:text="${@i18n.t('nav.settings')}">Settings</span>
+        <span class="sidebar-label" th:text="${@i18n.t('nav.settings')}">Settings</span>
       </a>
     </li>
   </ul>
 
   <div class="sidebar-footer">
-    <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em"
+    <div class="sidebar-footer-label text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em"
          th:text="${@i18n.t('nav.signedInAs')}">Signed in as</div>
     <div class="username" th:text="${user != null ? user.username : #authentication.name}">username</div>
     <div th:if="${user != null}" class="port-badge">
@@ -70,9 +92,32 @@
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
       <button type="submit" class="btn btn-sm btn-outline-danger w-100">
         <i class="bi bi-box-arrow-right"></i>
-        <span th:text="${@i18n.t('nav.logout')}">Logout</span>
+        <span class="sidebar-label" th:text="${@i18n.t('nav.logout')}">Logout</span>
       </button>
     </form>
   </div>
+  <script>
+    (function () {
+      const storageKey = 'mocktail.sidebar.collapsed';
+      const toggle = document.querySelector('[data-sidebar-toggle]');
+      if (!toggle) return;
+      const icon = toggle.querySelector('i');
+
+      function apply(collapsed) {
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        toggle.title = collapsed ? toggle.dataset.expandLabel : toggle.dataset.collapseLabel;
+        toggle.setAttribute('aria-label', toggle.title);
+        if (icon) {
+          icon.className = collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+        }
+        window.localStorage.setItem(storageKey, collapsed ? 'true' : 'false');
+      }
+
+      apply(window.localStorage.getItem(storageKey) === 'true');
+      toggle.addEventListener('click', function () {
+        apply(!document.body.classList.contains('sidebar-collapsed'));
+      });
+    })();
+  </script>
 </nav>
 </html>

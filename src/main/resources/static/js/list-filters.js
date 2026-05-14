@@ -18,6 +18,7 @@ function bindReset(container, onChange) {
         control.value = '';
       }
     });
+    container.dispatchEvent(new CustomEvent('mocktail:filters-reset'));
     onChange();
   });
 }
@@ -34,16 +35,28 @@ function bindMocksFilters() {
     collection: container.querySelector('[data-filter="collection"]'),
     active: container.querySelector('[data-filter="active"]'),
     type: container.querySelector('[data-filter="type"]'),
-    priority: container.querySelector('[data-filter="priority"]'),
+    priorityExact: container.querySelector('[data-filter="priority-exact"]'),
+    priorityMin: container.querySelector('[data-filter="priority-min"]'),
+    priorityMax: container.querySelector('[data-filter="priority-max"]'),
     status: container.querySelector('[data-filter="status"]'),
   };
+  const priorityFilter = container.querySelector('[data-priority-filter]');
+  const priorityLabel = priorityFilter?.querySelector('[data-priority-label]');
+  const priorityToggle = priorityFilter?.querySelector('[data-bs-toggle="dropdown"]');
+  const priorityChoices = priorityFilter
+      ? Array.from(priorityFilter.querySelectorAll('[data-priority-choice]'))
+      : [];
+  let priorityMode = '';
 
-  function priorityMatches(value, priority) {
-    if (!value) return true;
+  function priorityMatches(exactValue, minValue, maxValue, priority) {
     const number = parseInt(priority || '0', 10);
-    if (value === '0') return number === 0;
-    if (value === '1-9') return number >= 1 && number <= 9;
-    if (value === '10+') return number >= 10;
+    const exact = exactValue === '' ? null : parseInt(exactValue, 10);
+    const min = minValue === '' ? null : parseInt(minValue, 10);
+    const max = maxValue === '' ? null : parseInt(maxValue, 10);
+    if (Number.isNaN(number)) return false;
+    if (exact !== null && !Number.isNaN(exact) && number !== exact) return false;
+    if (min !== null && !Number.isNaN(min) && number < min) return false;
+    if (max !== null && !Number.isNaN(max) && number > max) return false;
     return true;
   }
 
@@ -61,7 +74,11 @@ function bindMocksFilters() {
           row.dataset.collection === filters.collection.value;
       const matchesActive = !filters.active.value || row.dataset.active === filters.active.value;
       const matchesType = !filters.type.value || row.dataset.type === filters.type.value;
-      const matchesPriority = priorityMatches(filters.priority.value, row.dataset.priority);
+      const matchesPriority = priorityMatches(
+          filters.priorityExact.value,
+          filters.priorityMin.value,
+          filters.priorityMax.value,
+          row.dataset.priority);
       const matchesStatus = !filters.status.value || row.dataset.statusGroup === filters.status.value;
       const isVisible = matchesSearch && matchesMethod && matchesCollection &&
           matchesActive && matchesType && matchesPriority && matchesStatus;
@@ -73,9 +90,72 @@ function bindMocksFilters() {
     if (empty) empty.classList.toggle('d-none', visible !== 0 || rows.length === 0);
   }
 
+  function prioritySummary() {
+    const exact = filters.priorityExact?.value || '';
+    const min = filters.priorityMin?.value || '';
+    const max = filters.priorityMax?.value || '';
+    const anyLabel = priorityFilter?.dataset.priorityAnyLabel || 'Any priority';
+    const prefix = priorityFilter?.dataset.priorityPrefix || 'Priority';
+    const rangeLabel = priorityFilter?.dataset.priorityRangeLabel || 'Priority range';
+
+    if (exact) {
+      return `${prefix}: ${exact}`;
+    }
+    if (priorityMode === 'custom' || min || max) {
+      if (min || max) {
+        return `${rangeLabel}: ${min || '0'} - ${max || '10'}`;
+      }
+      return rangeLabel;
+    }
+    return anyLabel;
+  }
+
+  function updatePriorityLabel() {
+    if (priorityLabel) {
+      priorityLabel.textContent = prioritySummary();
+    }
+  }
+
+  function hidePriorityMenu() {
+    if (!priorityToggle || !window.bootstrap?.Dropdown) return;
+    bootstrap.Dropdown.getOrCreateInstance(priorityToggle).hide();
+  }
+
   Object.values(filters).forEach(control => control && control.addEventListener('input', apply));
   Object.values(filters).forEach(control => control && control.addEventListener('change', apply));
+  priorityChoices.forEach(choice => {
+    choice.addEventListener('click', () => {
+      const value = choice.dataset.priorityChoice || '';
+      if (value === 'custom') {
+        priorityMode = 'custom';
+        filters.priorityExact.value = '';
+        updatePriorityLabel();
+        filters.priorityMin?.focus();
+        return;
+      }
+      priorityMode = value ? 'exact' : '';
+      filters.priorityExact.value = value;
+      filters.priorityMin.value = '';
+      filters.priorityMax.value = '';
+      updatePriorityLabel();
+      apply();
+      hidePriorityMenu();
+    });
+  });
+  [filters.priorityMin, filters.priorityMax].forEach(control => {
+    control?.addEventListener('input', () => {
+      priorityMode = 'custom';
+      filters.priorityExact.value = '';
+      updatePriorityLabel();
+      apply();
+    });
+  });
+  container.addEventListener('mocktail:filters-reset', () => {
+    priorityMode = '';
+    updatePriorityLabel();
+  });
   bindReset(container, apply);
+  updatePriorityLabel();
   apply();
 }
 

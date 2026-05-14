@@ -127,9 +127,7 @@ public class MockImportExportService {
     public ImportResult importFromJson(byte[] data, User owner, ImportMode mode) throws IOException {
         MockExportDto dto = objectMapper.readValue(data, MockExportDto.class);
 
-        boolean hasCollections = dto.getCollections() != null &&
-                dto.getCollections().stream().anyMatch(c ->
-                        c.getMocks() != null && !c.getMocks().isEmpty());
+        boolean hasCollections = dto.getCollections() != null && !dto.getCollections().isEmpty();
         boolean hasLooseMocks = dto.getMocks() != null && !dto.getMocks().isEmpty();
 
         if (mode == ImportMode.MOCKS_ONLY && hasCollections) {
@@ -195,8 +193,8 @@ public class MockImportExportService {
         m.setHttpMethod(dto.getHttpMethod());
         m.setPathPattern(dto.getPathPattern());
         m.setRequestBodyContains(dto.getRequestBodyContains());
-        m.setRequestMatchMode(dto.getRequestMatchMode() != null ? dto.getRequestMatchMode() : "basic");
-        m.setRequestMatchGroups(dto.getRequestMatchGroups());
+        m.setRequestMatchMode(normalizeMatchMode(dto.getRequestMatchMode()));
+        m.setRequestMatchGroups(blankToNull(dto.getRequestMatchGroups()));
         m.setResponseStatus(dto.getResponseStatus());
         m.setResponseBody(dto.getResponseBody());
         m.setResponseContentType(dto.getResponseContentType());
@@ -204,6 +202,14 @@ public class MockImportExportService {
         m.setPriority(dto.getPriority());
         m.setActive(dto.isActive());
         return m;
+    }
+
+    private String normalizeMatchMode(String mode) {
+        return "advanced".equalsIgnoreCase(mode) ? "advanced" : "basic";
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     public record ImportResult(int mocks, int collections) {}

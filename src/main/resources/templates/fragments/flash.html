@@ -6,16 +6,36 @@
 -->
 <div th:fragment="flash">
   <div th:if="${successMessage}"
-       class="alert alert-success alert-dismissible fade show py-2" role="alert">
-    <i class="bi bi-check-circle me-1"></i>
-    <span th:text="${successMessage}"></span>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+       class="flash-alert alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 py-2 pe-5"
+       role="alert"
+       data-auto-dismiss="15000">
+    <i class="bi bi-check-circle flex-shrink-0"></i>
+    <span class="flex-grow-1" th:text="${successMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"
+            th:aria-label="${@i18n.t('actions.close')}"></button>
   </div>
   <div th:if="${errorMessage}"
-       class="alert alert-danger alert-dismissible fade show py-2" role="alert">
-    <i class="bi bi-exclamation-triangle me-1"></i>
-    <span th:text="${errorMessage}"></span>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+       class="flash-alert alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 py-2 pe-5"
+       role="alert"
+       data-auto-dismiss="15000">
+    <i class="bi bi-exclamation-triangle flex-shrink-0"></i>
+    <span class="flex-grow-1" th:text="${errorMessage}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"
+            th:aria-label="${@i18n.t('actions.close')}"></button>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.flash-alert[data-auto-dismiss]').forEach(function (alert) {
+        const delay = Number.parseInt(alert.dataset.autoDismiss || '15000', 10);
+        window.setTimeout(function () {
+          if (window.bootstrap && bootstrap.Alert) {
+            bootstrap.Alert.getOrCreateInstance(alert).close();
+          } else {
+            alert.remove();
+          }
+        }, Number.isFinite(delay) ? delay : 15000);
+      });
+    });
+  </script>
 </div>
 </html>

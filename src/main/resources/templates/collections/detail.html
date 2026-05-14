@@ -27,6 +27,14 @@
             <small class="text-muted" th:text="${collection.description}"></small>
         </div>
         <div class="ms-auto d-flex gap-2 flex-wrap">
+            <button th:if="${not collection.readOnly}"
+                    class="btn btn-sm btn-primary"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addMockModal">
+                <i class="bi bi-plus-lg me-1"></i>
+                <span th:text="${@i18n.t('actions.addMockToCollection')}">Add mock to collection</span>
+            </button>
             <form th:action="@{/collections/{id}/enable-all(id=${collection.id})}" method="post">
                 <button class="btn btn-sm btn-outline-success">
                     <i class="bi bi-play-fill"></i> <span th:text="${@i18n.t('actions.enableAll')}">Enable all</span>
@@ -91,9 +99,7 @@
     </div>
 
     <div class="row g-3">
-
-        <!-- Mocks in this collection -->
-        <div th:class="${collection.readOnly ? 'col-md-12' : 'col-md-8'}">
+        <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold">
                     <span th:text="${@i18n.t('collections.mocksInCollection')}">Mocks in collection</span>
@@ -144,36 +150,43 @@
                 </div>
             </div>
         </div>
+    </div>
+</main>
 
-        <!-- Add mock panel -->
-        <div class="col-md-4" th:if="${not collection.readOnly}">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold" th:text="${@i18n.t('collections.addMock')}">Add mock</div>
-                <div class="card-body">
+<div class="modal fade" id="addMockModal" tabindex="-1" aria-hidden="true" th:if="${not collection.readOnly}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" th:text="${@i18n.t('actions.addMockToCollection')}">Add mock to collection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        th:aria-label="${@i18n.t('actions.close')}"></button>
+            </div>
+            <form th:action="@{/collections/{id}/add-mock(id=${collection.id})}" method="post">
+                <div class="modal-body">
                     <p class="text-muted small mb-3" th:text="${@i18n.t('collections.addMockHelp')}">
                         Select a mock to add to this collection. Only mocks not already in a collection are shown.
                     </p>
-                    <form th:action="@{/collections/{id}/add-mock(id=${collection.id})}" method="post">
-                        <div class="mb-2">
-                            <select name="mockId" class="form-select form-select-sm" required>
-                                <option value="" th:text="${@i18n.t('collections.selectMock')}">— Select mock —</option>
-                                <option th:each="mock : ${allMocks}"
-                                        th:if="${(mock.collection == null or not mock.collection.readOnly) and (mock.collection == null or mock.collection.id == collection.id)}"
-                                        th:value="${mock.id}"
-                                        th:text="${mock.name + ' (' + mock.httpMethod + ' ' + mock.pathPattern + ')'}">
-                                </option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-sm btn-primary w-100">
-                            <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('actions.addToCollection')}">Add to collection</span>
-                        </button>
-                    </form>
+                    <label class="form-label fw-semibold" th:text="${@i18n.t('collections.addMock')}">Add mock</label>
+                    <select name="mockId" class="form-select" required>
+                        <option value="" th:text="${@i18n.t('collections.selectMock')}">— Select mock —</option>
+                        <option th:each="mock : ${availableMocks}"
+                                th:value="${mock.id}"
+                                th:text="${mock.name + ' (' + mock.httpMethod + ' ' + mock.pathPattern + ')'}">
+                        </option>
+                    </select>
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                            th:text="${@i18n.t('actions.cancel')}">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i>
+                        <span th:text="${@i18n.t('actions.addToCollection')}">Add to collection</span>
+                    </button>
+                </div>
+            </form>
         </div>
-
     </div>
-</main>
+</div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 </body>
 </html>

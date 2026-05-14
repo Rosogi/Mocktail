@@ -221,7 +221,7 @@
         <input type="hidden" name="sourceId" data-env-duplicate-source-id th:value="${environment.id}"/>
         <div class="mb-3">
           <label class="form-label fw-semibold" th:text="${@i18n.t('environments.sourcePackage')}">Source package</label>
-          <input type="text" class="form-control" data-env-duplicate-source th:value="${environment.name}" readonly/>
+          <div class="env-source-package" data-env-duplicate-source th:text="${environment.name}">Local development</div>
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold" th:text="${@i18n.t('environments.newName')}">New name</label>

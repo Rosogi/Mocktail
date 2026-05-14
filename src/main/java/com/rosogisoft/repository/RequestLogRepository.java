@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +31,37 @@ public interface RequestLogRepository extends JpaRepository<RequestLog, Long> {
     ORDER BY l.timestamp DESC
 """)
     List<RequestLog> findRecentByOwnerId(@Param("ownerId") Long ownerId, Pageable pageable);
+
+    @Query("""
+            SELECT l FROM RequestLog l
+            LEFT JOIN FETCH l.matchedMock
+            WHERE l.owner.id = :ownerId
+              AND (:search IS NULL OR :search = '' OR
+                   LOWER(l.path) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(COALESCE(l.queryParams, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(COALESCE(l.remoteAddr, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(COALESCE(l.matchedMock.name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   (:filterRemoteAddresses = true AND
+                    LOWER(COALESCE(l.remoteAddr, '')) IN (:remoteAddresses)))
+              AND (:method IS NULL OR :method = '' OR l.method = :method)
+              AND (:statusMin IS NULL OR l.responseStatus >= :statusMin)
+              AND (:statusMax IS NULL OR l.responseStatus <= :statusMax)
+              AND (:filterFromTimestamp = false OR l.timestamp >= :fromTimestamp)
+              AND (:filterToTimestamp = false OR l.timestamp < :toTimestamp)
+            ORDER BY l.timestamp DESC
+            """)
+    List<RequestLog> findFilteredByOwnerId(@Param("ownerId") Long ownerId,
+                                           @Param("search") String search,
+                                           @Param("filterRemoteAddresses") boolean filterRemoteAddresses,
+                                           @Param("remoteAddresses") List<String> remoteAddresses,
+                                           @Param("method") String method,
+                                           @Param("statusMin") Integer statusMin,
+                                           @Param("statusMax") Integer statusMax,
+                                           @Param("filterFromTimestamp") boolean filterFromTimestamp,
+                                           @Param("fromTimestamp") Instant fromTimestamp,
+                                           @Param("filterToTimestamp") boolean filterToTimestamp,
+                                           @Param("toTimestamp") Instant toTimestamp,
+                                           Pageable pageable);
 
     @Query(value = """
             SELECT * FROM request_logs

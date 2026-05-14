@@ -9,7 +9,7 @@ spring:
         enabled: false
 
   jpa:
-    show-sql: true
+    show-sql: false
 
 # In dev mode, point to embedded LDAP
 mocktail:

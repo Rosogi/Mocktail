@@ -66,12 +66,58 @@
       <option th:if="${@capabilities.shared}" value="subscribed" th:text="${@i18n.t('filters.subscribed')}">Subscribed</option>
       <option value="uncollected" th:text="${@i18n.t('filters.uncollected')}">Uncollected</option>
     </select>
-    <select class="form-select form-select-sm" data-filter="priority" th:aria-label="${@i18n.t('mocks.priority')}">
-      <option value="" th:text="${@i18n.t('filters.anyPriority')}">Any priority</option>
-      <option value="0">0</option>
-      <option value="1-9">1-9</option>
-      <option value="10+">10+</option>
-    </select>
+    <div class="dropdown filter-dropdown priority-filter"
+         data-priority-filter
+         th:data-priority-any-label="${@i18n.t('filters.anyPriority')}"
+         th:data-priority-prefix="${@i18n.t('mocks.priority')}"
+         th:data-priority-range-label="${@i18n.t('filters.priorityRange')}">
+      <input type="hidden" data-filter="priority-exact" value=""/>
+      <button type="button"
+              class="btn btn-sm btn-outline-secondary filter-dropdown-toggle"
+              data-bs-toggle="dropdown"
+              data-bs-auto-close="outside"
+              aria-expanded="false"
+              th:aria-label="${@i18n.t('mocks.priority')}">
+        <span data-priority-label th:text="${@i18n.t('filters.anyPriority')}">Any priority</span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="dropdown-menu filter-dropdown-menu priority-dropdown-menu p-2">
+        <button type="button"
+                class="dropdown-item filter-dropdown-item"
+                data-priority-choice=""
+                th:text="${@i18n.t('filters.anyPriority')}">Any priority</button>
+        <div class="dropdown-divider"></div>
+        <div class="priority-choice-grid">
+          <button type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  th:each="priority : ${#numbers.sequence(0, 10)}"
+                  th:data-priority-choice="${priority}"
+                  th:text="${priority}">0</button>
+        </div>
+        <div class="dropdown-divider"></div>
+        <button type="button"
+                class="dropdown-item filter-dropdown-item fw-semibold"
+                data-priority-choice="custom"
+                th:text="${@i18n.t('filters.priorityRange')}">Priority range</button>
+        <div class="filter-range-fields mt-2">
+          <input type="number"
+                 class="form-control form-control-sm"
+                 data-filter="priority-min"
+                 min="0"
+                 max="10"
+                 th:placeholder="${@i18n.t('filters.priorityFrom')}"
+                 th:aria-label="${@i18n.t('filters.priorityFrom')}"/>
+          <span class="text-muted">-</span>
+          <input type="number"
+                 class="form-control form-control-sm"
+                 data-filter="priority-max"
+                 min="0"
+                 max="10"
+                 th:placeholder="${@i18n.t('filters.priorityTo')}"
+                 th:aria-label="${@i18n.t('filters.priorityTo')}"/>
+        </div>
+      </div>
+    </div>
     <select class="form-select form-select-sm" data-filter="status" th:aria-label="${@i18n.t('mocks.status')}">
       <option value="" th:text="${@i18n.t('filters.anyStatus')}">Any status</option>
       <option value="2xx">2xx</option>

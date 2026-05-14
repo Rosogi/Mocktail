@@ -220,7 +220,9 @@ public class MockCollectionController {
             model.addAttribute("user",       user);
             model.addAttribute("collection", collection);
             model.addAttribute("mocks",      mockRepository.findByCollectionId(id));
-            model.addAttribute("allMocks",   mockService.findAllForUser(user));
+            model.addAttribute("availableMocks", mockService.findAllForUser(user).stream()
+                    .filter(mock -> mock.getCollection() == null)
+                    .toList());
             var subscriptions = capabilities.isShared()
                     ? sharedCollectionService.subscriptionsByLocal(user)
                     : Map.<Long, CollectionSubscription>of();

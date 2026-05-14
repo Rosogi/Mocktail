@@ -18,6 +18,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -47,6 +48,7 @@ public class EnvironmentService {
         Long activeId = activePackageId(owner).orElse(null);
         return packageRepository.findByOwnerId(owner.getId()).stream()
                 .map(environment -> toPackageView(environment, activeId))
+                .sorted(Comparator.comparing(EnvironmentPackageView::active).reversed())
                 .toList();
     }
 
@@ -536,10 +538,10 @@ public class EnvironmentService {
 
     public String filenameForPackage(EnvironmentPackageView environment) {
         String slug = slugify(environment.name());
-        if (slug.isBlank()) {
-            slug = "environment-" + environment.id();
+        if (slug.isBlank() || hasUnsupportedLetters(environment.name())) {
+            slug = "exported_package";
         }
-        return slug + "-environment.json";
+        return slug + ".json";
     }
 
     public String globalsFilename() {
@@ -550,6 +552,14 @@ public class EnvironmentService {
         return normalizeName(name).toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9]+", "-")
                 .replaceAll("^-|-$", "");
+    }
+
+    private boolean hasUnsupportedLetters(String name) {
+        if (name == null) {
+            return false;
+        }
+        return name.codePoints()
+                .anyMatch(codePoint -> Character.isLetter(codePoint) && codePoint > 127);
     }
 
     public record EnvironmentPackageView(Long id,
