@@ -5,6 +5,7 @@ import com.rosogisoft.domain.User;
 import com.rosogisoft.service.I18nService;
 import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.MockCollectionService;
+import com.rosogisoft.service.MockFunctionService;
 import com.rosogisoft.service.MockImportExportService;
 import com.rosogisoft.service.MockService;
 import com.rosogisoft.service.MockTemplateReferenceService;
@@ -35,6 +36,7 @@ public class MockController {
     private final MockImportExportService importExportService;
     private final MockCollectionService collectionService;
     private final EnvironmentService environmentService;
+    private final MockFunctionService functionService;
     private final MockTemplateReferenceService templateReferenceService;
     private final I18nService i18n;
 
@@ -75,6 +77,8 @@ public class MockController {
                     i18n.t("flash.mockCreated", created.getName()));
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/mocks";
     }
@@ -120,6 +124,8 @@ public class MockController {
             }
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/mocks";
     }
@@ -238,7 +244,9 @@ public class MockController {
     }
 
     private void addTemplateModel(Model model, User user, MockDefinitionForm form) {
-        model.addAttribute("templateSuggestions", environmentService.templateSuggestions(user));
+        var suggestions = new java.util.ArrayList<>(environmentService.templateSuggestions(user));
+        suggestions.addAll(functionService.templateSuggestions(user));
+        model.addAttribute("templateSuggestions", suggestions);
         model.addAttribute("templateWarnings", templateReferenceService.analyze(form, user));
     }
 

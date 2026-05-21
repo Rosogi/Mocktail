@@ -422,7 +422,7 @@ public class EnvironmentService {
 
     private TemplateSuggestion toSuggestion(String scope, String key, String preview, boolean hidden) {
         String expression = "{{" + scope + "." + key + "}}";
-        return new TemplateSuggestion(expression, scope, key, hidden ? "********" : preview, hidden);
+        return TemplateSuggestion.value(expression, scope, key, hidden ? "********" : preview, hidden);
     }
 
     private List<EnvironmentVariable> toEntities(User owner,
@@ -589,10 +589,4 @@ public class EnvironmentService {
     public record ImportResult(int variables, int packages) {
     }
 
-    public record TemplateSuggestion(String expression,
-                                     String scope,
-                                     String key,
-                                     String preview,
-                                     boolean hidden) {
-    }
 }

@@ -153,7 +153,7 @@ public class MockCollectionController {
             ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
                     ok ? i18n.t("flash.collectionShared") : i18n.t("flash.collectionNotFound"));
         } catch (IllegalStateException e) {
-            ra.addFlashAttribute("errorMessage", i18n.t("flash.readOnlyCollection"));
+            ra.addFlashAttribute("errorMessage", collectionShareError(e));
         }
         return "redirect:/collections";
     }
@@ -289,5 +289,12 @@ public class MockCollectionController {
             return i18n.t("flash.importReadOnlySubscription");
         }
         return i18n.t("flash.importFailed", message);
+    }
+
+    private String collectionShareError(IllegalStateException e) {
+        if ("Collections with custom functions cannot be shared.".equals(e.getMessage())) {
+            return i18n.t("flash.collectionUsesCustomFunctions");
+        }
+        return i18n.t("flash.readOnlyCollection");
     }
 }

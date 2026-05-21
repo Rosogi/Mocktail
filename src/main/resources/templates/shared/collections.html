@@ -5,7 +5,7 @@
 
 <body th:attr="data-bs-theme=${@theme.currentTheme()}">
 
-<nav th:replace="~{fragments/sidebar :: sidebar('shared', ${user})}"></nav>
+<nav th:replace="~{fragments/sidebar :: sidebar('sharedCollections', ${user})}"></nav>
 
 <main class="main">
 
@@ -14,7 +14,7 @@
   <div class="page-header">
     <div>
       <h4 th:text="${@i18n.t('shared.title')}">Shared</h4>
-      <small class="text-muted" th:text="${@i18n.t('shared.subtitle')}">Collections shared by other users</small>
+      <small class="text-muted" th:text="${@i18n.t('shared.collectionsSubtitle')}">Collections shared by other users</small>
     </div>
   </div>
 
@@ -92,7 +92,7 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                  <form th:action="@{/shared/{id}/update(id=${col.id})}" method="post">
+                  <form th:action="@{/shared/collections/{id}/update(id=${col.id})}" method="post">
                     <button type="submit" class="dropdown-item">
                       <i class="bi bi-arrow-clockwise me-2"></i><span th:text="${@i18n.t('actions.update')}">Update</span>
                     </button>
@@ -106,12 +106,12 @@
              th:text="${not #strings.isEmpty(col.description) ? col.description : @i18n.t('collections.noDescription')}"></p>
 
           <div class="collection-actions mt-auto">
-            <a th:href="@{/shared/{id}(id=${col.id})}"
+            <a th:href="@{/shared/collections/{id}(id=${col.id})}"
                class="btn btn-sm btn-outline-secondary">
               <i class="bi bi-eye"></i> <span th:text="${@i18n.t('actions.view')}">View</span>
             </a>
             <form th:if="${sub == null}"
-                  th:action="@{/shared/{id}/subscribe(id=${col.id})}" method="post">
+                  th:action="@{/shared/collections/{id}/subscribe(id=${col.id})}" method="post">
               <button type="submit" class="btn btn-sm btn-primary">
                 <i class="bi bi-bookmark-plus"></i> <span th:text="${@i18n.t('actions.subscribe')}">Subscribe</span>
               </button>
@@ -121,7 +121,7 @@
                class="btn btn-sm btn-outline-primary">
               <i class="bi bi-folder2-open"></i> <span th:text="${@i18n.t('actions.open')}">Open</span>
             </a>
-            <form th:action="@{/shared/{id}/copy(id=${col.id})}" method="post">
+            <form th:action="@{/shared/collections/{id}/copy(id=${col.id})}" method="post">
               <button type="submit" class="btn btn-sm btn-outline-success">
                 <i class="bi bi-copy"></i> <span th:text="${@i18n.t('actions.copy')}">Copy</span>
               </button>

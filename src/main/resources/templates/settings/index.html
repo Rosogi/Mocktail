@@ -338,7 +338,8 @@
                 <span th:text="${@i18n.t('settings.defaultResponseHelp')}">Returned when no active mock matches the request. Template variables are supported:</span>
                 <code>{{request.path}}</code>, <code>{{request.method}}</code>,
                 <code>{{param.x}}</code>, <code>{{header.x}}</code>,
-                <code>{{xpath:string(//*[local-name()='CustomerId'])}}</code>
+                <code>{{xpath:string(//*[local-name()='CustomerId'])}}</code>,
+                <code>{{fn.uuid('correlationId')}}</code>
             </p>
             <form th:action="@{/settings/default-response}" method="post"
                   data-body-tools

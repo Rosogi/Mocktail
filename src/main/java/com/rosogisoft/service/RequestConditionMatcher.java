@@ -62,7 +62,7 @@ public class RequestConditionMatcher {
                            EnvironmentContext environmentContext) {
         if (!MODE_ADVANCED.equalsIgnoreCase(mock.getRequestMatchMode())) {
             String contains = templateEngine.render(mock.getRequestBodyContains(), method, path,
-                    queryString, headers, body, environmentContext);
+                    queryString, headers, body, environmentContext, TemplatePhase.MATCHING);
             return bodyContainsMatches(contains, body);
         }
 
@@ -174,10 +174,12 @@ public class RequestConditionMatcher {
                 condition.source(),
                 condition.xmlMode(),
                 templateEngine.render(condition.target(), context.method(), context.path(),
-                        context.queryString(), context.headers(), context.body(), environmentContext),
+                        context.queryString(), context.headers(), context.body(), environmentContext,
+                        TemplatePhase.MATCHING),
                 condition.operator(),
                 templateEngine.render(condition.value(), context.method(), context.path(),
-                        context.queryString(), context.headers(), context.body(), environmentContext),
+                        context.queryString(), context.headers(), context.body(), environmentContext,
+                        TemplatePhase.MATCHING),
                 condition.whitespace());
     }
 

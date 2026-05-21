@@ -39,4 +39,52 @@ class MockTemplateEngineTest {
 
         assertThat(rendered).isEqualTo("{\"message\":\"What???\"}");
     }
+
+    @Test
+    void resolvesFunctionArgumentsFromNestedTemplates() {
+        MockFunctionService functionService = new MockFunctionService(null, null, null) {
+            @Override
+            public Object execute(Long ownerId, String name, java.util.List<Object> args, TemplateRenderContext context) {
+                return args.getFirst();
+            }
+        };
+        MockTemplateEngine functionEngine =
+                new MockTemplateEngine(new EnvironmentTemplateService(parser), parser, functionService);
+
+        String rendered = functionEngine.render(
+                "{{fn.echo({{env.token}})}}",
+                "GET",
+                "/api",
+                null,
+                Map.of(),
+                null,
+                new EnvironmentContext(1L, "Local", Map.of(), Map.of("token", "abc")),
+                TemplatePhase.RESPONSE);
+
+        assertThat(rendered).isEqualTo("abc");
+    }
+
+    @Test
+    void leavesFunctionsUnresolvedDuringMatchingPhase() {
+        MockFunctionService functionService = new MockFunctionService(null, null, null) {
+            @Override
+            public Object execute(Long ownerId, String name, java.util.List<Object> args, TemplateRenderContext context) {
+                throw new AssertionError("Functions must not execute during matching.");
+            }
+        };
+        MockTemplateEngine functionEngine =
+                new MockTemplateEngine(new EnvironmentTemplateService(parser), parser, functionService);
+
+        String rendered = functionEngine.render(
+                "{{fn.uuid()}}",
+                "GET",
+                "/api",
+                null,
+                Map.of(),
+                null,
+                EnvironmentContext.empty(),
+                TemplatePhase.MATCHING);
+
+        assertThat(rendered).isEqualTo("{{fn.uuid()}}");
+    }
 }

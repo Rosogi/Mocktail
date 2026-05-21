@@ -3,6 +3,7 @@ package com.rosogisoft.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -18,8 +19,10 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,11 +54,20 @@ public class MockTemplateEngine {
 
     private final EnvironmentTemplateService environmentTemplateService;
     private final TemplateExpressionParser expressionParser;
+    private final MockFunctionService functionService;
+
+    @Autowired
+    public MockTemplateEngine(EnvironmentTemplateService environmentTemplateService,
+                              TemplateExpressionParser expressionParser,
+                              MockFunctionService functionService) {
+        this.environmentTemplateService = environmentTemplateService;
+        this.expressionParser = expressionParser;
+        this.functionService = functionService;
+    }
 
     public MockTemplateEngine(EnvironmentTemplateService environmentTemplateService,
                               TemplateExpressionParser expressionParser) {
-        this.environmentTemplateService = environmentTemplateService;
-        this.expressionParser = expressionParser;
+        this(environmentTemplateService, expressionParser, null);
     }
 
     /**
@@ -83,77 +95,93 @@ public class MockTemplateEngine {
                          Map<String, String> headers,
                          String requestBody,
                          EnvironmentContext environmentContext) {
+        TemplateRenderContext context = new TemplateRenderContext(
+                null, method, path, queryParams, headers, requestBody, environmentContext, TemplatePhase.RESPONSE);
+        return render(template, context);
+    }
+
+    public String render(String template,
+                         String method,
+                         String path,
+                         String queryParams,
+                         Map<String, String> headers,
+                         String requestBody,
+                         EnvironmentContext environmentContext,
+                         TemplatePhase phase) {
+        TemplateRenderContext context = new TemplateRenderContext(
+                null, method, path, queryParams, headers, requestBody, environmentContext, phase);
+        return render(template, context);
+    }
+
+    public String render(String template, TemplateRenderContext context) {
 
         if (template == null || !template.contains("{{")) {
             return template;
         }
 
-        TemplateUsage usage = inspectTemplate(template);
-        JsonNode bodyJson = usage.hasJsonBodyPath() ? parseJson(requestBody) : null;
-        Document bodyXml = usage.hasXPath() ? parseXml(requestBody) : null;
-        Map<String, String> xmlNamespaces = bodyXml != null ? collectNamespaces(bodyXml) : Map.of();
-        Map<String, String> params = parseQueryString(queryParams);
-        Map<String, String> safeHeaders = headers != null ? headers : Map.of();
-
-        Matcher matcher = PLACEHOLDER.matcher(template);
-        StringBuilder result = new StringBuilder(template.length() + 64);
-
-        while (matcher.find()) {
-            String expr = matcher.group(1).trim();
-            String replacement = resolveExpression(expr, method, path, params, safeHeaders, bodyJson, bodyXml,
-                    xmlNamespaces, environmentContext);
-            matcher.appendReplacement(result,
-                    replacement != null
-                            ? Matcher.quoteReplacement(replacement)
-                            : matcher.group(0));
+        List<TemplateExpressionParser.TemplatePlaceholder> placeholders = expressionParser.placeholders(template);
+        if (placeholders.isEmpty()) {
+            return template;
         }
-        matcher.appendTail(result);
+        StringBuilder result = new StringBuilder(template.length() + 64);
+        int cursor = 0;
+        for (TemplateExpressionParser.TemplatePlaceholder placeholder : placeholders) {
+            result.append(template, cursor, placeholder.start());
+            String replacement = resolveExpression(placeholder.expression(), context);
+            result.append(replacement != null ? replacement : placeholder.placeholder());
+            cursor = placeholder.end();
+        }
+        result.append(template, cursor, template.length());
         return result.toString();
     }
 
-    private String resolveExpression(String expr,
-                                     String method,
-                                     String path,
-                                     Map<String, String> params,
-                                     Map<String, String> headers,
-                                     JsonNode bodyJson,
-                                     Document bodyXml,
-                                     Map<String, String> xmlNamespaces,
-                                     EnvironmentContext environmentContext) {
+    public String renderResponse(String template, TemplateRenderContext context) {
+        return render(template, context.withPhase(TemplatePhase.RESPONSE));
+    }
+
+    public String renderMatching(String template,
+                                 String method,
+                                 String path,
+                                 String queryParams,
+                                 Map<String, String> headers,
+                                 String requestBody,
+                                 EnvironmentContext environmentContext) {
+        return render(template, method, path, queryParams, headers, requestBody,
+                environmentContext, TemplatePhase.MATCHING);
+    }
+
+    private String resolveExpression(String expr, TemplateRenderContext context) {
         TemplateExpressionParser.TemplateExpression expression = expressionParser.parse(expr);
-        String resolved = resolveLookup(expression.lookup(), method, path, params, headers, bodyJson, bodyXml,
-                xmlNamespaces, environmentContext);
+        Object resolved = resolveLookup(expression.lookup(), context);
         return resolved != null
-                ? resolved
+                ? stringify(resolved)
                 : expression.fallback().map(TemplateExpressionParser.TemplateLiteral::value).orElse(null);
     }
 
-    private String resolveLookup(String expr,
-                                 String method,
-                                 String path,
-                                 Map<String, String> params,
-                                 Map<String, String> headers,
-                                 JsonNode bodyJson,
-                                 Document bodyXml,
-                                 Map<String, String> xmlNamespaces,
-                                 EnvironmentContext environmentContext) {
-        if (expr.equalsIgnoreCase("request.method")) return method;
-        if (expr.equalsIgnoreCase("request.path")) return path;
+    private Object resolveLookup(String expr, TemplateRenderContext context) {
+        if (expr == null || expr.isBlank()) {
+            return null;
+        }
+        if (isFunctionCall(expr)) {
+            return resolveFunction(expr, context);
+        }
+        if (expr.equalsIgnoreCase("request.method")) return context.method();
+        if (expr.equalsIgnoreCase("request.path")) return context.path();
 
         String normalizedExpr = expr.toLowerCase(Locale.ROOT);
 
         if (normalizedExpr.startsWith("env.") || normalizedExpr.startsWith("global.")) {
-            return environmentTemplateService.resolveExpression(expr, environmentContext, false);
+            return environmentTemplateService.resolveExpression(expr, context.environmentContext(), false);
         }
 
         if (normalizedExpr.startsWith("param.")) {
             String key = expr.substring(6);
-            return params.get(key);
+            return context.queryParams().get(key);
         }
 
         if (normalizedExpr.startsWith("header.")) {
             String headerName = expr.substring(7);
-            return headers.entrySet().stream()
+            return context.headers().entrySet().stream()
                     .filter(e -> e.getKey().equalsIgnoreCase(headerName))
                     .map(Map.Entry::getValue)
                     .findFirst()
@@ -162,14 +190,147 @@ public class MockTemplateEngine {
 
         if (normalizedExpr.startsWith(XPATH_PREFIX)) {
             String xpath = expr.substring(XPATH_PREFIX.length()).trim();
-            return resolveXPath(bodyXml, xmlNamespaces, xpath);
+            return resolveXPath(context.bodyXml(), context.xmlNamespaces(), xpath);
         }
 
+        JsonNode bodyJson = context.bodyJson();
         if (bodyJson != null) {
             return resolveJsonPath(bodyJson, expr);
         }
 
         return null;
+    }
+
+    private Object resolveFunction(String expr, TemplateRenderContext context) {
+        if (context.phase() == TemplatePhase.MATCHING) {
+            return null;
+        }
+        if (functionService == null) {
+            return null;
+        }
+        FunctionCall call = parseFunctionCall(expr);
+        List<Object> args = call.arguments().stream()
+                .map(argument -> resolveArgument(argument, context))
+                .toList();
+        try {
+            return functionService.execute(context.ownerId(), call.name(), args, context);
+        } catch (RuntimeException e) {
+            log.debug("Could not execute template function '{}'", call.name(), e);
+            return null;
+        }
+    }
+
+    private Object resolveArgument(String argument, TemplateRenderContext context) {
+        String value = argument != null ? argument.trim() : "";
+        if (value.startsWith("{{") && value.endsWith("}}")) {
+            return resolveExpression(value.substring(2, value.length() - 2).trim(), context);
+        }
+        if (isFunctionCall(value)) {
+            return resolveFunction(value, context);
+        }
+        if (isQuoted(value)) {
+            return unquote(value);
+        }
+        if ("true".equalsIgnoreCase(value)) return true;
+        if ("false".equalsIgnoreCase(value)) return false;
+        if ("null".equalsIgnoreCase(value) || "none".equalsIgnoreCase(value)) return null;
+        if (value.matches("-?\\d+")) return Long.parseLong(value);
+        if (value.matches("-?\\d+\\.\\d+")) return Double.parseDouble(value);
+        Object resolved = resolveLookup(value, context);
+        return resolved != null ? resolved : value;
+    }
+
+    private boolean isFunctionCall(String expr) {
+        String value = expr != null ? expr.trim() : "";
+        return value.startsWith("fn.") && value.endsWith(")") && value.indexOf('(') > 3;
+    }
+
+    private FunctionCall parseFunctionCall(String expr) {
+        String value = expr.trim();
+        int open = value.indexOf('(');
+        String name = value.substring(3, open).trim();
+        String rawArgs = value.substring(open + 1, value.length() - 1);
+        return new FunctionCall(name, splitArguments(rawArgs));
+    }
+
+    private List<String> splitArguments(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        char quote = 0;
+        boolean escaped = false;
+        int parenDepth = 0;
+        int templateDepth = 0;
+        int start = 0;
+        for (int i = 0; i < raw.length(); i++) {
+            char current = raw.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (quote != 0) {
+                if (current == quote) quote = 0;
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            char next = i + 1 < raw.length() ? raw.charAt(i + 1) : 0;
+            if (current == '(') parenDepth++;
+            else if (current == ')') parenDepth--;
+            else if (current == '{' && next == '{') {
+                templateDepth++;
+                i++;
+            } else if (current == '}' && next == '}') {
+                templateDepth--;
+                i++;
+            } else if (current == ',' && parenDepth == 0 && templateDepth == 0) {
+                result.add(raw.substring(start, i).trim());
+                start = i + 1;
+            }
+        }
+        result.add(raw.substring(start).trim());
+        return result.stream().filter(arg -> !arg.isBlank()).toList();
+    }
+
+    private boolean isQuoted(String value) {
+        if (value.length() < 2) return false;
+        char first = value.charAt(0);
+        char last = value.charAt(value.length() - 1);
+        return (first == '\'' || first == '"') && first == last;
+    }
+
+    private String unquote(String value) {
+        String body = value.substring(1, value.length() - 1);
+        StringBuilder result = new StringBuilder(body.length());
+        boolean escaped = false;
+        for (int i = 0; i < body.length(); i++) {
+            char current = body.charAt(i);
+            if (escaped) {
+                result.append(switch (current) {
+                    case 'n' -> '\n';
+                    case 'r' -> '\r';
+                    case 't' -> '\t';
+                    default -> current;
+                });
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') escaped = true;
+            else result.append(current);
+        }
+        if (escaped) result.append('\\');
+        return result.toString();
+    }
+
+    private String stringify(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private String resolveXPath(Document document,
@@ -366,5 +527,8 @@ public class MockTemplateEngine {
     }
 
     private record TemplateUsage(boolean hasXPath, boolean hasJsonBodyPath) {
+    }
+
+    private record FunctionCall(String name, List<String> arguments) {
     }
 }

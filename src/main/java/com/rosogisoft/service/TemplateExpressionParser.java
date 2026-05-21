@@ -5,30 +5,75 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component
 public class TemplateExpressionParser {
-
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([^}]+)}}");
 
     public List<TemplatePlaceholder> placeholders(String template) {
         if (template == null || !template.contains("{{")) {
             return List.of();
         }
         List<TemplatePlaceholder> result = new ArrayList<>();
-        Matcher matcher = PLACEHOLDER.matcher(template);
-        while (matcher.find()) {
-            String expression = matcher.group(1).trim();
+        int index = 0;
+        while (index < template.length()) {
+            int start = template.indexOf("{{", index);
+            if (start < 0) {
+                break;
+            }
+            int end = placeholderEnd(template, start + 2);
+            if (end < 0) {
+                break;
+            }
+            String placeholder = template.substring(start, end + 2);
+            String expression = template.substring(start + 2, end).trim();
             result.add(new TemplatePlaceholder(
-                    matcher.group(0),
+                    placeholder,
                     expression,
                     parse(expression),
-                    matcher.start(),
-                    matcher.end()));
+                    start,
+                    end + 2));
+            index = end + 2;
         }
         return result;
+    }
+
+    private int placeholderEnd(String template, int start) {
+        int depth = 1;
+        char quote = 0;
+        boolean escaped = false;
+        for (int i = start; i < template.length() - 1; i++) {
+            char current = template.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (current == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (quote != 0) {
+                if (current == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            char next = template.charAt(i + 1);
+            if (current == '{' && next == '{') {
+                depth++;
+                i++;
+            } else if (current == '}' && next == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+                i++;
+            }
+        }
+        return -1;
     }
 
     public TemplateExpression parse(String expression) {
@@ -45,6 +90,8 @@ public class TemplateExpressionParser {
     private int fallbackSeparator(String expression) {
         char quote = 0;
         boolean escaped = false;
+        int parenDepth = 0;
+        int templateDepth = 0;
         for (int i = 0; i < expression.length() - 1; i++) {
             char current = expression.charAt(i);
             if (escaped) {
@@ -65,7 +112,18 @@ public class TemplateExpressionParser {
                 quote = current;
                 continue;
             }
-            if (current == '?' && expression.charAt(i + 1) == '?') {
+            char next = expression.charAt(i + 1);
+            if (current == '(') {
+                parenDepth++;
+            } else if (current == ')') {
+                parenDepth = Math.max(0, parenDepth - 1);
+            } else if (current == '{' && next == '{') {
+                templateDepth++;
+                i++;
+            } else if (current == '}' && next == '}') {
+                templateDepth = Math.max(0, templateDepth - 1);
+                i++;
+            } else if (current == '?' && next == '?' && parenDepth == 0 && templateDepth == 0) {
                 return i;
             }
         }

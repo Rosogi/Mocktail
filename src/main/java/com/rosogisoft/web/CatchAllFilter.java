@@ -11,6 +11,8 @@ import com.rosogisoft.service.EnvironmentService;
 import com.rosogisoft.service.MockMatcherService;
 import com.rosogisoft.service.MockTemplateEngine;
 import com.rosogisoft.service.RequestLogService;
+import com.rosogisoft.service.TemplatePhase;
+import com.rosogisoft.service.TemplateRenderContext;
 import com.rosogisoft.service.UserService;
 import com.rosogisoft.service.UserSettingsService;
 import com.rosogisoft.ws.RequestEventPublisher;
@@ -71,9 +73,7 @@ public class CatchAllFilter implements Filter {
         // Find owner by port
         Optional<User> ownerOpt = userService.findByPort(port);
         if (ownerOpt.isEmpty()) {
-            response.setStatus(404);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"No user assigned to this port\"}");
+            writeResponse(response, 404, "application/json", "{\"error\":\"No user assigned to this port\"}");
             return;
         }
 
@@ -98,28 +98,25 @@ public class CatchAllFilter implements Filter {
 
         if (mockOpt.isPresent()) {
             MockDefinition mock = mockOpt.get();
+            TemplateRenderContext templateContext = new TemplateRenderContext(
+                    owner.getId(), method, path, queryString, headers, body, environmentContext, TemplatePhase.RESPONSE);
 
             // Set response headers from mock
             if (mock.getResponseHeaders() != null) {
                 mock.getResponseHeaders().forEach((name, value) -> {
-                    String resolvedName = templateEngine.render(name, method, path, queryString, headers, body,
-                            environmentContext);
-                    String resolvedValue = templateEngine.render(value, method, path, queryString, headers, body,
-                            environmentContext);
+                    String resolvedName = templateEngine.render(name, templateContext);
+                    String resolvedValue = templateEngine.render(value, templateContext);
                     response.setHeader(resolvedName, resolvedValue);
                 });
             }
 
-            response.setStatus(mock.getResponseStatus());
-            response.setContentType(templateEngine.render(
-                    mock.getResponseContentType(), method, path, queryString, headers, body,
-                    environmentContext));
+            String responseContentType = templateEngine.render(mock.getResponseContentType(), templateContext);
 
             String responseBody = templateEngine.render(
                     mock.getResponseBody() != null ? mock.getResponseBody() : "",
-                    method, path, queryString, headers, body, environmentContext
+                    templateContext
             );
-            response.getWriter().write(responseBody);
+            writeResponse(response, mock.getResponseStatus(), responseContentType, responseBody);
 
             logEntry.setMatchedMock(mock);
             logEntry.setResponseStatus(mock.getResponseStatus());
@@ -127,17 +124,16 @@ public class CatchAllFilter implements Filter {
 
         } else {
             var settings = settingsService.getSettings(owner);
+            TemplateRenderContext templateContext = new TemplateRenderContext(
+                    owner.getId(), method, path, queryString, headers, body, environmentContext, TemplatePhase.RESPONSE);
             String responseBody = templateEngine.render(
                     settings.get(SettingKey.DEFAULT_RESPONSE_BODY),
-                    method, path, queryString, headers, body, environmentContext
+                    templateContext
             );
             int status = settings.getInt(SettingKey.DEFAULT_RESPONSE_STATUS);
 
-            response.setStatus(status);
-            response.setContentType(templateEngine.render(
-                    settings.get(SettingKey.DEFAULT_RESPONSE_CT),
-                    method, path, queryString, headers, body, environmentContext));
-            response.getWriter().write(responseBody);
+            String responseContentType = templateEngine.render(settings.get(SettingKey.DEFAULT_RESPONSE_CT), templateContext);
+            writeResponse(response, status, responseContentType, responseBody);
 
             logEntry.setResponseStatus(status);
             logEntry.setResponseBody(responseBody);
@@ -154,6 +150,46 @@ public class CatchAllFilter implements Filter {
             return port == mocktailProperties.getStandalone().getUserPort();
         }
         return port >= appProperties.getRangeStart() && port <= appProperties.getRangeEnd();
+    }
+
+    private void writeResponse(HttpServletResponse response,
+                               int status,
+                               String contentType,
+                               String body) throws IOException {
+        byte[] bytes = (body != null ? body : "").getBytes(StandardCharsets.UTF_8);
+        response.setStatus(status);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType(utf8ContentType(contentType));
+        response.setContentLength(bytes.length);
+        response.getOutputStream().write(bytes);
+    }
+
+    private String utf8ContentType(String contentType) {
+        String value = contentType != null && !contentType.isBlank()
+                ? contentType.trim()
+                : "text/plain";
+        if (hasCharset(value) || !isTextContentType(value)) {
+            return value;
+        }
+        return value + ";charset=UTF-8";
+    }
+
+    private boolean hasCharset(String contentType) {
+        return Arrays.stream(contentType.split(";"))
+                .skip(1)
+                .map(String::trim)
+                .anyMatch(part -> part.toLowerCase(Locale.ROOT).startsWith("charset="));
+    }
+
+    private boolean isTextContentType(String contentType) {
+        String mediaType = contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+        return mediaType.startsWith("text/") ||
+                mediaType.equals("application/json") ||
+                mediaType.endsWith("+json") ||
+                mediaType.equals("application/xml") ||
+                mediaType.endsWith("+xml") ||
+                mediaType.equals("application/javascript") ||
+                mediaType.equals("application/x-www-form-urlencoded");
     }
 
     private String readBody (HttpServletRequest request) {

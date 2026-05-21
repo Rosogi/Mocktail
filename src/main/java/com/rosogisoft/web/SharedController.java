@@ -4,6 +4,7 @@ import com.rosogisoft.config.ApplicationCapabilities;
 import com.rosogisoft.domain.User;
 import com.rosogisoft.repository.MockDefinitionRepository;
 import com.rosogisoft.service.I18nService;
+import com.rosogisoft.service.MockFunctionService;
 import com.rosogisoft.service.SharedCollectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,12 +24,19 @@ public class SharedController {
 
     private final CurrentUserHelper currentUserHelper;
     private final SharedCollectionService sharedCollectionService;
+    private final MockFunctionService functionService;
     private final MockDefinitionRepository mockRepository;
     private final I18nService i18n;
     private final ApplicationCapabilities capabilities;
 
     @GetMapping
-    public String list(Model model) {
+    public String list() {
+        ensureSharedEnabled();
+        return "redirect:/shared/collections";
+    }
+
+    @GetMapping("/collections")
+    public String collections(Model model) {
         ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
         var sharedCollections = sharedCollectionService.findSharedForUser(user);
@@ -46,10 +54,19 @@ public class SharedController {
         model.addAttribute("mockCounts", mockCounts);
         model.addAttribute("subscriptions", subscriptions);
         model.addAttribute("updateAvailable", updates);
-        return "shared/index";
+        return "shared/collections";
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/functions")
+    public String functions(Model model) {
+        ensureSharedEnabled();
+        User user = currentUserHelper.currentUser();
+        model.addAttribute("user", user);
+        model.addAttribute("sharedFunctions", functionService.sharedFunctions(user));
+        return "shared/functions";
+    }
+
+    @GetMapping({"/{id}", "/collections/{id}"})
     public String detail(@PathVariable Long id, Model model, RedirectAttributes ra) {
         ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
@@ -66,11 +83,11 @@ public class SharedController {
             return "shared/detail";
         } catch (IllegalArgumentException e) {
             ra.addFlashAttribute("errorMessage", i18n.t("flash.collectionNotFound"));
-            return "redirect:/shared";
+            return "redirect:/shared/collections";
         }
     }
 
-    @PostMapping("/{id}/subscribe")
+    @PostMapping({"/{id}/subscribe", "/collections/{id}/subscribe"})
     public String subscribe(@PathVariable Long id, RedirectAttributes ra) {
         ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
@@ -80,11 +97,11 @@ public class SharedController {
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
             ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
-            return "redirect:/shared";
+            return "redirect:/shared/collections";
         }
     }
 
-    @PostMapping("/{id}/copy")
+    @PostMapping({"/{id}/copy", "/collections/{id}/copy"})
     public String copy(@PathVariable Long id, RedirectAttributes ra) {
         ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
@@ -94,11 +111,11 @@ public class SharedController {
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
             ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
-            return "redirect:/shared";
+            return "redirect:/shared/collections";
         }
     }
 
-    @PostMapping("/{id}/update")
+    @PostMapping({"/{id}/update", "/collections/{id}/update"})
     public String updateFromSource(@PathVariable Long id, RedirectAttributes ra) {
         ensureSharedEnabled();
         User user = currentUserHelper.currentUser();
@@ -108,7 +125,7 @@ public class SharedController {
             return "redirect:/collections/" + local.getId();
         } catch (RuntimeException e) {
             ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
-            return "redirect:/shared";
+            return "redirect:/shared/collections";
         }
     }
 
@@ -150,6 +167,55 @@ public class SharedController {
         return "redirect:/collections";
     }
 
+    @PostMapping("/functions/{id}/subscribe")
+    public String subscribeFunction(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
+        User user = currentUserHelper.currentUser();
+        try {
+            functionService.subscribe(id, user);
+            ra.addFlashAttribute("successMessage", i18n.t("flash.functionSubscribed"));
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
+        }
+        return "redirect:/shared/functions";
+    }
+
+    @PostMapping("/functions/{id}/copy")
+    public String copyFunction(@PathVariable Long id, RedirectAttributes ra) {
+        ensureSharedEnabled();
+        User user = currentUserHelper.currentUser();
+        try {
+            functionService.copyShared(id, user);
+            ra.addFlashAttribute("successMessage", i18n.t("flash.functionCopied"));
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
+        }
+        return "redirect:/shared/functions";
+    }
+
+    @PostMapping("/function-subscriptions/{localId}/update")
+    public String updateFunctionSubscription(@PathVariable Long localId, RedirectAttributes ra) {
+        ensureSharedEnabled();
+        User user = currentUserHelper.currentUser();
+        try {
+            functionService.updateSubscription(localId, user);
+            ra.addFlashAttribute("successMessage", i18n.t("flash.functionSubscriptionUpdated"));
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMessage", sharedErrorMessage(e));
+        }
+        return "redirect:/shared/functions";
+    }
+
+    @PostMapping("/function-subscriptions/{localId}/unsubscribe")
+    public String unsubscribeFunction(@PathVariable Long localId, RedirectAttributes ra) {
+        ensureSharedEnabled();
+        User user = currentUserHelper.currentUser();
+        boolean ok = functionService.unsubscribe(localId, user);
+        ra.addFlashAttribute(ok ? "successMessage" : "errorMessage",
+                ok ? i18n.t("flash.functionSubscriptionRemoved") : i18n.t("flash.functionNotFound"));
+        return "redirect:/shared/functions";
+    }
+
     private void ensureSharedEnabled() {
         if (!capabilities.isShared()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
@@ -172,6 +238,18 @@ public class SharedController {
         }
         if ("Subscribed collections are read-only.".equals(message)) {
             return i18n.t("flash.readOnlyCollection");
+        }
+        if ("Shared function not found.".equals(message)) {
+            return i18n.t("flash.functionNotFound");
+        }
+        if ("Function subscription not found.".equals(message)) {
+            return i18n.t("flash.functionNotFound");
+        }
+        if ("Source function is no longer shared.".equals(message)) {
+            return i18n.t("flash.sourceNoLongerShared");
+        }
+        if ("Function subscription is invalid.".equals(message)) {
+            return i18n.t("flash.subscriptionInvalid");
         }
         return message;
     }

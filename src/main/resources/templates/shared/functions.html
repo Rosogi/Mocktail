@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${@i18n.t('shared.functions')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('sharedFunctions', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${@i18n.t('shared.functions')}">Functions</h4>
+      <small class="text-muted" th:text="${@i18n.t('shared.functionsSubtitle')}">Functions shared by other users</small>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold">
+      <i class="bi bi-code-slash me-2 text-muted"></i>
+      <span th:text="${@i18n.t('shared.functions')}">Functions</span>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+        <tr>
+          <th th:text="${@i18n.t('functions.name')}">Name</th>
+          <th th:text="${@i18n.t('functions.signature')}">Signature</th>
+          <th th:text="${@i18n.t('collections.owner')}">Owner</th>
+          <th style="width:230px" th:text="${@i18n.t('actions.actions')}">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${sharedFunctions.empty}">
+          <td colspan="4" class="text-center text-muted py-3" th:text="${@i18n.t('shared.emptyFunctions')}">No shared functions yet</td>
+        </tr>
+        <tr th:each="item : ${sharedFunctions}">
+          <td>
+            <div class="fw-semibold" th:text="${item.source.name}">fn</div>
+            <div class="small text-muted" th:text="${not #strings.isEmpty(item.source.description) ? item.source.description : @i18n.t('functions.noDescription')}">Description</div>
+          </td>
+          <td class="font-monospace small" th:text="${item.source.signatureLabel}">fn.name() string</td>
+          <td>
+            <span class="badge bg-light text-dark border">
+              <i class="bi bi-person me-1"></i><span th:text="${item.source.ownerName}">owner</span>
+            </span>
+            <span class="badge bg-light text-dark border ms-1">
+              <span th:text="${@i18n.t('shared.rev')}">rev</span> <span th:text="${item.source.revision}">1</span>
+            </span>
+            <span th:if="${item.local != null}" class="badge bg-info text-dark ms-1" th:text="${@i18n.t('badges.subscribed')}">Subscribed</span>
+            <span th:if="${item.updateAvailable}" class="badge bg-warning text-dark ms-1" th:text="${@i18n.t('badges.update')}">Update</span>
+          </td>
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              <form th:if="${item.local == null}" th:action="@{/shared/functions/{id}/subscribe(id=${item.source.id})}" method="post">
+                <button class="btn btn-sm btn-primary" type="submit">
+                  <i class="bi bi-bookmark-plus"></i>
+                  <span th:text="${@i18n.t('actions.subscribe')}">Subscribe</span>
+                </button>
+              </form>
+              <form th:if="${item.local != null and item.updateAvailable}" th:action="@{/shared/function-subscriptions/{id}/update(id=${item.local.id})}" method="post">
+                <button class="btn btn-sm btn-warning" type="submit">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span th:text="${@i18n.t('actions.update')}">Update</span>
+                </button>
+              </form>
+              <form th:if="${item.local != null}" th:action="@{/shared/function-subscriptions/{id}/unsubscribe(id=${item.local.id})}" method="post">
+                <button class="btn btn-sm btn-outline-danger" type="submit" th:title="${@i18n.t('actions.unsubscribe')}">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+              <form th:action="@{/shared/functions/{id}/copy(id=${item.source.id})}" method="post">
+                <button class="btn btn-sm btn-outline-success" type="submit">
+                  <i class="bi bi-copy"></i>
+                  <span th:text="${@i18n.t('actions.copy')}">Copy</span>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

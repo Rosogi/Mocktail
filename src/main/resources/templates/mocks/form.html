@@ -57,6 +57,7 @@
             <input type="text" class="form-control font-monospace" th:field="*{pathPattern}"
                    placeholder="/api/users/**" required
                    th:data-template-location="${@i18n.t('mocks.pathPattern')}"
+                   data-template-phase="matching"
                    data-template-autocomplete/>
             <div class="form-text">
               <span th:text="${@i18n.t('mocks.pathHint')}">Ant-style:</span>
@@ -90,6 +91,7 @@
             <input type="text" class="form-control font-monospace" th:field="*{requestBodyContains}"
                    th:placeholder="${@i18n.t('mocks.requestBodyContainsPlaceholder')}"
                    th:data-template-location="${@i18n.t('mocks.requestBodyContains')}"
+                   data-template-phase="matching"
                    data-template-autocomplete/>
             <div class="form-text" th:text="${@i18n.t('mocks.requestBodyContainsHint')}">Substring match on raw request body. Useful for SOAP dispatch.</div>
           </div>
@@ -202,6 +204,7 @@
                     <input type="text" class="form-control form-control-sm font-monospace"
                            data-condition-target
                            data-template-autocomplete
+                           data-template-phase="matching"
                            th:data-template-location="${@i18n.t('mocks.conditionsTitle')}"
                            th:placeholder="${@i18n.t('mocks.conditionsTargetJsonPlaceholder')}"/>
                   </div>
@@ -221,6 +224,7 @@
                     <input type="text" class="form-control form-control-sm font-monospace"
                            data-condition-value
                            data-template-autocomplete
+                           data-template-phase="matching"
                            th:data-template-location="${@i18n.t('mocks.conditionsTitle')}"
                            th:placeholder="${@i18n.t('mocks.conditionsValuePlaceholder')}"/>
                   </div>
@@ -339,7 +343,8 @@
           <code>{{header.Authorization}}</code> <span th:text="${@i18n.t('mocks.requestHeader')}">request header</span>
           <br/>
           <code>{{xpath:string(//*[local-name()='CustomerId'])}}</code> <span th:text="${@i18n.t('mocks.xmlXPath')}">XML/SOAP XPath</span> &nbsp;·&nbsp;
-          <code>{{request.method}}</code> / <code>{{request.path}}</code>
+          <code>{{request.method}}</code> / <code>{{request.path}}</code> &nbsp;·&nbsp;
+          <code>{{fn.uuid('correlationId')}}</code>
         </div>
 
         <!-- Extra headers -->

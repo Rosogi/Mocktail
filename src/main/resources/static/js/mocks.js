@@ -94,7 +94,11 @@ function confirmDelete(form) {
         .filter(item => item && item.expression)
         .map(item => ({
           expression: item.expression,
+          label: item.label || item.expression,
+          insertText: item.insertText || item.expression,
           preview: item.preview || '',
+          description: item.description || '',
+          kind: item.kind || 'value',
           hidden: item.hidden === true
         }));
 
@@ -140,8 +144,8 @@ function confirmDelete(form) {
       }
       menu.innerHTML = activeItems.map((item, index) => `
         <button type="button" class="template-autocomplete-item ${index === selectedIndex ? 'active' : ''}" data-index="${index}">
-          <span class="template-autocomplete-expression">${escapeHtml(item.expression)}</span>
-          <span class="template-autocomplete-preview">${escapeHtml(item.hidden ? '********' : item.preview)}</span>
+          <span class="template-autocomplete-expression">${escapeHtml(item.label)}</span>
+          <span class="template-autocomplete-preview">${escapeHtml(item.hidden ? '********' : (item.description || item.preview))}</span>
         </button>
       `).join('');
 
@@ -161,7 +165,10 @@ function confirmDelete(form) {
         return;
       }
       activeControl = control;
-      activeItems = suggestions.filter(item => matches(item, token.prefix));
+      const phase = control.dataset.templatePhase || 'response';
+      activeItems = suggestions
+          .filter(item => !(phase === 'matching' && item.kind === 'function'))
+          .filter(item => matches(item, token.prefix));
       selectedIndex = Math.min(selectedIndex, Math.max(activeItems.length - 1, 0));
       renderMenu();
     }
@@ -173,8 +180,9 @@ function confirmDelete(form) {
       const item = activeItems[selectedIndex];
       const before = activeControl.value.slice(0, token.start);
       const after = activeControl.value.slice(token.end);
-      activeControl.value = before + item.expression + after;
-      const cursor = before.length + item.expression.length;
+      const insertText = item.insertText || item.expression;
+      activeControl.value = before + insertText + after;
+      const cursor = before.length + Math.max(insertText.lastIndexOf(')'), insertText.length);
       activeControl.setSelectionRange(cursor, cursor);
       activeControl.dispatchEvent(new Event('input', { bubbles: true }));
       menu.classList.add('d-none');

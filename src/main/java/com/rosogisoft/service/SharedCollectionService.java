@@ -25,6 +25,7 @@ public class SharedCollectionService {
     private final MockCollectionRepository collectionRepository;
     private final MockDefinitionRepository mockRepository;
     private final CollectionSubscriptionRepository subscriptionRepository;
+    private final MockFunctionReferenceService functionReferenceService;
 
     public List<MockCollection> findSharedForUser(User user) {
         return collectionRepository.findSharedExcludingOwner(user.getId());
@@ -77,6 +78,7 @@ public class SharedCollectionService {
         return collectionRepository.findByIdAndOwnerId(collectionId, owner.getId())
                 .map(collection -> {
                     ensureEditableCollection(collection);
+                    ensureShareableCollection(collection);
                     if (!collection.isShared()) {
                         collection.setShared(true);
                         collection.setSharedAt(Instant.now());
@@ -267,6 +269,14 @@ public class SharedCollectionService {
     private void ensureEditableCollection(MockCollection collection) {
         if (collection.isReadOnly()) {
             throw new IllegalStateException("Subscribed collections are read-only.");
+        }
+    }
+
+    private void ensureShareableCollection(MockCollection collection) {
+        List<MockDefinition> mocks = mockRepository.findByCollectionId(collection.getId());
+        boolean usesUserFunctions = mocks.stream().anyMatch(functionReferenceService::usesUserFunctions);
+        if (usesUserFunctions) {
+            throw new IllegalStateException("Collections with custom functions cannot be shared.");
         }
     }
 }

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${editing ? @i18n.t('functions.edit') : @i18n.t('functions.create')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('functions', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${editing ? @i18n.t('functions.edit') : @i18n.t('functions.create')}">Create function</h4>
+      <small class="text-muted" th:text="${@i18n.t('functions.subtitle')}">Reusable Starlark functions for mock responses</small>
+    </div>
+    <a th:href="@{/functions}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i><span th:text="${@i18n.t('actions.cancel')}">Cancel</span>
+    </a>
+  </div>
+
+  <form class="function-form"
+        th:action="${editing ? '/functions/' + editingId + '/edit' : '/functions'}"
+        method="post">
+    <input type="hidden" name="id" th:value="${form.id}"/>
+    <input type="hidden" name="readOnly" th:value="${form.readOnly}"/>
+    <input th:if="${form.readOnly}" type="hidden" name="enabled" th:value="${form.enabled}"/>
+
+    <div class="row g-3">
+      <div class="col-xl-7">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white fw-semibold d-flex align-items-center gap-2">
+            <span th:text="${@i18n.t('functions.source')}">Starlark source</span>
+            <span th:if="${form.readOnly}" class="badge bg-info text-dark" th:text="${@i18n.t('badges.readOnly')}">Read-only</span>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('functions.signature')}">Signature</label>
+              <input class="form-control font-monospace"
+                     name="signatureLabel"
+                     data-function-signature
+                     th:value="${form.signatureLabel}"
+                     th:placeholder="${@i18n.t('functions.signaturePlaceholder')}"
+                     th:readonly="${form.readOnly}"
+                     required/>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('functions.description')}">Description</label>
+              <input class="form-control"
+                     name="description"
+                     th:value="${form.description}"
+                     th:placeholder="${@i18n.t('functions.descriptionPlaceholder')}"
+                     th:readonly="${form.readOnly}"/>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('functions.body')}">Starlark body</label>
+              <div class="function-parameters mb-2"
+                   data-function-parameters
+                   th:data-label="${@i18n.t('functions.parameters')}">
+                <span class="small text-muted me-1" th:text="${@i18n.t('functions.parameters')}">Parameters</span>
+                <button th:each="arg : ${testParameters}"
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary font-monospace function-parameter"
+                        data-function-parameter
+                        th:data-name="${arg.name}"
+                        th:text="${arg.name}">arg</button>
+              </div>
+              <div class="starlark-editor">
+                <pre class="starlark-highlight" aria-hidden="true" data-starlark-highlight></pre>
+                <textarea class="starlark-input"
+                          rows="14"
+                          name="sourceCode"
+                          data-starlark-editor
+                          spellcheck="false"
+                          th:placeholder="${@i18n.t('functions.sourcePlaceholder')}"
+                          th:text="${form.sourceCode}"
+                          th:readonly="${form.readOnly}"
+                          required></textarea>
+              </div>
+            </div>
+
+            <div class="form-check" th:if="${!form.readOnly}">
+              <input class="form-check-input"
+                     type="checkbox"
+                     name="enabled"
+                     value="true"
+                     th:checked="${form.enabled}"
+                     id="enabledCheck"/>
+              <label class="form-check-label" for="enabledCheck" th:text="${@i18n.t('functions.enabled')}">Enabled</label>
+            </div>
+            <div class="form-check" th:if="${form.readOnly}">
+              <input class="form-check-input" type="checkbox" th:checked="${form.enabled}" disabled/>
+              <label class="form-check-label" th:text="${@i18n.t('functions.enabled')}">Enabled</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-5">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white fw-semibold" th:text="${@i18n.t('functions.test')}">Check</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label fw-semibold" th:text="${@i18n.t('functions.testArgs')}">Test arguments</label>
+              <div class="function-test-args"
+                   data-test-args
+                   th:data-empty-label="${@i18n.t('functions.testArgsEmpty')}"
+                   th:data-value-label="${@i18n.t('functions.testArgValue')}">
+                <div th:if="${testParameters.empty}" class="text-muted small py-2" data-empty-args
+                     th:text="${@i18n.t('functions.testArgsEmpty')}">The function has no arguments.</div>
+                <div th:each="arg : ${testParameters}" class="function-test-arg" data-test-arg>
+                  <input type="hidden" name="testArgNames" th:value="${arg.name}"/>
+                  <input type="hidden" name="testArgTypes" th:value="${arg.type}"/>
+                  <label class="form-label small mb-1">
+                    <span class="font-monospace" th:text="${arg.name}">arg</span>
+                    <span class="text-muted" th:text="${' ' + arg.type}"> string</span>
+                  </label>
+                  <select th:if="${arg.booleanType}"
+                          class="form-select form-select-sm"
+                          name="testArgValues">
+                    <option value="" th:selected="${arg.value == null or arg.value == ''}"></option>
+                    <option value="true" th:selected="${arg.value == 'true'}">true</option>
+                    <option value="false" th:selected="${arg.value == 'false'}">false</option>
+                  </select>
+                  <input th:if="${arg.numberType}"
+                         type="number"
+                         step="any"
+                         class="form-control form-control-sm"
+                         name="testArgValues"
+                         th:value="${arg.value}"
+                         th:placeholder="${@i18n.t('functions.testArgValue')}"/>
+                  <input th:if="${!arg.booleanType and !arg.numberType}"
+                         type="text"
+                         class="form-control form-control-sm font-monospace"
+                         name="testArgValues"
+                         th:value="${arg.value}"
+                         th:placeholder="${@i18n.t('functions.testArgValue')}"/>
+                </div>
+              </div>
+            </div>
+
+            <div th:if="${testResult != null}" class="alert py-2"
+                 th:classappend="${testResult.success} ? ' alert-success' : ' alert-danger'">
+              <span th:if="${testResult.success}">
+                <span th:text="${@i18n.t('functions.testResult')}">Result</span>:
+                <code th:text="${testResult.value}">value</code>
+              </span>
+              <span th:if="${!testResult.success}" th:text="${testResult.error}">Error</span>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-outline-secondary" type="submit" th:formaction="@{/functions/test}">
+                <i class="bi bi-play me-1"></i>
+                <span th:text="${@i18n.t('functions.test')}">Check</span>
+              </button>
+              <button th:if="${!form.readOnly}" class="btn btn-primary" type="submit">
+                <i class="bi bi-floppy me-1"></i>
+                <span th:text="${editing ? @i18n.t('actions.saveChanges') : @i18n.t('functions.create')}">Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/functions.js}"></script>
+</body>
+</html>

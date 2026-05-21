@@ -5,14 +5,14 @@
 
 <body th:attr="data-bs-theme=${@theme.currentTheme()}">
 
-<nav th:replace="~{fragments/sidebar :: sidebar('shared', ${user})}"></nav>
+<nav th:replace="~{fragments/sidebar :: sidebar('sharedCollections', ${user})}"></nav>
 
 <main class="main">
 
   <div th:replace="~{fragments/flash :: flash}"></div>
 
   <div class="d-flex align-items-center gap-2 mb-3">
-    <a th:href="@{/shared}" class="btn btn-sm btn-outline-secondary">
+    <a th:href="@{/shared/collections}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i>
     </a>
     <div>
@@ -33,7 +33,7 @@
     </div>
     <div class="ms-auto d-flex gap-2 flex-wrap">
       <form th:if="${subscription == null}"
-            th:action="@{/shared/{id}/subscribe(id=${collection.id})}" method="post">
+            th:action="@{/shared/collections/{id}/subscribe(id=${collection.id})}" method="post">
         <button class="btn btn-sm btn-primary">
           <i class="bi bi-bookmark-plus"></i> <span th:text="${@i18n.t('actions.subscribe')}">Subscribe</span>
         </button>
@@ -44,12 +44,12 @@
         <i class="bi bi-folder2-open"></i> <span th:text="${@i18n.t('actions.open')}">Open</span>
       </a>
       <form th:if="${subscription != null and hasUpdate == true}"
-            th:action="@{/shared/{id}/update(id=${collection.id})}" method="post">
+            th:action="@{/shared/collections/{id}/update(id=${collection.id})}" method="post">
         <button class="btn btn-sm btn-warning">
           <i class="bi bi-arrow-clockwise"></i> <span th:text="${@i18n.t('actions.update')}">Update</span>
         </button>
       </form>
-      <form th:action="@{/shared/{id}/copy(id=${collection.id})}" method="post">
+      <form th:action="@{/shared/collections/{id}/copy(id=${collection.id})}" method="post">
         <button class="btn btn-sm btn-outline-success">
         <i class="bi bi-copy"></i> <span th:text="${@i18n.t('actions.copy')}">Copy</span>
         </button>

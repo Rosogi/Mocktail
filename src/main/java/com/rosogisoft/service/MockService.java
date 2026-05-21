@@ -20,6 +20,7 @@ public class MockService {
 
     private final MockDefinitionRepository mockRepository;
     private final MockCollectionRepository collectionRepository;
+    private final MockFunctionReferenceService functionReferenceService;
 
     public List<MockDefinition> findAllForUser(User user) {
         return mockRepository.findByOwnerId(user.getId());
@@ -116,6 +117,9 @@ public class MockService {
     }
 
     private void applyForm(MockDefinition mock, MockDefinitionForm form, User owner) {
+        if (functionReferenceService.hasFunctionReferencesInMatchingFields(form)) {
+            throw new IllegalArgumentException("Functions can only be used while building the response.");
+        }
         mock.setName(form.getName());
         mock.setHttpMethod(form.getHttpMethod().toUpperCase());
         mock.setPathPattern(form.getPathPattern());

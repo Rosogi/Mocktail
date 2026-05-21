@@ -188,6 +188,7 @@ Templates use double braces:
 | `{{header.X-Correlation-Id}}` | Request header. |
 | `{{transaction.id}}` | JSON request body field. Nested fields are supported. |
 | `{{xpath:string(//*[local-name()='CustomerId'])}}` | XML/SOAP XPath expression. |
+| `{{fn.uuid('correlationId')}}` | Response function. Functions are only available while building a response. |
 
 Environment values can be composed from other environment values:
 
@@ -208,6 +209,49 @@ Use `??` to provide a fallback value when a template value is missing:
 ```
 
 The `??` separator works with or without spaces around it. Fallbacks support strings, numbers, booleans, and `null`. Fallback parsing happens only inside `{{...}}`, so normal response text such as `What???` is left unchanged.
+
+### Response Functions
+
+Functions live under the `fn` namespace and are available in response bodies, response content type values, extra response header names, extra response header values, and the default response body. They are not allowed in mock method, path, or request matching conditions so matching remains deterministic.
+
+Built-in functions include:
+
+```text
+{{fn.uuid('correlationId')}}
+{{fn.uuid('correlationId', 'hexUpper')}}
+{{fn.randomInt(1000, 9999)}}
+{{fn.randomDigits(6)}}
+{{fn.randomAlnum(24)}}
+{{fn.nowEpochMillis()}}
+{{fn.sequence('orders')}}
+{{fn.ulid('eventId')}}
+```
+
+The first argument of `fn.uuid` and `fn.ulid` is an optional request-scoped cache key. Reusing the same key in headers and body produces the same value for one handled request.
+
+Custom pure functions are managed under **Functions** and are written in Starlark-style syntax.
+The editor accepts only the function body; Mocktail generates `def main(...)`
+from the signature before saving and executing it.
+
+Function metadata uses a single autocomplete signature, for example
+`fn.authToken(authHeader string) string`; the return type is derived from the
+signature.
+
+```python
+if authHeader.startswith("Bearer "):
+    return authHeader.substring(7, None)
+return authHeader
+```
+
+Custom functions are called the same way as standard functions:
+
+```text
+{{fn.authToken(header.Authorization)}}
+{{fn.someFunction(fn.anotherFunction())}}
+{{fn.someFunction({{env.someValue}})}}
+```
+
+Collections that use custom functions cannot be shared; share the functions separately from the Shared page.
 
 ### Where Templates Work
 

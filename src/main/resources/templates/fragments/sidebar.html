@@ -54,13 +54,42 @@
         <i class="bi bi-sliders"></i><span class="sidebar-label" th:text="${@i18n.t('nav.environments')}">Environments</span>
       </a>
     </li>
-    <li class="nav-item" th:if="${@capabilities.shared}">
+    <li class="nav-item">
       <a class="nav-link"
-         th:classappend="${activePage == 'shared'} ? 'active'"
-         th:href="@{/shared}"
-         th:title="${@i18n.t('nav.shared')}">
-        <i class="bi bi-share"></i><span class="sidebar-label" th:text="${@i18n.t('nav.shared')}">Shared</span>
+         th:classappend="${activePage == 'functions'} ? 'active'"
+         th:href="@{/functions}"
+         th:title="${@i18n.t('nav.functions')}">
+        <i class="bi bi-code-slash"></i><span class="sidebar-label" th:text="${@i18n.t('nav.functions')}">Functions</span>
       </a>
+    </li>
+    <li class="nav-item" th:if="${@capabilities.shared}">
+      <button type="button"
+              class="nav-link sidebar-disclosure"
+              th:classappend="${activePage == 'sharedCollections' or activePage == 'sharedFunctions'} ? 'active'"
+              data-shared-menu-toggle
+              th:data-open="${activePage == 'sharedCollections' or activePage == 'sharedFunctions'}"
+              th:title="${@i18n.t('nav.shared')}"
+              aria-expanded="false">
+        <i class="bi bi-share"></i>
+        <span class="sidebar-label" th:text="${@i18n.t('nav.shared')}">Shared</span>
+        <i class="bi bi-chevron-down sidebar-disclosure-icon"></i>
+      </button>
+      <div class="sidebar-subnav"
+           data-shared-subnav
+           th:classappend="${activePage == 'sharedCollections' or activePage == 'sharedFunctions'} ? ' open'">
+        <a class="nav-link sidebar-subnav-link"
+           th:classappend="${activePage == 'sharedCollections'} ? 'active'"
+           th:href="@{/shared/collections}"
+           th:title="${@i18n.t('nav.sharedCollections')}">
+          <i class="bi bi-collection"></i><span class="sidebar-label" th:text="${@i18n.t('nav.sharedCollections')}">Collections</span>
+        </a>
+        <a class="nav-link sidebar-subnav-link"
+           th:classappend="${activePage == 'sharedFunctions'} ? 'active'"
+           th:href="@{/shared/functions}"
+           th:title="${@i18n.t('nav.sharedFunctions')}">
+          <i class="bi bi-code-slash"></i><span class="sidebar-label" th:text="${@i18n.t('nav.sharedFunctions')}">Functions</span>
+        </a>
+      </div>
     </li>
     <li class="nav-item" th:if="${@capabilities.admin}">
       <a class="nav-link"
@@ -117,6 +146,25 @@
       toggle.addEventListener('click', function () {
         apply(!document.body.classList.contains('sidebar-collapsed'));
       });
+
+      const sharedToggle = document.querySelector('[data-shared-menu-toggle]');
+      const sharedSubnav = document.querySelector('[data-shared-subnav]');
+      if (sharedToggle && sharedSubnav) {
+        const sharedStorageKey = 'mocktail.sidebar.shared.open';
+
+        function applyShared(open) {
+          sharedSubnav.classList.toggle('open', open);
+          sharedToggle.classList.toggle('expanded', open);
+          sharedToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          window.localStorage.setItem(sharedStorageKey, open ? 'true' : 'false');
+        }
+
+        const activeOpen = sharedToggle.dataset.open === 'true';
+        applyShared(activeOpen || window.localStorage.getItem(sharedStorageKey) === 'true');
+        sharedToggle.addEventListener('click', function () {
+          applyShared(!sharedSubnav.classList.contains('open'));
+        });
+      }
     })();
   </script>
 </nav>

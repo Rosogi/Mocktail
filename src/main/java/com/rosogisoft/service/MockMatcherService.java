@@ -41,9 +41,9 @@ public class MockMatcherService {
         List<MockDefinition> candidates = mockRepository.findActiveByOwnerId(ownerId);
 
         for (MockDefinition mock : candidates) {
-            String mockMethod = templateEngine.render(mock.getHttpMethod(), method, path, queryString, headers, body,
+            String mockMethod = templateEngine.renderMatching(mock.getHttpMethod(), method, path, queryString, headers, body,
                     environmentContext);
-            String pathPattern = templateEngine.render(mock.getPathPattern(), method, path, queryString, headers, body,
+            String pathPattern = templateEngine.renderMatching(mock.getPathPattern(), method, path, queryString, headers, body,
                     environmentContext);
             if (!methodMatches(mockMethod, method)) {
                 continue;

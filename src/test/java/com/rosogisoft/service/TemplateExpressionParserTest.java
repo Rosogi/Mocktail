@@ -34,6 +34,15 @@ class TemplateExpressionParserTest {
     }
 
     @Test
+    void parsesNestedFunctionPlaceholdersAsOnePlaceholder() {
+        assertThat(parser.placeholders("{{fn.uuid({{env.key}})}}"))
+                .hasSize(1)
+                .first()
+                .extracting(TemplateExpressionParser.TemplatePlaceholder::expression)
+                .isEqualTo("fn.uuid({{env.key}})");
+    }
+
+    @Test
     void parsesTypedFallbackLiterals() {
         assertThat(parser.parse("env.port ?? 8080").fallback().orElseThrow().type())
                 .isEqualTo(TemplateExpressionParser.TemplateLiteralType.NUMBER);

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: head(${@i18n.t('functions.title')})}"></head>
+
+<body th:attr="data-bs-theme=${@theme.currentTheme()}">
+
+<nav th:replace="~{fragments/sidebar :: sidebar('functions', ${user})}"></nav>
+
+<main class="main">
+
+  <div th:replace="~{fragments/flash :: flash}"></div>
+
+  <div class="page-header">
+    <div>
+      <h4 th:text="${@i18n.t('functions.title')}">Functions</h4>
+      <small class="text-muted" th:text="${@i18n.t('functions.subtitle')}">Reusable Starlark functions for mock responses</small>
+    </div>
+    <a th:href="@{/functions/new}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i><span th:text="${@i18n.t('functions.create')}">Create function</span>
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold">
+          <i class="bi bi-stars me-2 text-muted"></i>
+          <span th:text="${@i18n.t('functions.standard')}">Standard functions</span>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0 align-middle functions-table">
+            <colgroup>
+              <col class="function-col-name"/>
+              <col class="function-col-description"/>
+              <col class="function-col-signature"/>
+              <col class="function-col-actions"/>
+            </colgroup>
+            <thead class="table-light">
+            <tr>
+              <th th:text="${@i18n.t('functions.name')}">Name</th>
+              <th th:text="${@i18n.t('functions.description')}">Description</th>
+              <th th:text="${@i18n.t('functions.signature')}">Signature</th>
+              <th th:text="${@i18n.t('actions.actions')}">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="fn : ${standardFunctions}">
+              <td class="function-cell function-name-cell">
+                <span class="fw-semibold" th:text="${fn.name}">uuid</span>
+              </td>
+              <td class="function-cell text-muted">
+                <span class="function-description" th:text="${fn.description}">Description</span>
+              </td>
+              <td class="function-cell font-monospace small">
+                <span class="function-signature" th:text="${fn.signatureLabel}">fn.uuid() string</span>
+              </td>
+              <td class="function-actions text-muted">-</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+          <i class="bi bi-code-slash me-2 text-muted"></i>
+          <span th:text="${@i18n.t('functions.mine')}">My functions</span>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover mb-0 align-middle functions-table">
+            <colgroup>
+              <col class="function-col-name"/>
+              <col class="function-col-description"/>
+              <col class="function-col-signature"/>
+              <col class="function-col-actions"/>
+            </colgroup>
+            <thead class="table-light">
+            <tr>
+              <th th:text="${@i18n.t('functions.name')}">Name</th>
+              <th th:text="${@i18n.t('functions.description')}">Description</th>
+              <th th:text="${@i18n.t('functions.signature')}">Signature</th>
+              <th th:text="${@i18n.t('actions.actions')}">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${userFunctions.empty}">
+              <td colspan="4" class="text-center text-muted py-3" th:text="${@i18n.t('functions.empty')}">No custom functions yet</td>
+            </tr>
+            <tr th:each="fn : ${userFunctions}">
+              <td class="function-cell function-name-cell">
+                <div class="fw-semibold" th:text="${fn.name}">name</div>
+                <div class="small text-muted">
+                  <span th:if="${fn.readOnly}" class="badge bg-info text-dark" th:text="${@i18n.t('badges.readOnly')}">Read-only</span>
+                  <span th:if="${fn.shared}" class="badge bg-success" th:text="${@i18n.t('badges.shared')}">Shared</span>
+                  <span th:if="${!fn.enabled}" class="badge bg-secondary" th:text="${@i18n.t('badges.inactive')}">Inactive</span>
+                  <span th:if="${fn.updateAvailable}" class="badge bg-warning text-dark" th:text="${@i18n.t('badges.update')}">Update</span>
+                </div>
+              </td>
+              <td class="function-cell text-muted">
+                <span class="function-description"
+                      th:text="${not #strings.isEmpty(fn.description) ? fn.description : @i18n.t('functions.noDescription')}">Description</span>
+              </td>
+              <td class="function-cell font-monospace small">
+                <span class="function-signature" th:text="${fn.signatureLabel}">fn.name() string</span>
+              </td>
+              <td class="function-actions">
+                <div class="d-flex gap-1 flex-nowrap">
+                  <a th:href="@{/functions/{id}/edit(id=${fn.id})}"
+                     class="btn btn-sm btn-outline-secondary"
+                     th:title="${fn.readOnly ? @i18n.t('functions.try') : @i18n.t('actions.edit')}">
+                    <i th:class="${fn.readOnly ? 'bi bi-play' : 'bi bi-pencil'}"></i>
+                  </a>
+                  <form th:if="${!fn.readOnly and !fn.shared}" th:action="@{/functions/{id}/share(id=${fn.id})}" method="post">
+                    <button class="btn btn-sm btn-outline-success" type="submit">
+                      <i class="bi bi-share"></i>
+                    </button>
+                  </form>
+                  <form th:if="${!fn.readOnly and fn.shared}" th:action="@{/functions/{id}/unshare(id=${fn.id})}" method="post">
+                    <button class="btn btn-sm btn-outline-warning" type="submit">
+                      <i class="bi bi-slash-circle"></i>
+                    </button>
+                  </form>
+                  <form th:if="${!fn.readOnly}" th:action="@{/functions/{id}/delete(id=${fn.id})}" method="post">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
